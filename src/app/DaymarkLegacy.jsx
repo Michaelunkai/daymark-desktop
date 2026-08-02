@@ -597,13 +597,14 @@ function DaymarkShell() {
   const composerRef = useRef(null)
   const installState = useSyncExternalStore(installPrompt.subscribe, installPrompt.getState, installPrompt.getState)
   const updateState = useSyncExternalStore(serviceWorkerUpdate.subscribe, serviceWorkerUpdate.getState, serviceWorkerUpdate.getState)
-  const cloudAuth = useMemo(() => {
+  const cloudClient = useMemo(() => {
     try {
-      return createAuthService(createSupabaseBrowserClient(readPublicCloudEnvironment(), createClient))
+      return createSupabaseBrowserClient(readPublicCloudEnvironment(), createClient)
     } catch {
       return null
     }
   }, [])
+  const cloudAuth = useMemo(() => cloudClient ? createAuthService(cloudClient.auth) : null, [cloudClient])
 
   useEffect(() => {
     seedDemoWorkspace()
@@ -875,11 +876,20 @@ function DaymarkShell() {
   const runAuth = async (kind, email, password = '') => {
     if (!cloudAuth) return { ok: false, message: 'Cloud sync is not configured yet. You can continue working locally.' }
     try {
-      if (kind === 'magic') await cloudAuth.sendMagicLink(email, { emailRedirectTo: window.location.origin })
-      else await cloudAuth.signInWithPassword(email, password)
+      if (kind === 'magic') {
+        await cloudAuth.sendMagicLink(email, { emailRedirectTo: window.location.origin })
+        return { ok: true, message: 'Check your email for a secure sign-in link.' }
+      }
+      if (kind === 'sign-up') {
+        const { data, error } = await cloudClient.auth.signUp({ email, password })
+        if (error) throw error
+        if (data.session) setAuthEmail(email)
+        return { ok: true, message: data.session ? 'Your account is ready.' : 'Check your email to confirm your account.' }
+      }
+      await cloudAuth.signInWithPassword(email, password)
       setAuthEmail(email)
       setAuthOpen(false)
-      return { ok: true, message: kind === 'magic' ? 'Check your email for a secure sign-in link.' : 'You are signed in.' }
+      return { ok: true, message: 'You are signed in.' }
     } catch (error) {
       return { ok: false, message: error instanceof Error ? error.message : 'The sign-in request could not be completed.' }
     }
