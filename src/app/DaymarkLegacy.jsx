@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { addDays, fromLocalDate, toLocalDate } from '../core/dates'
 import { createId } from '../core/sample-data'
 import { createAppStore } from '../core/store'
@@ -12,25 +12,21 @@ import '../features/calendar/upcoming-calendar.css'
 import '../features/calendar/calendar-task-chips.css'
 import { ProjectCreateDialog } from '../features/projects/ProjectCreateDialog'
 import '../features/projects/project-create-dialog.css'
-import { AccountDialog, AuthDialog } from '../features/auth'
-import { CollaborationDialog } from '../features/collaboration'
-import { SearchDialog, buildSearchRecords } from '../features/search'
+import { buildSearchRecords } from '../features/search/from-app-state'
 import { createReminderToast, scheduleTaskReminders, ToastViewport, useReminderPreferences, useReminderScheduler } from '../features/reminders'
 import { installPrompt, serviceWorkerUpdate } from '../pwa/register-service-worker'
 import { ConflictDialog } from './conflict-dialog'
 import { RepositoryProvider } from './repository-context'
 import { SyncStatus } from './sync-status'
 import { useDaymarkApp } from './use-daymark-app'
-import {
-  TaskEditor,
-  createTaskEditorDraft,
-  taskEditorDraftToTaskInput,
-  taskEditorDraftToTaskPatch,
-  taskToTaskEditorDraft,
-  toTaskEditorLabelOptions,
-  toTaskEditorProjectOptions,
-  toTaskEditorSectionOptions,
-} from '../features/task-editor'
+import { taskEditorDraftToTaskInput, taskEditorDraftToTaskPatch, taskToTaskEditorDraft, toTaskEditorLabelOptions, toTaskEditorProjectOptions, toTaskEditorSectionOptions } from '../features/task-editor/adapters'
+import { createTaskEditorDraft } from '../features/task-editor/form-state'
+
+const AccountDialog = lazy(() => import('../features/auth/AccountDialog').then(({ AccountDialog }) => ({ default: AccountDialog })))
+const AuthDialog = lazy(() => import('../features/auth/AuthDialog').then(({ AuthDialog }) => ({ default: AuthDialog })))
+const CollaborationDialog = lazy(() => import('../features/collaboration/CollaborationDialog').then(({ CollaborationDialog }) => ({ default: CollaborationDialog })))
+const SearchDialog = lazy(() => import('../features/search/SearchDialog').then(({ SearchDialog }) => ({ default: SearchDialog })))
+const TaskEditor = lazy(() => import('../features/task-editor/TaskEditor').then(({ TaskEditor }) => ({ default: TaskEditor })))
 
 const NAV_ITEMS = [
   { id: 'today', label: 'Today', icon: 'sun', count: 5 },
@@ -1217,71 +1213,83 @@ function DaymarkShell() {
         />
       ) : null}
 
-      <TaskEditor
-        draft={taskEditor?.draft ?? createTaskEditorDraft()}
-        isOpen={Boolean(taskEditor)}
-        labels={toTaskEditorLabelOptions(Object.values(state.labels))}
-        mode={taskEditor?.mode ?? 'create'}
-        onClose={() => setTaskEditor(null)}
-        onDraftChange={(draft) => setTaskEditor((editor) => editor ? { ...editor, draft } : editor)}
-        onRequestProjectPicker={() => setProjectDialogOpen(true)}
-        onSave={saveTaskEditor}
-        presentation="dialog"
-        projects={toTaskEditorProjectOptions(Object.values(state.projects))}
-        sections={toTaskEditorSectionOptions(Object.values(state.sections), taskEditor?.draft.projectId ?? null)}
-      />
-
       <ProjectCreateDialog
         isOpen={projectDialogOpen}
         onCancel={() => setProjectDialogOpen(false)}
         onCreate={createProject}
       />
 
-      <SearchDialog
-        isOpen={searchOpen}
-        onClose={() => setSearchOpen(false)}
-        onSelect={(record) => {
-          if (record.type === 'task') openTaskEditor('edit', state.tasks[record.id])
-          else if (record.route) navigate(record.route)
-        }}
-        records={searchRecords}
-      />
+      <Suspense fallback={null}>
+        {taskEditor ? (
+          <TaskEditor
+            draft={taskEditor.draft}
+            isOpen
+            labels={toTaskEditorLabelOptions(Object.values(state.labels))}
+            mode={taskEditor.mode}
+            onClose={() => setTaskEditor(null)}
+            onDraftChange={(draft) => setTaskEditor((editor) => editor ? { ...editor, draft } : editor)}
+            onRequestProjectPicker={() => setProjectDialogOpen(true)}
+            onSave={saveTaskEditor}
+            presentation="dialog"
+            projects={toTaskEditorProjectOptions(Object.values(state.projects))}
+            sections={toTaskEditorSectionOptions(Object.values(state.sections), taskEditor.draft.projectId)}
+          />
+        ) : null}
 
-      <AuthDialog
-        isOpen={authOpen}
-        onClose={() => setAuthOpen(false)}
-        onMagicLink={(email) => runAuth('magic', email)}
-        onSignIn={({ email, password }) => runAuth('sign-in', email, password)}
-        onSignUp={({ email, password }) => runAuth('sign-up', email, password)}
-      />
+        {searchOpen ? (
+          <SearchDialog
+            isOpen
+            onClose={() => setSearchOpen(false)}
+            onSelect={(record) => {
+              if (record.type === 'task') openTaskEditor('edit', state.tasks[record.id])
+              else if (record.route) navigate(record.route)
+            }}
+            records={searchRecords}
+          />
+        ) : null}
 
-      <AccountDialog
-        email={authEmail}
-        isOpen={accountOpen}
-        onClose={() => setAccountOpen(false)}
-        onDeleteAccount={async () => ({ ok: false, message: 'Account deletion requires the deployed account-delete function.' })}
-        onSignOut={async () => {
-          if (cloudAuth) await cloudAuth.signOut()
-          setAuthEmail('')
-          setAccountOpen(false)
-          return { ok: true, message: 'You are signed out.' }
-        }}
-        onSignOutAllDevices={async () => ({ ok: false, message: 'Global sign-out requires the deployed account endpoint.' })}
-      />
+        {authOpen ? (
+          <AuthDialog
+            isOpen
+            onClose={() => setAuthOpen(false)}
+            onMagicLink={(email) => runAuth('magic', email)}
+            onSignIn={({ email, password }) => runAuth('sign-in', email, password)}
+            onSignUp={({ email, password }) => runAuth('sign-up', email, password)}
+          />
+        ) : null}
 
-      <CollaborationDialog
-        currentUserId="member-local"
-        isOpen={collaborationOpen}
-        members={collaborationMembers}
-        onChangeRole={(memberId, role) => setCollaborationMembers((members) => members.map((member) => member.id === memberId ? { ...member, role } : member))}
-        onClose={() => setCollaborationOpen(false)}
-        onInvite={({ email, role }) => setCollaborationMembers((members) => [...members, { id: createId('member'), email, role, invitationStatus: 'pending' }])}
-        onLeaveProject={() => 'The local workspace owner cannot leave this project.'}
-        onRemoveMember={(memberId) => setCollaborationMembers((members) => members.filter((member) => member.id !== memberId))}
-        onRevokeInvitation={(memberId) => setCollaborationMembers((members) => members.filter((member) => member.id !== memberId))}
-        onTransferOwnership={(memberId) => setCollaborationMembers((members) => members.map((member) => ({ ...member, role: member.id === memberId ? 'owner' : member.id === 'member-local' ? 'admin' : member.role })))}
-        projectName={route.startsWith('project:') ? state.projects[route.slice('project:'.length)]?.name ?? 'Project' : 'Project'}
-      />
+        {accountOpen ? (
+          <AccountDialog
+            email={authEmail}
+            isOpen
+            onClose={() => setAccountOpen(false)}
+            onDeleteAccount={async () => ({ ok: false, message: 'Account deletion requires the deployed account-delete function.' })}
+            onSignOut={async () => {
+              if (cloudAuth) await cloudAuth.signOut()
+              setAuthEmail('')
+              setAccountOpen(false)
+              return { ok: true, message: 'You are signed out.' }
+            }}
+            onSignOutAllDevices={async () => ({ ok: false, message: 'Global sign-out requires the deployed account endpoint.' })}
+          />
+        ) : null}
+
+        {collaborationOpen ? (
+          <CollaborationDialog
+            currentUserId="member-local"
+            isOpen
+            members={collaborationMembers}
+            onChangeRole={(memberId, role) => setCollaborationMembers((members) => members.map((member) => member.id === memberId ? { ...member, role } : member))}
+            onClose={() => setCollaborationOpen(false)}
+            onInvite={({ email, role }) => setCollaborationMembers((members) => [...members, { id: createId('member'), email, role, invitationStatus: 'pending' }])}
+            onLeaveProject={() => 'The local workspace owner cannot leave this project.'}
+            onRemoveMember={(memberId) => setCollaborationMembers((members) => members.filter((member) => member.id !== memberId))}
+            onRevokeInvitation={(memberId) => setCollaborationMembers((members) => members.filter((member) => member.id !== memberId))}
+            onTransferOwnership={(memberId) => setCollaborationMembers((members) => members.map((member) => ({ ...member, role: member.id === memberId ? 'owner' : member.id === 'member-local' ? 'admin' : member.role })))}
+            projectName={route.startsWith('project:') ? state.projects[route.slice('project:'.length)]?.name ?? 'Project' : 'Project'}
+          />
+        ) : null}
+      </Suspense>
 
       <ConflictDialog
         isOpen={Boolean(conflictMessage)}
