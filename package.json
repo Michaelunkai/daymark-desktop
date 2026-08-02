@@ -5,15 +5,36 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "env:check": "node scripts/validate-env.mjs",
+    "lint": "eslint src --no-config-lookup --no-ignore --ext .js,.jsx,.ts,.tsx --parser @typescript-eslint/parser --rule no-debugger:error",
+    "typecheck": "tsc --noEmit --allowJs --checkJs false --jsx react-jsx --moduleResolution bundler --module ESNext --target ES2022 --skipLibCheck src/main.jsx",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "tsx --test src/core/dates/dates.test.ts src/features/reminders/scheduler.test.ts src/features/calendar/upcoming-model.test.ts src/features/command/command.test.ts src/features/search/search-index.test.ts src/features/task-editor/form-state.test.ts src/features/views/model.test.ts",
+    "test:integration": "tsx --test src/core/store.test.ts src/features/calendar/task-movement.test.ts",
     "build": "vite build",
-    "preview": "vite preview"
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "rebuild": "npm run clean && npm run build",
+    "verify": "npm run env:check && npm run lint && npm run typecheck && npm test && npm run rebuild",
+    "audit": "node -e \"delete process.env.npm_config_allow_scripts; const result = require('node:child_process').spawnSync(process.execPath, [process.env.npm_execpath, 'audit', '--ignore-scripts', '--audit-level=high'], { stdio: 'inherit', env: process.env }); process.exitCode = result.status ?? 1\"",
+    "ci": "npm run verify && npm run audit",
+    "preview": "vite preview --host 127.0.0.1"
+  },
+  "engines": {
+    "node": ">=22.12.0 <25",
+    "npm": ">=10.0.0"
   },
   "dependencies": {
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@typescript-eslint/parser": "^8.65.0",
     "@vitejs/plugin-react": "^6.0.5",
+    "eslint": "^10.8.0",
+    "tsx": "^4.23.4",
+    "typescript": "^6.0.3",
     "vite": "^8.2.0"
   }
 }
