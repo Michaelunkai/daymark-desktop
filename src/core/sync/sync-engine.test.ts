@@ -121,8 +121,11 @@ test("merges non-overlapping edits, then flushes the rebase before later work", 
   const conflictEngine = createSyncEngine({
     clientId: "client-a",
     queue: conflictQueue,
-    transport: { push: async () => ({ status: "conflict", remote: competing }) },
-    onConflict: (conflict) => conflicts.push(conflict.fields),
+    transport: { push: async () => ({ status: "conflict", remote: competing, remoteRevision: 7 }) },
+    onConflict: (conflict) => {
+      conflicts.push(conflict.fields);
+      assert.equal(conflict.remoteRevision, 7);
+    },
   });
   await conflictEngine.enqueue(mutation("conflict-me", 1, local));
   const conflictResults = await conflictEngine.flush();
@@ -156,4 +159,51 @@ test("coalesces concurrent flushes so the queue head is sent only once", async (
   await Promise.all([first, second]);
 
   assert.equal(pushCount, 1);
+});
+
+test("records retry metadata while preserving the mutation id", async () => {
+  const queue = createQueue<TaskRecord>();
+  let failed = false;
+  const engine = createSyncEngine({
+    clientId: "client-a",
+    queue,
+    transport: {
+      push: async () => {
+        if (!failed) {
+          failed = true;
+          throw new Error("offline");
+        }
+        return { status: "ack" };
+      },
+    },
+    now: () => "2026-08-03T10:00:00.000Z",
+    retryDelayMs: () => 5_000,
+    sleep: async () => {},
+  });
+  await engine.enqueue(mutation("retry-me", 1));
+  const results = await engine.flush();
+  assert.equal(results[0]?.kind, "retry-scheduled");
+  const retry = results[0];
+  if (retry.kind === "retry-scheduled") {
+    assert.equal(retry.mutation.id, "retry-me");
+    assert.equal(retry.mutation.attempts, 1);
+    assert.equal(retry.mutation.lastAttemptAt, "2026-08-03T10:00:00.000Z");
+    assert.equal(retry.mutation.nextAttemptAt, "2026-08-03T10:00:05.000Z");
+    assert.equal(retry.mutation.lastError, "offline");
+  }
+});
+
+test("deduplicates stale revisions even when event ids differ", () => {
+  const queue = createQueue<TaskRecord>();
+  const applied: number[] = [];
+  const engine = createSyncEngine({
+    clientId: "client-a",
+    queue,
+    transport: { push: async () => ({ status: "ack" }) },
+    onRemoteEvent: (event) => applied.push(event.revision!),
+  });
+  engine.receiveRealtime({ id: "event-2", entityType: "task", entity: base, revision: 2 });
+  const result = engine.receiveRealtime({ id: "event-1", entityType: "task", entity: base, revision: 1 });
+  assert.equal(result.kind, "deduplicated");
+  assert.deepEqual(applied, [2]);
 });

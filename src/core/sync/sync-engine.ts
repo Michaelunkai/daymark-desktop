@@ -20,6 +20,7 @@ export interface SyncEngine<T extends SyncRecord> {
 export function createSyncEngine<T extends SyncRecord>(options: SyncEngineOptions<T>): SyncEngine<T> {
   const locallyApplied = new Set<string>();
   const seenEventIds = new Set<string>();
+  const latestRevisions = new Map<string, number>();
   const retryDelayMs = options.retryDelayMs ?? defaultRetryDelay;
   const sleep = options.sleep ?? defaultSleep;
   const now = options.now ?? (() => new Date().toISOString());
@@ -33,6 +34,10 @@ export function createSyncEngine<T extends SyncRecord>(options: SyncEngineOption
         createdAt: now(),
         attempts: 0,
         status: "pending",
+        baseRevision: mutation.baseRevision ?? null,
+        lastAttemptAt: null,
+        nextAttemptAt: null,
+        lastError: null,
       };
       if (locallyApplied.has(pending.id)) return;
       locallyApplied.add(pending.id);
@@ -66,7 +71,13 @@ export function createSyncEngine<T extends SyncRecord>(options: SyncEngineOption
 
           const merge = mergeCompetingEdits(next.base, next.local, response.remote);
           if (!merge.ok) {
-            const conflict: SyncConflict<T> = { kind: "competing-edit", mutation: next, remote: response.remote, fields: merge.fields };
+            const conflict: SyncConflict<T> = {
+              kind: "competing-edit",
+              mutation: next,
+              remote: response.remote,
+              remoteRevision: response.remoteRevision,
+              fields: merge.fields,
+            };
             await options.queue.replace({ ...next, status: "conflict" });
             options.onConflict?.(conflict);
             results.push({ kind: "conflict", conflict });
@@ -85,8 +96,17 @@ export function createSyncEngine<T extends SyncRecord>(options: SyncEngineOption
           results.push({ kind: "merged", mutation: next, replacement });
           break;
         } catch (error) {
-          const retry = { ...next, attempts: next.attempts + 1, status: "pending" as const };
-          const delayMs = retryDelayMs(retry.attempts);
+          const attemptedAt = now();
+          const attempts = next.attempts + 1;
+          const retry = {
+            ...next,
+            attempts,
+            status: "pending" as const,
+            lastAttemptAt: attemptedAt,
+            nextAttemptAt: new Date(new Date(attemptedAt).getTime() + retryDelayMs(attempts)).toISOString(),
+            lastError: error instanceof Error ? error.message : String(error),
+          };
+          const delayMs = retryDelayMs(attempts);
           await options.queue.replace(retry);
           results.push({ kind: "retry-scheduled", mutation: retry, delayMs, error });
           await sleep(delayMs);
@@ -99,6 +119,12 @@ export function createSyncEngine<T extends SyncRecord>(options: SyncEngineOption
     if (seenEventIds.has(event.id)) return { kind: "deduplicated", event };
     seenEventIds.add(event.id);
     if (event.originMutationId && locallyApplied.has(event.originMutationId)) return { kind: "deduplicated", event };
+    const entityKey = `${event.entityType}:${event.entity?.id ?? "deleted"}`;
+    const previousRevision = latestRevisions.get(entityKey);
+    if (event.revision !== undefined && previousRevision !== undefined && event.revision <= previousRevision) {
+      return { kind: "deduplicated", event };
+    }
+    if (event.revision !== undefined) latestRevisions.set(entityKey, event.revision);
     options.onRemoteEvent?.(event);
     return { kind: "remote-applied", event };
   }

@@ -11,6 +11,10 @@ export interface SyncMutation<T extends SyncRecord = SyncRecord> {
   createdAt: string;
   attempts: number;
   status?: "pending" | "conflict";
+  baseRevision?: number | null;
+  lastAttemptAt?: string | null;
+  nextAttemptAt?: string | null;
+  lastError?: string | null;
 }
 
 export interface SyncRealtimeEvent<T extends SyncRecord = SyncRecord> {
@@ -18,11 +22,12 @@ export interface SyncRealtimeEvent<T extends SyncRecord = SyncRecord> {
   entityType: string;
   entity: T | null;
   originMutationId?: string;
+  revision?: number;
 }
 
 export type SyncPushResult<T extends SyncRecord = SyncRecord> =
   | { status: "ack"; event?: SyncRealtimeEvent<T> }
-  | { status: "conflict"; remote: T | null; eventId?: string };
+  | { status: "conflict"; remote: T | null; remoteRevision?: number; eventId?: string };
 
 export interface SyncTransport<T extends SyncRecord = SyncRecord> {
   push(mutation: SyncMutation<T>): Promise<SyncPushResult<T>>;
@@ -39,6 +44,7 @@ export type SyncConflict<T extends SyncRecord = SyncRecord> = {
   kind: "competing-edit";
   mutation: SyncMutation<T>;
   remote: T | null;
+  remoteRevision?: number;
   fields: string[];
 };
 

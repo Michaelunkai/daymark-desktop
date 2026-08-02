@@ -13,10 +13,10 @@ export function ConflictDialog({ isOpen, message, onClose, onReload }: ConflictD
       <section aria-modal="true" className="shell-dialog" role="dialog">
         <p className="section-kicker">SYNC CONFLICT</p>
         <h2>Review the latest workspace</h2>
-        <p>{message}</p>
+        <p id="sync-conflict-message">{message}</p>
         <footer>
-          <button className="secondary-button" onClick={onClose} type="button">Keep working</button>
-          <button className="primary-button" onClick={onReload} type="button">Reload latest</button>
+          <button aria-label="Keep working despite sync conflict" className="secondary-button" onClick={onClose} type="button">Keep working</button>
+          <button aria-describedby="sync-conflict-message" className="primary-button" onClick={onReload} type="button">Reload latest</button>
         </footer>
       </section>
     </div>
