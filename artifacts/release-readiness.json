@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-02T21:55:58.606Z",
+  "generatedAt": "2026-08-02T21:58:17.199Z",
   "repository": {
     "branch": "codex/recovery-daymark-9b721a0",
-    "commit": "9b721a04286bae770cdb76f32d937b9f734dbbe1",
-    "expectedCommit": "9b721a04286bae770cdb76f32d937b9f734dbbe1",
-    "expectedCommitMatches": true,
-    "clean": false
+    "commit": "78fdaa49326ef507b35cdec98219343ae443e149",
+    "integrationCommit": "9b721a04286bae770cdb76f32d937b9f734dbbe1",
+    "integrationCommitIsAncestor": true,
+    "clean": true
   },
   "environment": {
     "VITE_SUPABASE_URL": {
@@ -46,31 +46,31 @@
     },
     {
       "command": "npm.cmd run lint",
-      "ok": false,
-      "exitCode": 1
+      "ok": true,
+      "exitCode": 0
     },
     {
       "command": "npm.cmd run typecheck",
-      "ok": false,
-      "exitCode": 1
+      "ok": true,
+      "exitCode": 0
     },
     {
       "command": "npm.cmd test",
-      "ok": false,
-      "exitCode": 1
+      "ok": true,
+      "exitCode": 0
     },
     {
       "command": "npm.cmd run rebuild",
-      "ok": false,
-      "exitCode": 1
+      "ok": true,
+      "exitCode": 0
     },
     {
       "command": "npm.cmd run audit",
-      "ok": false,
-      "exitCode": 1
+      "ok": true,
+      "exitCode": 0
     }
   ],
   "externalReleaseReady": false,
-  "localVerificationPassed": false,
+  "localVerificationPassed": true,
   "releaseReady": false
 }
