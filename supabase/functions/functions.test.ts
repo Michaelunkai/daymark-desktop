@@ -5,6 +5,7 @@ import {
   requireId,
   requireTimeZone,
 } from "./_shared/validation.ts";
+import { hasMinimumWorkspaceRole } from "./_shared/auth.ts";
 import { parseRateLimitResult } from "./_shared/rate-limit.ts";
 
 function assert(condition: unknown, message = "Assertion failed"): asserts condition {
@@ -37,6 +38,14 @@ Deno.test("requires a valid distributed rate-limit result", () => {
   assert(!denied.allowed);
   assert(denied.retryAfterSeconds === 2);
   assertThrows(() => parseRateLimitResult({}), "rate_limit_unavailable");
+});
+
+Deno.test("requires active workspace roles to meet the requested minimum", () => {
+  assert(hasMinimumWorkspaceRole("viewer", "viewer"));
+  assert(!hasMinimumWorkspaceRole("viewer", "editor"));
+  assert(hasMinimumWorkspaceRole("owner", "editor"));
+  assert(!hasMinimumWorkspaceRole(null, "viewer"));
+  assert(!hasMinimumWorkspaceRole("deleted", "viewer"));
 });
 
 /*

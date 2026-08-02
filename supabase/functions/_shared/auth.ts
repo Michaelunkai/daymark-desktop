@@ -10,6 +10,13 @@ const roleRank: Record<string, number> = {
   owner: 3,
 };
 
+export function hasMinimumWorkspaceRole(
+  role: string | null | undefined,
+  minimumRole: "viewer" | "editor" | "owner",
+): boolean {
+  return !!role && (roleRank[role] ?? 0) >= roleRank[minimumRole];
+}
+
 function requiredEnv(name: string): string {
   const value = Deno.env.get(name);
   if (!value) throw new Error(`${name} is not configured.`);
@@ -54,11 +61,12 @@ export async function requireWorkspaceRole(
     .from("workspace_members")
     .select("role")
     .eq("workspace_id", workspaceId)
+    .is("deleted_at", null)
     .maybeSingle<MembershipRow>();
 
   if (error) throw new HttpError(503, "Could not verify workspace access.", "authorization_unavailable");
   const role = data?.role;
-  if (!role || (roleRank[role] ?? 0) < roleRank[minimumRole]) {
+  if (!hasMinimumWorkspaceRole(role, minimumRole)) {
     throw new HttpError(403, "You do not have permission for this workspace.", "forbidden");
   }
   return role;
