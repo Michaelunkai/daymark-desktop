@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "env:check": "node scripts/validate-env.mjs",
+    "release:preflight": "node scripts/release-preflight.mjs",
     "lint": "eslint src --no-config-lookup --no-ignore --ext .js,.jsx,.ts,.tsx --parser @typescript-eslint/parser --rule no-debugger:error",
     "typecheck": "tsc --noEmit --allowImportingTsExtensions --allowJs --checkJs false --jsx react-jsx --moduleResolution bundler --module ESNext --target ES2022 --skipLibCheck src/types/css.d.ts src/main.tsx",
     "test": "npm run test:unit && npm run test:integration",
