@@ -3,6 +3,7 @@ import { loadState, saveState } from "./storage";
 import type {
   AppState,
   DispatchResult,
+  DomainSnapshot,
   Label,
   Project,
   SavedFilter,
@@ -83,7 +84,7 @@ function apply(state: AppState, action: StoreAction, now: string, recordUndo = t
 
   const result = mutate(state, action, now);
   if (!result.ok) return result;
-  if (recordUndo && isUserAction(action) && action.type !== "task.delete") {
+  if (recordUndo && isUserAction(action)) {
     state.undoStack.push(createUndoEntry(result.inverse, now));
     state.undoStack = state.undoStack.slice(-MAX_UNDO_ENTRIES);
   }
@@ -92,6 +93,11 @@ function apply(state: AppState, action: StoreAction, now: string, recordUndo = t
 
 function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>, now: string): MutationResult {
   switch (action.type) {
+    case "state.restore": {
+      const before = captureDomain(state);
+      restoreDomain(state, action.snapshot);
+      return { ok: true, inverse: { type: "state.restore", snapshot: before } };
+    }
     case "task.add": {
       if (!action.input.content.trim()) return invalid("A task needs a name.");
       const id = action.input.id ?? createId("task");
@@ -113,26 +119,48 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       };
       if (!isValidTaskLocation(state, task.projectId, task.sectionId)) return invalid("The task section does not belong to its project.");
       if (!hasKnownLabels(state, task.labelIds)) return invalid("One or more task labels do not exist.");
+      if (!isValidTaskParent(state, task, task.parentId)) return invalid("A subtask must belong to an existing task in the same location.");
       state.tasks[id] = task;
       return { ok: true, inverse: { type: "task.remove", taskId: id } };
     }
     case "task.restore":
       state.tasks[action.task.id] = structuredClone(action.task);
       return { ok: true, inverse: { type: "task.remove", taskId: action.task.id } };
-    case "task.remove":
-    case "task.delete": {
+    case "task.remove": {
       const task = state.tasks[action.taskId];
       if (!task) return invalid("The task no longer exists.");
       delete state.tasks[action.taskId];
       return { ok: true, inverse: { type: "task.restore", task: structuredClone(task) } };
+    }
+    case "task.delete": {
+      const task = state.tasks[action.taskId];
+      if (!task) return invalid("The task no longer exists.");
+      const before = captureDomain(state);
+      for (const id of taskTreeIds(state, [task.id])) delete state.tasks[id];
+      return { ok: true, inverse: { type: "state.restore", snapshot: before } };
     }
     case "task.update": {
       const task = state.tasks[action.taskId];
       if (!task) return invalid("The task no longer exists.");
       const nextProjectId = action.patch.projectId ?? task.projectId;
       const nextSectionId = action.patch.sectionId === undefined ? task.sectionId : action.patch.sectionId;
+      const nextParentId = action.patch.parentId === undefined ? task.parentId : action.patch.parentId;
+      const proposed = { ...task, ...action.patch, projectId: nextProjectId, sectionId: nextSectionId, parentId: nextParentId };
       if (!isValidTaskLocation(state, nextProjectId, nextSectionId)) return invalid("The task section does not belong to its project.");
+      if (!isValidTaskParent(state, proposed, nextParentId)) return invalid("A subtask must belong to an existing task in the same location.");
       if (action.patch.labelIds && !hasKnownLabels(state, action.patch.labelIds)) return invalid("One or more task labels do not exist.");
+      const movesTaskTree = nextProjectId !== task.projectId || nextSectionId !== task.sectionId;
+      if (movesTaskTree && taskTreeIds(state, [task.id]).length > 1) {
+        const before = captureDomain(state);
+        for (const taskId of taskTreeIds(state, [task.id])) {
+          Object.assign(state.tasks[taskId], { projectId: nextProjectId, sectionId: nextSectionId, updatedAt: now });
+        }
+        Object.assign(task, action.patch, {
+          labelIds: action.patch.labelIds ? unique(action.patch.labelIds) : task.labelIds,
+          updatedAt: now,
+        });
+        return { ok: true, inverse: { type: "state.restore", snapshot: before } };
+      }
       const before = pick(task, action.patch);
       Object.assign(task, action.patch, {
         labelIds: action.patch.labelIds ? unique(action.patch.labelIds) : task.labelIds,
@@ -149,18 +177,82 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       task.updatedAt = now;
       return { ok: true, inverse: { type: "task.update", taskId: task.id, patch: { completedAt: before } } };
     }
+    case "task.duplicate": {
+      const task = state.tasks[action.taskId];
+      if (!task) return invalid("The task no longer exists.");
+      const before = captureDomain(state);
+      const sourceIds = action.includeSubtasks === false ? [task.id] : taskTreeIds(state, [task.id]);
+      const replacements = new Map(sourceIds.map((id) => [id, createId("task")]));
+      for (const sourceId of sourceIds) {
+        const source = state.tasks[sourceId];
+        const copyId = replacements.get(sourceId)!;
+        state.tasks[copyId] = {
+          ...structuredClone(source),
+          id: copyId,
+          content: sourceId === task.id ? `${source.content} (copy)` : source.content,
+          parentId: source.parentId ? replacements.get(source.parentId) ?? null : null,
+          completedAt: null,
+          order: nextOrder(state.tasks),
+          createdAt: now,
+          updatedAt: now,
+        };
+      }
+      return { ok: true, inverse: { type: "state.restore", snapshot: before } };
+    }
+    case "task.bulk.complete": {
+      const taskIds = requireTasks(state, action.taskIds);
+      if (!taskIds.ok) return taskIds;
+      const before = captureDomain(state);
+      const completedAt = action.completed === false ? null : now;
+      for (const taskId of taskIds.value) {
+        state.tasks[taskId].completedAt = completedAt;
+        state.tasks[taskId].updatedAt = now;
+      }
+      return { ok: true, inverse: { type: "state.restore", snapshot: before } };
+    }
+    case "task.bulk.move": {
+      if (!isValidTaskLocation(state, action.location.projectId, action.location.sectionId ?? null)) {
+        return invalid("The destination section does not belong to its project.");
+      }
+      const requested = requireTasks(state, action.taskIds);
+      if (!requested.ok) return requested;
+      const taskIds = taskTreeIds(state, requested.value);
+      const moved = new Set(taskIds);
+      for (const taskId of taskIds) {
+        const parentId = state.tasks[taskId].parentId;
+        if (parentId && !moved.has(parentId)) return invalid("Move a parent task with its subtasks.");
+      }
+      const before = captureDomain(state);
+      for (const taskId of taskIds) {
+        Object.assign(state.tasks[taskId], {
+          projectId: action.location.projectId,
+          sectionId: action.location.sectionId ?? null,
+          updatedAt: now,
+        });
+      }
+      return { ok: true, inverse: { type: "state.restore", snapshot: before } };
+    }
+    case "task.bulk.reschedule": {
+      const taskIds = requireTasks(state, action.taskIds);
+      if (!taskIds.ok) return taskIds;
+      const before = captureDomain(state);
+      for (const taskId of taskIds.value) {
+        state.tasks[taskId].due = action.due ? structuredClone(action.due) : null;
+        state.tasks[taskId].updatedAt = now;
+      }
+      return { ok: true, inverse: { type: "state.restore", snapshot: before } };
+    }
     case "project.add": {
       if (!action.input.name.trim()) return invalid("A project needs a name.");
       const id = action.input.id ?? createId("project");
       if (state.projects[id]) return invalid("That project already exists.");
       const parentId = action.input.parentId ?? null;
       if (parentId && !state.projects[parentId]) return invalid("The parent project does not exist.");
-      const project: Project = {
+      state.projects[id] = {
         id, name: action.input.name.trim(), description: action.input.description ?? "", color: action.input.color ?? "charcoal",
         parentId, layout: action.input.layout ?? "list", order: action.input.order ?? nextOrder(state.projects),
         isFavorite: action.input.isFavorite ?? false, isArchived: false, createdAt: now, updatedAt: now,
       };
-      state.projects[id] = project;
       return { ok: true, inverse: { type: "project.remove", projectId: id } };
     }
     case "project.restore":
@@ -172,31 +264,51 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       delete state.projects[action.projectId];
       return { ok: true, inverse: { type: "project.restore", project: structuredClone(project) } };
     }
+    case "project.delete": {
+      if (action.projectId === state.preferences.inboxProjectId) return invalid("The Inbox project cannot be deleted.");
+      if (!state.projects[action.projectId]) return invalid("The project no longer exists.");
+      const before = captureDomain(state);
+      const projectIds = projectTreeIds(state, action.projectId);
+      const deletedProjects = new Set(projectIds);
+      for (const projectId of projectIds) delete state.projects[projectId];
+      for (const [sectionId, section] of Object.entries(state.sections)) {
+        if (deletedProjects.has(section.projectId)) delete state.sections[sectionId];
+      }
+      for (const [taskId, task] of Object.entries(state.tasks)) {
+        if (deletedProjects.has(task.projectId)) delete state.tasks[taskId];
+      }
+      if (state.preferences.activeProjectId && deletedProjects.has(state.preferences.activeProjectId)) {
+        state.preferences.activeProjectId = state.preferences.inboxProjectId;
+      }
+      return { ok: true, inverse: { type: "state.restore", snapshot: before } };
+    }
     case "project.update": {
       const project = state.projects[action.projectId];
       if (!project) return invalid("The project no longer exists.");
-      if (action.patch.parentId && (!state.projects[action.patch.parentId] || action.patch.parentId === project.id)) return invalid("The project parent is invalid.");
+      if (action.patch.parentId !== undefined && !isValidProjectParent(state, project.id, action.patch.parentId)) {
+        return invalid("The project parent is invalid.");
+      }
       const before = pick(project, action.patch);
       Object.assign(project, action.patch, { updatedAt: now });
       return { ok: true, inverse: { type: "project.update", projectId: project.id, patch: before } };
     }
     case "project.archive": {
-      const project = state.projects[action.projectId];
-      if (!project) return invalid("The project no longer exists.");
-      const before = project.isArchived;
-      project.isArchived = action.archived;
-      project.updatedAt = now;
-      return { ok: true, inverse: { type: "project.update", projectId: project.id, patch: { isArchived: before } } };
+      if (!state.projects[action.projectId]) return invalid("The project no longer exists.");
+      const before = captureDomain(state);
+      for (const projectId of projectTreeIds(state, action.projectId)) {
+        state.projects[projectId].isArchived = action.archived;
+        state.projects[projectId].updatedAt = now;
+      }
+      return { ok: true, inverse: { type: "state.restore", snapshot: before } };
     }
     case "section.add": {
       if (!action.input.name.trim() || !state.projects[action.input.projectId]) return invalid("A section needs a valid project and name.");
       const id = action.input.id ?? createId("section");
       if (state.sections[id]) return invalid("That section already exists.");
-      const section: Section = {
+      state.sections[id] = {
         id, projectId: action.input.projectId, name: action.input.name.trim(), order: action.input.order ?? nextOrder(state.sections),
         isCollapsed: action.input.isCollapsed ?? false, createdAt: now, updatedAt: now,
       };
-      state.sections[id] = section;
       return { ok: true, inverse: { type: "section.remove", sectionId: id } };
     }
     case "section.restore":
@@ -207,6 +319,19 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       if (!section) return invalid("The section no longer exists.");
       delete state.sections[action.sectionId];
       return { ok: true, inverse: { type: "section.restore", section: structuredClone(section) } };
+    }
+    case "section.delete": {
+      const section = state.sections[action.sectionId];
+      if (!section) return invalid("The section no longer exists.");
+      const before = captureDomain(state);
+      delete state.sections[action.sectionId];
+      for (const task of Object.values(state.tasks)) {
+        if (task.sectionId === action.sectionId) {
+          task.sectionId = null;
+          task.updatedAt = now;
+        }
+      }
+      return { ok: true, inverse: { type: "state.restore", snapshot: before } };
     }
     case "section.update": {
       const section = state.sections[action.sectionId];
@@ -278,15 +403,86 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
 }
 
 function isUserAction(action: StoreAction): action is UserAction {
-  return !action.type.endsWith(".restore") && !action.type.endsWith(".remove");
+  return !action.type.endsWith(".restore") && !action.type.endsWith(".remove") && action.type !== "state.restore";
 }
 
 function createUndoEntry(inverse: UndoAction, createdAt: string): UndoEntry {
   return { id: createId("undo"), label: inverse.type, inverse, createdAt };
 }
 
+function captureDomain(state: AppState): DomainSnapshot {
+  return structuredClone({
+    projects: state.projects,
+    sections: state.sections,
+    labels: state.labels,
+    filters: state.filters,
+    tasks: state.tasks,
+    preferences: state.preferences,
+  });
+}
+
+function restoreDomain(state: AppState, snapshot: DomainSnapshot): void {
+  Object.assign(state, structuredClone(snapshot));
+}
+
 function isValidTaskLocation(state: AppState, projectId: string, sectionId: string | null): boolean {
   return Boolean(state.projects[projectId]) && (!sectionId || state.sections[sectionId]?.projectId === projectId);
+}
+
+function isValidTaskParent(state: AppState, task: Task, parentId: string | null): boolean {
+  if (!parentId) return true;
+  const parent = state.tasks[parentId];
+  if (!parent || parent.id === task.id) return false;
+  if (parent.projectId !== task.projectId || parent.sectionId !== task.sectionId) return false;
+  let cursor: Task | undefined = parent;
+  while (cursor) {
+    if (cursor.parentId === task.id) return false;
+    cursor = cursor.parentId ? state.tasks[cursor.parentId] : undefined;
+  }
+  return true;
+}
+
+function isValidProjectParent(state: AppState, projectId: string, parentId: string | null): boolean {
+  if (!parentId) return true;
+  if (!state.projects[parentId] || parentId === projectId) return false;
+  let cursor: Project | undefined = state.projects[parentId];
+  while (cursor) {
+    if (cursor.id === projectId) return false;
+    cursor = cursor.parentId ? state.projects[cursor.parentId] : undefined;
+  }
+  return true;
+}
+
+function projectTreeIds(state: AppState, rootId: string): string[] {
+  const ids: string[] = [];
+  const pending = [rootId];
+  while (pending.length) {
+    const projectId = pending.shift()!;
+    ids.push(projectId);
+    for (const project of Object.values(state.projects)) if (project.parentId === projectId) pending.push(project.id);
+  }
+  return ids;
+}
+
+function taskTreeIds(state: AppState, roots: string[]): string[] {
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  const pending = [...roots];
+  while (pending.length) {
+    const taskId = pending.shift()!;
+    if (seen.has(taskId) || !state.tasks[taskId]) continue;
+    seen.add(taskId);
+    ids.push(taskId);
+    for (const task of Object.values(state.tasks)) if (task.parentId === taskId) pending.push(task.id);
+  }
+  return ids;
+}
+
+function requireTasks(state: AppState, taskIds: string[]): { ok: true; value: string[] } | InvalidResult {
+  const ids = unique(taskIds);
+  if (!ids.length) return invalid("Select at least one task.");
+  if (ids.some((taskId) => !state.tasks[taskId])) return invalid("One or more selected tasks no longer exist.");
+  return { ok: true, value: ids };
 }
 
 function hasKnownLabels(state: AppState, labelIds: string[]): boolean {

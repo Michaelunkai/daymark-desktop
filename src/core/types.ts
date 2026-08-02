@@ -130,6 +130,11 @@ export type TaskPatch = Partial<
   >
 >;
 
+export type BulkTaskLocation = {
+  projectId: EntityId;
+  sectionId?: EntityId | null;
+};
+
 export type ProjectInput = {
   id?: EntityId;
   name: string;
@@ -172,11 +177,17 @@ export type UserAction =
   | { type: "task.complete"; taskId: EntityId }
   | { type: "task.uncomplete"; taskId: EntityId }
   | { type: "task.delete"; taskId: EntityId }
+  | { type: "task.duplicate"; taskId: EntityId; includeSubtasks?: boolean }
+  | { type: "task.bulk.complete"; taskIds: EntityId[]; completed?: boolean }
+  | { type: "task.bulk.move"; taskIds: EntityId[]; location: BulkTaskLocation }
+  | { type: "task.bulk.reschedule"; taskIds: EntityId[]; due: TaskDue | null }
   | { type: "project.add"; input: ProjectInput }
   | { type: "project.update"; projectId: EntityId; patch: Partial<Omit<Project, "id" | "createdAt" | "updatedAt">> }
   | { type: "project.archive"; projectId: EntityId; archived: boolean }
+  | { type: "project.delete"; projectId: EntityId }
   | { type: "section.add"; input: SectionInput }
   | { type: "section.update"; sectionId: EntityId; patch: Partial<Pick<Section, "name" | "order" | "isCollapsed">> }
+  | { type: "section.delete"; sectionId: EntityId }
   | { type: "label.add"; input: LabelInput }
   | { type: "label.update"; labelId: EntityId; patch: Partial<Pick<Label, "name" | "color" | "order" | "isFavorite">> }
   | { type: "filter.add"; input: FilterInput }
@@ -185,6 +196,7 @@ export type UserAction =
   | { type: "undo" };
 
 export type UndoAction =
+  | { type: "state.restore"; snapshot: DomainSnapshot }
   | { type: "task.restore"; task: Task }
   | { type: "task.remove"; taskId: EntityId }
   | { type: "task.update"; taskId: EntityId; patch: TaskPatch }
@@ -203,6 +215,11 @@ export type UndoAction =
   | { type: "preferences.update"; patch: Partial<AppPreferences> };
 
 export type StoreAction = UserAction | UndoAction;
+
+export type DomainSnapshot = Pick<
+  AppState,
+  "projects" | "sections" | "labels" | "filters" | "tasks" | "preferences"
+>;
 
 export type DispatchResult =
   | { ok: true; state: AppState }
