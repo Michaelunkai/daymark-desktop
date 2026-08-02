@@ -31,6 +31,8 @@ assert(migrated.schemaVersion === 2 && Object.keys(migrated.sections).length ===
 
 const invalidMove = reduce(base, { type: "task.update", taskId: "task-welcome", patch: { sectionId: "missing" } });
 assert(!invalidMove.ok, "Cross-project or missing section assignment must be rejected.");
+const invalidTaskRename = reduce(base, { type: "task.update", taskId: "task-welcome", patch: { content: "  " } });
+assert(!invalidTaskRename.ok, "Task edits must reject blank names.");
 
 const workflowBase = createSampleState(timestamp, "workflow-client");
 const projectAdded = reduce(workflowBase, {
@@ -141,6 +143,12 @@ assert(
   sectionRenamed.ok && sectionRenamed.state.sections["section-work"].name === "Execution" && sectionRenamed.state.sections["section-work"].isCollapsed,
   "Sections should update.",
 );
+const invalidSectionRename = reduce(childAdded.state, {
+  type: "section.update",
+  sectionId: "section-work",
+  patch: { name: " " },
+}, timestamp);
+assert(!invalidSectionRename.ok, "Section edits must reject blank names.");
 const archived = childProject.ok
   ? reduce(childProject.state, { type: "project.archive", projectId: "project-work", archived: true }, timestamp)
   : childProject;

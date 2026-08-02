@@ -124,6 +124,13 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       return { ok: true, inverse: { type: "task.remove", taskId: id } };
     }
     case "task.restore":
+      if (!isValidTaskLocation(state, action.task.projectId, action.task.sectionId)) {
+        return invalid("The restored task section does not belong to its project.");
+      }
+      if (!hasKnownLabels(state, action.task.labelIds)) return invalid("One or more restored task labels do not exist.");
+      if (!isValidTaskParent(state, action.task, action.task.parentId)) {
+        return invalid("The restored task parent is invalid.");
+      }
       state.tasks[action.task.id] = structuredClone(action.task);
       return { ok: true, inverse: { type: "task.remove", taskId: action.task.id } };
     case "task.remove": {
@@ -146,6 +153,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       const nextSectionId = action.patch.sectionId === undefined ? task.sectionId : action.patch.sectionId;
       const nextParentId = action.patch.parentId === undefined ? task.parentId : action.patch.parentId;
       const proposed = { ...task, ...action.patch, projectId: nextProjectId, sectionId: nextSectionId, parentId: nextParentId };
+      if (action.patch.content !== undefined && !action.patch.content.trim()) return invalid("A task needs a name.");
       if (!isValidTaskLocation(state, nextProjectId, nextSectionId)) return invalid("The task section does not belong to its project.");
       if (!isValidTaskParent(state, proposed, nextParentId)) return invalid("A subtask must belong to an existing task in the same location.");
       if (action.patch.labelIds && !hasKnownLabels(state, action.patch.labelIds)) return invalid("One or more task labels do not exist.");
@@ -285,6 +293,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
     case "project.update": {
       const project = state.projects[action.projectId];
       if (!project) return invalid("The project no longer exists.");
+      if (action.patch.name !== undefined && !action.patch.name.trim()) return invalid("A project needs a name.");
       if (action.patch.parentId !== undefined && !isValidProjectParent(state, project.id, action.patch.parentId)) {
         return invalid("The project parent is invalid.");
       }
@@ -312,6 +321,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       return { ok: true, inverse: { type: "section.remove", sectionId: id } };
     }
     case "section.restore":
+      if (!state.projects[action.section.projectId]) return invalid("The restored section project does not exist.");
       state.sections[action.section.id] = structuredClone(action.section);
       return { ok: true, inverse: { type: "section.remove", sectionId: action.section.id } };
     case "section.remove": {
@@ -336,6 +346,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
     case "section.update": {
       const section = state.sections[action.sectionId];
       if (!section) return invalid("The section no longer exists.");
+      if (action.patch.name !== undefined && !action.patch.name.trim()) return invalid("A section needs a name.");
       const before = pick(section, action.patch);
       Object.assign(section, action.patch, { updatedAt: now });
       return { ok: true, inverse: { type: "section.update", sectionId: section.id, patch: before } };

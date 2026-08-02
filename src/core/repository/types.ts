@@ -32,14 +32,20 @@ export interface DaymarkRepository {
   updateTask(taskId: EntityId, patch: TaskPatch): DispatchResult;
   completeTask(taskId: EntityId): DispatchResult;
   uncompleteTask(taskId: EntityId): DispatchResult;
+  duplicateTask(taskId: EntityId, includeSubtasks?: boolean): DispatchResult;
   deleteTask(taskId: EntityId): DispatchResult;
+  bulkComplete(taskIds: EntityId[], completed?: boolean): DispatchResult;
+  bulkMove(taskIds: EntityId[], location: { projectId: EntityId; sectionId?: EntityId | null }): DispatchResult;
+  bulkReschedule(taskIds: EntityId[], due: import("../types").TaskDue | null): DispatchResult;
 
   addProject(input: ProjectInput): DispatchResult;
   updateProject(projectId: EntityId, patch: ProjectPatch): DispatchResult;
   archiveProject(projectId: EntityId, archived: boolean): DispatchResult;
+  deleteProject(projectId: EntityId): DispatchResult;
 
   addSection(input: SectionInput): DispatchResult;
   updateSection(sectionId: EntityId, patch: SectionPatch): DispatchResult;
+  deleteSection(sectionId: EntityId): DispatchResult;
 
   addLabel(input: LabelInput): DispatchResult;
   updateLabel(labelId: EntityId, patch: LabelPatch): DispatchResult;

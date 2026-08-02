@@ -34,6 +34,8 @@ assert(undone.ok && undone.state.tasks["task-repository"].completedAt === null, 
 
 const invalidMove = repository.updateTask("task-repository", { sectionId: "missing-section" });
 assert(!invalidMove.ok && invalidMove.reason === "invalid", "Invalid task moves should retain store validation.");
+const invalidRename = repository.updateTask("task-repository", { content: "   " });
+assert(!invalidRename.ok && invalidRename.reason === "invalid", "Task edits must reject blank names.");
 
 let notifications = 0;
 const unsubscribe = repository.subscribe(() => {
@@ -43,6 +45,13 @@ const renamed = repository.updateProject("project-repository", { name: "Renamed 
 unsubscribe();
 assert(renamed.ok && notifications === 1, "Repository subscriptions should proxy store notifications.");
 assert(repository.getState().projects["project-repository"].name === "Renamed project", "Repository reads should expose the current store state.");
+
+const section = repository.addSection({ id: "section-repository", projectId: "project-repository", name: "Today" });
+assert(section.ok, "Repository should expose section creation.");
+const moved = repository.bulkMove(["task-repository"], { projectId: "project-repository", sectionId: "section-repository" });
+assert(moved.ok && moved.state.tasks["task-repository"].sectionId === "section-repository", "Repository should expose bulk moves.");
+assert(repository.deleteSection("section-repository").ok, "Repository should expose section deletion.");
+assert(repository.deleteProject("project-repository").ok, "Repository should expose project deletion.");
 
 const conflictBase = createSampleState(timestamp, "conflict-client");
 const externalWrite = createAppStore({
