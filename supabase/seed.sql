@@ -8,7 +8,8 @@ insert into auth.users (
 values
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-00000000a101', 'authenticated', 'authenticated', 'alice@daymark.local', crypt('daymark-local', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"Alice Owner","timezone":"America/New_York"}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-00000000b202', 'authenticated', 'authenticated', 'ben@daymark.local', crypt('daymark-local', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"Ben Editor","timezone":"Europe/London"}', now(), now()),
-  ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-00000000c303', 'authenticated', 'authenticated', 'casey@daymark.local', crypt('daymark-local', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"Casey Viewer","timezone":"Asia/Jerusalem"}', now(), now())
+  ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-00000000c303', 'authenticated', 'authenticated', 'casey@daymark.local', crypt('daymark-local', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"Casey Viewer","timezone":"Asia/Jerusalem"}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-00000000d404', 'authenticated', 'authenticated', 'invitee@daymark.local', crypt('daymark-local', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"Drew Invitee","timezone":"America/Chicago"}', now(), now())
 on conflict (id) do nothing;
 
 insert into public.workspaces (id, name, slug, owner_id, created_by, updated_by)
@@ -40,7 +41,22 @@ values (
   '00000000-0000-0000-0000-00000000a101',
   '00000000-0000-0000-0000-00000000a101'
 )
-on conflict (id) do nothing;
+on conflict (workspace_id, id) do nothing;
+
+insert into public.workspace_preferences (
+  workspace_id, user_id, inbox_project_id, active_project_id, onboarding_dismissed,
+  created_by, updated_by
+)
+values (
+  '10000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-00000000a101',
+  '20000000-0000-0000-0000-000000000001',
+  '20000000-0000-0000-0000-000000000001',
+  true,
+  '00000000-0000-0000-0000-00000000a101',
+  '00000000-0000-0000-0000-00000000a101'
+)
+on conflict (workspace_id, user_id) do nothing;
 
 insert into public.sections (id, workspace_id, project_id, name, position, created_by, updated_by)
 values (
@@ -52,7 +68,7 @@ values (
   '00000000-0000-0000-0000-00000000a101',
   '00000000-0000-0000-0000-00000000a101'
 )
-on conflict (id) do nothing;
+on conflict (workspace_id, id) do nothing;
 
 insert into public.labels (id, workspace_id, name, color, position, created_by, updated_by)
 values (
@@ -64,7 +80,7 @@ values (
   '00000000-0000-0000-0000-00000000a101',
   '00000000-0000-0000-0000-00000000a101'
 )
-on conflict (id) do nothing;
+on conflict (workspace_id, id) do nothing;
 
 insert into public.tasks (
   id, workspace_id, project_id, section_id, content, description, priority, due, position, created_by, updated_by
@@ -82,7 +98,7 @@ values (
   '00000000-0000-0000-0000-00000000a101',
   '00000000-0000-0000-0000-00000000a101'
 )
-on conflict (id) do nothing;
+on conflict (workspace_id, id) do nothing;
 
 insert into public.task_labels (task_id, label_id, workspace_id, created_by)
 values (
@@ -91,7 +107,7 @@ values (
   '10000000-0000-0000-0000-000000000001',
   '00000000-0000-0000-0000-00000000a101'
 )
-on conflict (task_id, label_id) do nothing;
+on conflict (workspace_id, task_id, label_id) do nothing;
 
 insert into public.task_reminders (id, workspace_id, task_id, remind_at, delivery_key, created_by, updated_by)
 values (
@@ -103,7 +119,7 @@ values (
   '00000000-0000-0000-0000-00000000a101',
   '00000000-0000-0000-0000-00000000a101'
 )
-on conflict (id) do nothing;
+on conflict (workspace_id, id) do nothing;
 
 insert into public.saved_filters (id, workspace_id, user_id, name, query, position, created_by, updated_by)
 values (
@@ -116,7 +132,7 @@ values (
   '00000000-0000-0000-0000-00000000a101',
   '00000000-0000-0000-0000-00000000a101'
 )
-on conflict (id) do nothing;
+on conflict (workspace_id, id) do nothing;
 
 insert into public.invitations (
   id, workspace_id, email, role, token_hash, invited_by, created_by, updated_by
@@ -124,7 +140,7 @@ insert into public.invitations (
 values (
   '80000000-0000-0000-0000-000000000001',
   '10000000-0000-0000-0000-000000000001',
-  'new-collaborator@daymark.local',
+  'invitee@daymark.local',
   'viewer',
   encode(digest('daymark-demo-invitation', 'sha256'), 'hex'),
   '00000000-0000-0000-0000-00000000a101',
