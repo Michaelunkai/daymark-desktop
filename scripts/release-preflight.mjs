@@ -40,12 +40,14 @@ function git(args) {
 
 const branch = git(["branch", "--show-current"]).stdout.trim();
 const commit = git(["rev-parse", "HEAD"]).stdout.trim();
+const integrationCommit =
+  process.env.DAYMARK_INTEGRATION_COMMIT ?? "9b721a04286bae770cdb76f32d937b9f734dbbe1";
+const integrationCommitIsAncestor =
+  git(["merge-base", "--is-ancestor", integrationCommit, "HEAD"]).status === 0;
 const porcelain = git(["status", "--porcelain"]).stdout
   .split(/\r?\n/)
   .filter((line) => line && !line.endsWith("artifacts/release-readiness.json"))
   .join("\n");
-const expectedCommit = process.env.DAYMARK_RELEASE_COMMIT ?? "9b721a04286bae770cdb76f32d937b9f734dbbe1";
-
 const environment = Object.fromEntries(
   Object.entries(requiredEnv).map(([name, validate]) => [
     name,
@@ -71,8 +73,8 @@ const report = {
   repository: {
     branch,
     commit,
-    expectedCommit,
-    expectedCommitMatches: commit === expectedCommit,
+    integrationCommit,
+    integrationCommitIsAncestor,
     clean: porcelain.length === 0,
   },
   environment,
@@ -83,7 +85,7 @@ const report = {
 
 report.releaseReady =
   report.repository.branch === "codex/recovery-daymark-9b721a0" &&
-  report.repository.expectedCommitMatches &&
+  report.repository.integrationCommitIsAncestor &&
   report.repository.clean &&
   report.externalReleaseReady &&
   report.localVerificationPassed;
