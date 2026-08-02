@@ -225,6 +225,7 @@ export function UpcomingCalendar({
           selectedDate={selected}
           tasksByDate={tasksByDate}
           today={today}
+          visibleMonth={cursor.slice(0, 7)}
           weekStartsOn={weekStartsOn}
         />
       )}
@@ -257,6 +258,7 @@ type CalendarGridProps = {
   selectedDate: LocalDate
   tasksByDate: ReadonlyMap<LocalDate, readonly UpcomingCalendarTask[]>
   today: LocalDate
+  visibleMonth: string
   weekStartsOn: WeekStart
 }
 
@@ -274,7 +276,7 @@ function CalendarGrid(props: CalendarGridProps) {
               date={date}
               density={dayDensity(tasks)}
               draggingTaskId={props.draggingTaskId}
-              isCurrentMonth={date.slice(0, 7) === props.selectedDate.slice(0, 7)}
+              isCurrentMonth={date.slice(0, 7) === props.visibleMonth}
               isFocused={date === props.focusedDate}
               isSelected={date === props.selectedDate}
               isToday={date === props.today}
