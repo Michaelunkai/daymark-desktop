@@ -2,6 +2,7 @@ import { createAuthService } from "./auth-service";
 import { validatePublicCloudEnvironment } from "./env";
 import { createSupabaseRepository } from "./supabase-repository";
 import type { AuthChangeEvent, AuthSession, SupabaseBrowserClient, SupabaseRealtimeChannel } from "./supabase-client";
+import { createWorkspaceService } from "./workspace-service";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -12,6 +13,7 @@ let authListener: ((event: AuthChangeEvent, session: AuthSession | null) => void
 let realtimeListener: ((payload: any) => void) | undefined;
 let passwordRequest: { email: string; password: string } | undefined;
 let magicLinkRequest: { email: string; options?: { emailRedirectTo?: string } } | undefined;
+let lastRpc: { name: string; params?: Record<string, unknown> } | undefined;
 const channel: SupabaseRealtimeChannel = {
   on: (_type, _filter, callback) => { realtimeListener = callback; return channel; },
   subscribe: () => channel,
@@ -34,8 +36,12 @@ const client: SupabaseBrowserClient = {
       return { data: { subscription: { unsubscribe: () => { authListener = undefined; } } } };
     },
   },
-  rpc: async (name) => {
+  rpc: async (name, params) => {
+    lastRpc = { name, params };
     if (name === "daymark_get_workspace_snapshot") return { data: { revision: 4, state: {} } as any, error: null };
+    if (name === "daymark_bootstrap_workspace") {
+      return { data: { id: "workspace-1", ownerId: "user-1", name: "Personal", createdAt: "2026-08-02T14:00:00.000Z" }, error: null };
+    }
     return { data: { revision: 5, state: {} } as any, error: null };
   },
   channel: () => channel,
@@ -66,6 +72,33 @@ stopAuth();
 const repository = createSupabaseRepository(client, { workspaceId: "workspace-1", clientId: "client-1" });
 const snapshot = await repository.pull();
 assert(snapshot.revision === 4, "Repository should pull the RPC snapshot.");
+assert(
+  lastRpc?.name === "daymark_get_workspace_snapshot" &&
+    lastRpc.params?.p_workspace_id === "workspace-1",
+  "Snapshot RPC parameters must match the database function signature.",
+);
+await repository.push([{
+  id: "mutation-1",
+  clientId: "client-1",
+  type: "task.update",
+  payload: {},
+  occurredAt: "2026-08-02T14:00:00.000Z",
+}], 4);
+assert(
+  lastRpc?.name === "daymark_apply_workspace_mutations" &&
+    lastRpc.params?.p_workspace_id === "workspace-1" &&
+    lastRpc.params?.p_client_id === "client-1" &&
+    lastRpc.params?.p_expected_revision === 4 &&
+    Array.isArray(lastRpc.params?.p_mutations),
+  "Mutation RPC parameters must match the database function signature.",
+);
+const workspace = await createWorkspaceService(client).bootstrap({ name: " Personal " });
+assert(workspace.id === "workspace-1", "Workspace bootstrap should return the created workspace.");
+assert(
+  lastRpc?.name === "daymark_bootstrap_workspace" &&
+    lastRpc.params?.p_workspace_name === "Personal",
+  "Workspace bootstrap parameters must match the database function signature.",
+);
 let changeCount = 0;
 const stopRealtime = repository.subscribe(() => { changeCount += 1; });
 const event = {

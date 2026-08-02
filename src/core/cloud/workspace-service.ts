@@ -20,7 +20,7 @@ export function createWorkspaceService(
   return {
     async bootstrap(input = {}) {
       const { data, error } = await client.rpc<CloudWorkspace>(bootstrapRpc, {
-        workspace_name: input.name?.trim() || null,
+        p_workspace_name: input.name?.trim() || null,
       });
       if (error) throw error;
       if (!data?.id || !data.ownerId) throw new Error("Workspace bootstrap returned an invalid workspace.");

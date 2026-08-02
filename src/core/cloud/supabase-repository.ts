@@ -50,16 +50,18 @@ export function createSupabaseRepository(
 
   return {
     async pull() {
-      const { data, error } = await client.rpc<CloudSyncSnapshot>(snapshotRpc, { workspace_id: options.workspaceId });
+      const { data, error } = await client.rpc<CloudSyncSnapshot>(snapshotRpc, {
+        p_workspace_id: options.workspaceId,
+      });
       if (error) throw error;
       return validateSnapshot(data);
     },
     async push(mutations, expectedRevision) {
       const { data, error } = await client.rpc<CloudSyncSnapshot>(pushRpc, {
-        workspace_id: options.workspaceId,
-        client_id: options.clientId,
-        expected_revision: expectedRevision,
-        mutations,
+        p_workspace_id: options.workspaceId,
+        p_client_id: options.clientId,
+        p_expected_revision: expectedRevision,
+        p_mutations: mutations,
       });
       if (error) throw error;
       for (const mutation of mutations) remember(seenChangeIds, mutation.id);
