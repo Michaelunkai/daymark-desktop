@@ -20,7 +20,7 @@ function run(command, args) {
     cwd: root,
     encoding: "utf8",
     stdio: "ignore",
-    shell: process.platform === "win32",
+    shell: process.platform === "win32" && executable === "npm.cmd",
     windowsHide: true,
   });
   return {
