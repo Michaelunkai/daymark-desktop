@@ -1,0 +1,5 @@
+{
+  "tasks": {
+    "test-edge": "deno test supabase/functions/functions.test.ts"
+  }
+}

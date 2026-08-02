@@ -10,6 +10,7 @@
     "lint": "eslint src --no-config-lookup --no-ignore --ext .js,.jsx,.ts,.tsx --parser @typescript-eslint/parser --rule no-debugger:error",
     "typecheck": "tsc --noEmit --allowImportingTsExtensions --allowJs --checkJs false --jsx react-jsx --moduleResolution bundler --module ESNext --target ES2022 --skipLibCheck src/types/css.d.ts src/main.tsx",
     "test": "npm run test:unit && npm run test:integration",
+    "test:edge": "deno task test-edge",
     "test:unit": "tsx --test src/core/dates/dates.test.ts src/features/reminders/scheduler.test.ts src/features/calendar/upcoming-model.test.ts src/features/command/command.test.ts src/features/search/search-index.test.ts src/features/task-editor/form-state.test.ts src/features/views/model.test.ts",
     "test:integration": "tsx --test src/core/store.test.ts src/features/calendar/task-movement.test.ts && vitest run",
     "build": "vite build",

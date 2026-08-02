@@ -15,8 +15,14 @@ Vite exposes those values in browser-delivered code.
 ```powershell
 npm ci
 npm run ci
+npm run test:edge
 npm run preview
 ```
+
+`npm run test:edge` runs the secret-free Supabase Edge Function unit tests
+with Deno. Install Deno 2.x locally first; the CI workflow provisions it
+automatically. These tests do not connect to Supabase and do not require
+project credentials.
 
 Open the preview URL and verify a direct visit to a non-root application route
 loads the app rather than a 404 page. The Vercel configuration builds `dist`,
