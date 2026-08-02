@@ -1,16 +1,34 @@
-import { useMemo, useState, type DragEvent, type KeyboardEvent } from "react"
+import {
+  forwardRef,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+  type ForwardedRef,
+  type KeyboardEvent,
+  type MutableRefObject,
+} from "react"
 import {
   addDays,
-  addMonths,
-  addYears,
   formatDate,
   fromLocalDate,
-  startOfMonth,
-  startOfWeek,
   toLocalDate,
   type LocalDate,
   type WeekStart,
 } from "../../core/dates"
+import {
+  CalendarTaskEditor,
+  type CalendarTaskDraft,
+} from "./CalendarTaskEditor"
+import {
+  createCalendarTaskDragPayload,
+  calendarRange,
+  dayDensity,
+  navigateDate,
+  parseCalendarTaskDragPayload,
+  type CalendarDayDensity,
+} from "./calendar-task-adapters"
 
 export type UpcomingCalendarMode = "week" | "month" | "year"
 
@@ -31,11 +49,13 @@ export type UpcomingCalendarProps = {
   weekStartsOn?: WeekStart
   onDateSelect?: (date: LocalDate) => void
   onTaskAdd?: (date: LocalDate) => void
+  onTaskQuickAdd?: (date: LocalDate, title: string) => void
   onTaskEdit?: (taskId: string) => void
   onTaskMove?: (taskId: string, date: LocalDate) => void
 }
 
 const modes: readonly UpcomingCalendarMode[] = ["week", "month", "year"]
+const dragMime = "application/x-daymark-calendar-task"
 
 export function UpcomingCalendar({
   tasks,
@@ -45,43 +65,58 @@ export function UpcomingCalendar({
   weekStartsOn = 0,
   onDateSelect,
   onTaskAdd,
+  onTaskQuickAdd,
   onTaskEdit,
   onTaskMove,
 }: UpcomingCalendarProps) {
+  const initialDate = selectedDate ?? today
   const [mode, setMode] = useState<UpcomingCalendarMode>(initialMode)
-  const [cursor, setCursor] = useState<LocalDate>(selectedDate ?? today)
+  const [cursor, setCursor] = useState<LocalDate>(initialDate)
+  const [focusedDate, setFocusedDate] = useState<LocalDate>(initialDate)
+  const [quickAddDate, setQuickAddDate] = useState<LocalDate>()
   const [draggingTaskId, setDraggingTaskId] = useState<string>()
+  const dayButtonRefs = useRef(new Map<LocalDate, HTMLButtonElement>())
+
+  useEffect(() => {
+    if (!selectedDate) return
+    setCursor(selectedDate)
+    setFocusedDate(selectedDate)
+  }, [selectedDate])
 
   const tasksByDate = useMemo(() => {
     const grouped = new Map<LocalDate, UpcomingCalendarTask[]>()
-    tasks.forEach((task) => {
-      const items = grouped.get(task.dueDate) ?? []
-      items.push(task)
-      grouped.set(task.dueDate, items)
+    for (const task of tasks) {
+      const scheduled = grouped.get(task.dueDate) ?? []
+      scheduled.push(task)
+      grouped.set(task.dueDate, scheduled)
+    }
+    grouped.forEach((scheduled) => {
+      scheduled.sort((left, right) =>
+        Number(left.completed) - Number(right.completed) || left.title.localeCompare(right.title),
+      )
     })
-    grouped.forEach((items) => items.sort((left, right) => Number(left.completed) - Number(right.completed) || left.title.localeCompare(right.title)))
     return grouped
   }, [tasks])
 
   const range = calendarRange(mode, cursor, weekStartsOn)
-  const heading = mode === "year"
-    ? String(fromLocalDate(cursor).getFullYear())
-    : formatDate(cursor, { month: "long", year: "numeric" })
+  const selected = selectedDate ?? cursor
+  const heading = calendarHeading(mode, cursor)
+  const selectedTasks = tasksByDate.get(selected) ?? []
 
-  function selectDate(date: LocalDate): void {
+  function selectDate(date: LocalDate, shouldFocus = false): void {
     setCursor(date)
+    setFocusedDate(date)
     onDateSelect?.(date)
+    if (shouldFocus) {
+      requestAnimationFrame(() => dayButtonRefs.current.get(date)?.focus())
+    }
   }
 
   function shift(amount: number): void {
-    setCursor((date) => {
-      if (mode === "week") return addDays(date, amount * 7)
-      if (mode === "month") return addMonths(date, amount)
-      return addYears(date, amount)
-    })
+    setCursor((date) => navigateDate(mode, date, amount))
   }
 
-  function handleDayKeyDown(event: KeyboardEvent<HTMLButtonElement>, date: LocalDate): void {
+  function moveFocusedDate(event: KeyboardEvent<HTMLButtonElement>, date: LocalDate): void {
     const offsetByKey: Record<string, number | undefined> = {
       ArrowLeft: -1,
       ArrowRight: 1,
@@ -89,123 +124,207 @@ export function UpcomingCalendar({
       ArrowDown: 7,
     }
     const offset = offsetByKey[event.key]
-    if (offset !== undefined) {
-      event.preventDefault()
-      selectDate(addDays(date, offset))
+    if (offset === undefined) return
+    event.preventDefault()
+    selectDate(addDays(date, offset), true)
+  }
+
+  function handleTaskKeyDown(event: KeyboardEvent<HTMLButtonElement>, task: UpcomingCalendarTask): void {
+    if (!event.altKey) return
+    const moves: Record<string, number | undefined> = {
+      ArrowLeft: -1,
+      ArrowRight: 1,
+      ArrowUp: -7,
+      ArrowDown: 7,
     }
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault()
-      onTaskAdd?.(date)
-    }
+    const offset = moves[event.key]
+    if (offset === undefined) return
+    event.preventDefault()
+    onTaskMove?.(task.id, addDays(task.dueDate, offset))
   }
 
   function handleDrop(event: DragEvent<HTMLElement>, date: LocalDate): void {
     event.preventDefault()
-    const taskId = event.dataTransfer.getData("text/plain") || draggingTaskId
-    if (taskId) onTaskMove?.(taskId, date)
+    const payload = parseCalendarTaskDragPayload(event.dataTransfer.getData(dragMime))
+    if (!payload || payload.taskId !== draggingTaskId || payload.sourceDate === date) return
+    onTaskMove?.(payload.taskId, date)
     setDraggingTaskId(undefined)
+  }
+
+  function submitQuickAdd(draft: CalendarTaskDraft): void {
+    if (onTaskQuickAdd) {
+      onTaskQuickAdd(draft.date, draft.title)
+    } else {
+      onTaskAdd?.(draft.date)
+    }
+    setQuickAddDate(undefined)
   }
 
   return (
     <section className="upcoming-calendar" aria-label="Upcoming calendar">
-      <style>{calendarStyles}</style>
       <header className="upcoming-calendar__toolbar">
-        <div className="upcoming-calendar__nav">
-          <button aria-label={`Previous ${mode}`} className="upcoming-calendar__icon-button" onClick={() => shift(-1)} type="button">
-            <span aria-hidden="true">‹</span>
+        <div className="upcoming-calendar__navigation">
+          <button aria-label={`Previous ${mode}`} className="upcoming-calendar__nav-button" onClick={() => shift(-1)} type="button">
+            &larr;
           </button>
-          <button className="upcoming-calendar__today-button" onClick={() => setCursor(today)} type="button">Today</button>
-          <button aria-label={`Next ${mode}`} className="upcoming-calendar__icon-button" onClick={() => shift(1)} type="button">
-            <span aria-hidden="true">›</span>
+          <button className="upcoming-calendar__today-button" onClick={() => selectDate(today)} type="button">Today</button>
+          <button aria-label={`Next ${mode}`} className="upcoming-calendar__nav-button" onClick={() => shift(1)} type="button">
+            &rarr;
           </button>
+          <h2 className="upcoming-calendar__title" aria-live="polite">{heading}</h2>
         </div>
-        <h2 aria-live="polite">{heading}</h2>
-        <div aria-label="Calendar view" className="upcoming-calendar__modes" role="group">
-          {modes.map((candidate) => (
-            <button
-              aria-pressed={mode === candidate}
-              key={candidate}
-              onClick={() => setMode(candidate)}
-              type="button"
-            >
-              {candidate[0].toUpperCase() + candidate.slice(1)}
-            </button>
-          ))}
+        <div className="upcoming-calendar__toolbar-actions">
+          <div aria-label="Calendar view" className="upcoming-calendar__view-switcher" role="group">
+            {modes.map((candidate) => (
+              <button
+                aria-pressed={mode === candidate}
+                className="upcoming-calendar__view-button"
+                key={candidate}
+                onClick={() => setMode(candidate)}
+                type="button"
+              >
+                {candidate[0].toUpperCase() + candidate.slice(1)}
+              </button>
+            ))}
+          </div>
+          <button className="upcoming-calendar__add-button" onClick={() => setQuickAddDate(selected)} type="button">
+            <span aria-hidden="true">+</span>
+            <span className="upcoming-calendar__add-button-label">Add task</span>
+          </button>
         </div>
       </header>
 
+      {quickAddDate ? (
+        <CalendarTaskEditor
+          date={quickAddDate}
+          onCancel={() => setQuickAddDate(undefined)}
+          onSubmit={submitQuickAdd}
+        />
+      ) : null}
+
       {mode === "year" ? (
-        <div className="upcoming-calendar__year-grid">
-          {Array.from({ length: 12 }, (_, month) => {
-            const date = toLocalDate(new Date(fromLocalDate(cursor).getFullYear(), month, 1))
-            const count = countTasksInMonth(tasksByDate, date)
-            return (
-              <button
-                className="upcoming-calendar__month-button"
-                key={date}
-                onClick={() => {
-                  setCursor(date)
-                  setMode("month")
-                }}
-                type="button"
-              >
-                <span>{formatDate(date, { month: "long" })}</span>
-                <b>{count ? `${count} task${count === 1 ? "" : "s"}` : "Open month"}</b>
-              </button>
-            )
-          })}
-        </div>
+        <YearView cursor={cursor} tasksByDate={tasksByDate} onMonthSelect={(date) => {
+          setCursor(date)
+          setFocusedDate(date)
+          setMode("month")
+        }} />
       ) : (
-        <>
-          <div className="upcoming-calendar__weekdays" aria-hidden="true">
-            {weekdayLabels(weekStartsOn).map((weekday) => <span key={weekday}>{weekday}</span>)}
-          </div>
-          <div className={`upcoming-calendar__grid upcoming-calendar__grid--${mode}`} role="grid" aria-label={`${heading} calendar`}>
-            {range.map((date) => (
-              <CalendarDay
-                date={date}
-                draggingTaskId={draggingTaskId}
-                isCurrentMonth={date.slice(0, 7) === cursor.slice(0, 7)}
-                isSelected={date === selectedDate}
-                isToday={date === today}
-                key={date}
-                mode={mode}
-                onAdd={onTaskAdd}
-                onDateSelect={selectDate}
-                onDayKeyDown={handleDayKeyDown}
-                onDrop={handleDrop}
-                onDraggingTaskIdChange={setDraggingTaskId}
-                onEdit={onTaskEdit}
-                tasks={tasksByDate.get(date) ?? []}
-              />
-            ))}
-          </div>
-        </>
+        <CalendarGrid
+          dateRefs={dayButtonRefs}
+          draggingTaskId={draggingTaskId}
+          focusedDate={focusedDate}
+          mode={mode}
+          onAdd={(date) => setQuickAddDate(date)}
+          onDateSelect={selectDate}
+          onDayKeyDown={moveFocusedDate}
+          onDrop={handleDrop}
+          onDraggingTaskIdChange={setDraggingTaskId}
+          onTaskEdit={onTaskEdit}
+          onTaskKeyDown={handleTaskKeyDown}
+          range={range}
+          selectedDate={selected}
+          tasksByDate={tasksByDate}
+          today={today}
+          weekStartsOn={weekStartsOn}
+        />
       )}
+
+      <SelectedDayAgenda
+        date={selected}
+        density={dayDensity(selectedTasks)}
+        onAdd={() => setQuickAddDate(selected)}
+        onEdit={onTaskEdit}
+        onMove={onTaskMove}
+        tasks={selectedTasks}
+      />
     </section>
+  )
+}
+
+type CalendarGridProps = {
+  dateRefs: MutableRefObject<Map<LocalDate, HTMLButtonElement>>
+  draggingTaskId?: string
+  focusedDate: LocalDate
+  mode: Exclude<UpcomingCalendarMode, "year">
+  onAdd: (date: LocalDate) => void
+  onDateSelect: (date: LocalDate, shouldFocus?: boolean) => void
+  onDayKeyDown: (event: KeyboardEvent<HTMLButtonElement>, date: LocalDate) => void
+  onDrop: (event: DragEvent<HTMLElement>, date: LocalDate) => void
+  onDraggingTaskIdChange: (taskId?: string) => void
+  onTaskEdit?: (taskId: string) => void
+  onTaskKeyDown: (event: KeyboardEvent<HTMLButtonElement>, task: UpcomingCalendarTask) => void
+  range: readonly LocalDate[]
+  selectedDate: LocalDate
+  tasksByDate: ReadonlyMap<LocalDate, readonly UpcomingCalendarTask[]>
+  today: LocalDate
+  weekStartsOn: WeekStart
+}
+
+function CalendarGrid(props: CalendarGridProps) {
+  return (
+    <>
+      <div className="upcoming-calendar__weekdays" aria-hidden="true">
+        {weekdayLabels(props.weekStartsOn).map((weekday) => <span className="upcoming-calendar__weekday" key={weekday}>{weekday}</span>)}
+      </div>
+      <div className={`upcoming-calendar__grid upcoming-calendar__grid--${props.mode}`} role="grid" aria-label={`${props.mode} calendar`}>
+        {props.range.map((date) => {
+          const tasks = props.tasksByDate.get(date) ?? []
+          return (
+            <ForwardedCalendarDay
+              date={date}
+              density={dayDensity(tasks)}
+              draggingTaskId={props.draggingTaskId}
+              isCurrentMonth={date.slice(0, 7) === props.selectedDate.slice(0, 7)}
+              isFocused={date === props.focusedDate}
+              isSelected={date === props.selectedDate}
+              isToday={date === props.today}
+              key={date}
+              mode={props.mode}
+              onAdd={props.onAdd}
+              onDateSelect={props.onDateSelect}
+              onDayKeyDown={props.onDayKeyDown}
+              onDrop={props.onDrop}
+              onDraggingTaskIdChange={props.onDraggingTaskIdChange}
+              onTaskEdit={props.onTaskEdit}
+              onTaskKeyDown={props.onTaskKeyDown}
+              ref={(element) => {
+                if (element) props.dateRefs.current.set(date, element)
+                else props.dateRefs.current.delete(date)
+              }}
+              tasks={tasks}
+            />
+          )
+        })}
+      </div>
+    </>
   )
 }
 
 type CalendarDayProps = {
   date: LocalDate
+  density: CalendarDayDensity
   draggingTaskId?: string
   isCurrentMonth: boolean
+  isFocused: boolean
   isSelected: boolean
   isToday: boolean
   mode: Exclude<UpcomingCalendarMode, "year">
-  onAdd?: (date: LocalDate) => void
+  onAdd: (date: LocalDate) => void
   onDateSelect: (date: LocalDate) => void
   onDayKeyDown: (event: KeyboardEvent<HTMLButtonElement>, date: LocalDate) => void
   onDrop: (event: DragEvent<HTMLElement>, date: LocalDate) => void
   onDraggingTaskIdChange: (taskId?: string) => void
-  onEdit?: (taskId: string) => void
+  onTaskEdit?: (taskId: string) => void
+  onTaskKeyDown: (event: KeyboardEvent<HTMLButtonElement>, task: UpcomingCalendarTask) => void
   tasks: readonly UpcomingCalendarTask[]
 }
 
-function CalendarDay({
+const CalendarDay = function CalendarDay({
   date,
+  density,
   draggingTaskId,
   isCurrentMonth,
+  isFocused,
   isSelected,
   isToday,
   mode,
@@ -214,22 +333,25 @@ function CalendarDay({
   onDayKeyDown,
   onDrop,
   onDraggingTaskIdChange,
-  onEdit,
+  onTaskEdit,
+  onTaskKeyDown,
   tasks,
-}: CalendarDayProps) {
+}: CalendarDayProps, ref: ForwardedRef<HTMLButtonElement>) {
   const visibleTasks = mode === "week" ? tasks : tasks.slice(0, 3)
   const overflow = tasks.length - visibleTasks.length
+  const densityLabel = `${density.active} active, ${density.completed} completed`
 
   return (
     <article
-      aria-label={`${formatDate(date, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}, ${tasks.length} tasks`}
+      aria-label={`${formatDate(date, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}, ${densityLabel}`}
       className={[
         "upcoming-calendar__day",
-        !isCurrentMonth && "upcoming-calendar__day--outside",
+        !isCurrentMonth && mode === "month" && "upcoming-calendar__day--outside",
         isToday && "upcoming-calendar__day--today",
         isSelected && "upcoming-calendar__day--selected",
         draggingTaskId && "upcoming-calendar__day--droppable",
       ].filter(Boolean).join(" ")}
+      data-has-tasks={density.total > 0}
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => onDrop(event, date)}
       role="gridcell"
@@ -237,64 +359,124 @@ function CalendarDay({
       <div className="upcoming-calendar__day-header">
         <button
           aria-current={isToday ? "date" : undefined}
-          aria-label={`Select ${formatDate(date, { month: "long", day: "numeric", year: "numeric" })}`}
+          aria-label={`Select ${formatDate(date, { month: "long", day: "numeric", year: "numeric" })}; ${densityLabel}`}
           className="upcoming-calendar__day-number"
           onClick={() => onDateSelect(date)}
           onKeyDown={(event) => onDayKeyDown(event, date)}
+          ref={ref}
+          tabIndex={isFocused ? 0 : -1}
           type="button"
         >
           {fromLocalDate(date).getDate()}
         </button>
-        <button aria-label={`Add task on ${date}`} className="upcoming-calendar__add-day" onClick={() => onAdd?.(date)} type="button">+</button>
+        <button aria-label={`Add task on ${date}`} className="upcoming-calendar__day-add" onClick={() => onAdd(date)} type="button">+</button>
       </div>
-      <div className="upcoming-calendar__task-list">
+      <div className="upcoming-calendar__day-tasks">
         {visibleTasks.map((task) => (
           <button
+            aria-label={`${task.title}, ${task.completed ? "completed" : "active"}. Press Alt and an arrow key to move.`}
             className={`upcoming-calendar__task ${task.completed ? "upcoming-calendar__task--completed" : ""}`}
             draggable
             key={task.id}
-            onClick={() => onEdit?.(task.id)}
+            onClick={() => onTaskEdit?.(task.id)}
             onDragEnd={() => onDraggingTaskIdChange(undefined)}
             onDragStart={(event) => {
               event.dataTransfer.effectAllowed = "move"
-              event.dataTransfer.setData("text/plain", task.id)
+              event.dataTransfer.setData(dragMime, createCalendarTaskDragPayload(task))
               onDraggingTaskIdChange(task.id)
             }}
-            title={`${task.title}${task.projectName ? ` · ${task.projectName}` : ""}`}
+            onKeyDown={(event) => onTaskKeyDown(event, task)}
+            title={`${task.title}${task.projectName ? ` - ${task.projectName}` : ""}`}
             type="button"
           >
             <span aria-hidden="true" className="upcoming-calendar__task-dot" style={{ background: task.projectColor ?? "var(--color-success, #267553)" }} />
-            <span>{task.title}</span>
+            <span className="upcoming-calendar__task-label">{task.title}</span>
           </button>
         ))}
-        {overflow > 0 ? <button className="upcoming-calendar__more" onClick={() => onDateSelect(date)} type="button">+{overflow} more</button> : null}
+        {overflow > 0 ? <button aria-label={`Show all ${tasks.length} tasks on ${date}`} className="upcoming-calendar__more-tasks" onClick={() => onDateSelect(date)} type="button">+{overflow} more</button> : null}
       </div>
     </article>
   )
 }
 
-function calendarRange(mode: Exclude<UpcomingCalendarMode, "year">, cursor: LocalDate, weekStartsOn: WeekStart): LocalDate[] {
-  if (mode === "week") {
-    const start = startOfWeek(cursor, weekStartsOn)
-    return Array.from({ length: 7 }, (_, index) => addDays(start, index))
-  }
-  const start = startOfWeek(startOfMonth(cursor), weekStartsOn)
-  return Array.from({ length: 42 }, (_, index) => addDays(start, index))
+const ForwardedCalendarDay = forwardRef(CalendarDay)
+
+function YearView({
+  cursor,
+  tasksByDate,
+  onMonthSelect,
+}: {
+  cursor: LocalDate
+  tasksByDate: ReadonlyMap<LocalDate, readonly UpcomingCalendarTask[]>
+  onMonthSelect: (date: LocalDate) => void
+}) {
+  const year = fromLocalDate(cursor).getFullYear()
+  return (
+    <div className="upcoming-calendar__year-grid" aria-label={`${year} months`}>
+      {Array.from({ length: 12 }, (_, month) => {
+        const date = toLocalDate(new Date(year, month, 1))
+        const density = dayDensity(Array.from(tasksByDate.entries())
+          .filter(([taskDate]) => taskDate.slice(0, 7) === date.slice(0, 7))
+          .flatMap(([, tasks]) => tasks))
+        return (
+          <button className="upcoming-calendar__month-button" key={date} onClick={() => onMonthSelect(date)} type="button">
+            <span>{formatDate(date, { month: "long" })}</span>
+            <small>{density.total ? `${density.active} active, ${density.completed} completed` : "No tasks"}</small>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function SelectedDayAgenda({
+  date,
+  density,
+  onAdd,
+  onEdit,
+  onMove,
+  tasks,
+}: {
+  date: LocalDate
+  density: CalendarDayDensity
+  onAdd: () => void
+  onEdit?: (taskId: string) => void
+  onMove?: (taskId: string, date: LocalDate) => void
+  tasks: readonly UpcomingCalendarTask[]
+}) {
+  return (
+    <aside className="upcoming-calendar__agenda" aria-label={`Agenda for ${formatDate(date, { month: "long", day: "numeric" })}`}>
+      <div>
+        <p className="upcoming-calendar__agenda-kicker">{formatDate(date, { weekday: "long" })}</p>
+        <h3>{formatDate(date, { month: "long", day: "numeric" })}</h3>
+        <p>{density.active} active, {density.completed} completed</p>
+      </div>
+      <button className="upcoming-calendar__agenda-add" onClick={onAdd} type="button">Add task</button>
+      <div className="upcoming-calendar__agenda-list">
+        {tasks.length ? tasks.map((task) => (
+          <div className="upcoming-calendar__agenda-task" key={task.id}>
+            <button onClick={() => onEdit?.(task.id)} type="button">{task.title}</button>
+            <span>
+              <button aria-label={`Move ${task.title} to previous day`} onClick={() => onMove?.(task.id, addDays(date, -1))} type="button">&larr;</button>
+              <button aria-label={`Move ${task.title} to next day`} onClick={() => onMove?.(task.id, addDays(date, 1))} type="button">&rarr;</button>
+            </span>
+          </div>
+        )) : <p className="upcoming-calendar__agenda-empty">Nothing scheduled.</p>}
+      </div>
+    </aside>
+  )
+}
+
+function calendarHeading(mode: UpcomingCalendarMode, cursor: LocalDate): string {
+  return mode === "year"
+    ? String(fromLocalDate(cursor).getFullYear())
+    : formatDate(cursor, { month: "long", year: "numeric" })
 }
 
 function weekdayLabels(weekStartsOn: WeekStart): string[] {
   const anchor = new Date(2023, 0, 1 + weekStartsOn)
-  return Array.from({ length: 7 }, (_, index) => new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() + index)))
+  return Array.from({ length: 7 }, (_, index) =>
+    new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(
+      new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() + index),
+    ))
 }
-
-function countTasksInMonth(tasksByDate: Map<LocalDate, UpcomingCalendarTask[]>, month: LocalDate): number {
-  let count = 0
-  tasksByDate.forEach((tasks, date) => {
-    if (date.slice(0, 7) === month.slice(0, 7)) count += tasks.length
-  })
-  return count
-}
-
-const calendarStyles = `
-.upcoming-calendar{color:var(--color-text-primary,#252321);font:14px/1.35 var(--font-sans,Inter,"Segoe UI",sans-serif);min-width:0}
-.upcoming-calendar button{font:inherit}.upcoming-calendar__toolbar{align-items:center;display:grid;gap:12px;grid-template-columns:1fr auto 1fr;margin-bottom:18px}.upcoming-calendar__toolbar h2{font-size:18px;margin:0;text-align:center}.upcoming-calendar__nav,.upcoming-calendar__modes{align-items:center;display:flex;gap:4px}.upcoming-calendar__modes{justify-content:flex-end}.upcoming-calendar__icon-button,.upcoming-calendar__today-button,.upcoming-calendar__modes button,.upcoming-calendar__add-day,.upcoming-calendar__more{background:transparent;border:1px solid var(--color-border,#e4e1dd);border-radius:6px;color:inherit;cursor:pointer}.upcoming-calendar__icon-button{font-size:24px;height:32px;line-height:1;width:32px}.upcoming-calendar__today-button{height:32px;padding:0 10px}.upcoming-calendar__modes{background:var(--color-surface-hover,#f0f0ef);border-radius:7px;padding:3px}.upcoming-calendar__modes button{border:0;border-radius:4px;color:var(--color-text-secondary,#6d6965);height:28px;padding:0 9px}.upcoming-calendar__modes button[aria-pressed="true"]{background:var(--color-surface,#fff);box-shadow:0 1px 2px rgb(35 31 28 / 10%);color:var(--color-text-primary,#252321);font-weight:700}.upcoming-calendar__weekdays,.upcoming-calendar__grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}.upcoming-calendar__weekdays{color:var(--color-text-tertiary,#918c87);font-size:11px;font-weight:700;margin-bottom:6px;text-align:center;text-transform:uppercase}.upcoming-calendar__grid{border-left:1px solid var(--color-border,#e4e1dd);border-top:1px solid var(--color-border,#e4e1dd)}.upcoming-calendar__day{background:var(--color-surface,#fff);border-bottom:1px solid var(--color-border,#e4e1dd);border-right:1px solid var(--color-border,#e4e1dd);min-height:124px;padding:8px}.upcoming-calendar__grid--week .upcoming-calendar__day{min-height:300px}.upcoming-calendar__day--outside{background:var(--color-canvas,#f7f7f6);color:var(--color-text-tertiary,#918c87)}.upcoming-calendar__day--selected{box-shadow:inset 0 0 0 2px var(--color-focus-ring,#276fbb)}.upcoming-calendar__day--droppable{background:color-mix(in srgb,var(--color-success,#267553) 8%,var(--color-surface,#fff))}.upcoming-calendar__day-header{align-items:center;display:flex;justify-content:space-between;margin-bottom:7px}.upcoming-calendar__day-number{background:transparent;border:0;border-radius:50%;color:inherit;cursor:pointer;font-weight:650;height:27px;padding:0;width:27px}.upcoming-calendar__day--today .upcoming-calendar__day-number{background:var(--color-success,#267553);color:#fff}.upcoming-calendar__add-day{align-items:center;border:0;color:var(--color-text-tertiary,#918c87);display:inline-flex;font-size:18px;height:27px;justify-content:center;opacity:0;width:27px}.upcoming-calendar__day:hover .upcoming-calendar__add-day,.upcoming-calendar__day:focus-within .upcoming-calendar__add-day{opacity:1}.upcoming-calendar__task-list{display:grid;gap:4px}.upcoming-calendar__task{align-items:center;background:var(--color-surface-hover,#f0f0ef);border:0;border-radius:4px;color:inherit;cursor:grab;display:flex;font-size:12px;gap:6px;min-width:0;padding:4px 6px;text-align:left}.upcoming-calendar__task:hover{background:color-mix(in srgb,var(--color-success,#267553) 13%,var(--color-surface,#fff))}.upcoming-calendar__task--completed{color:var(--color-text-tertiary,#918c87);text-decoration:line-through}.upcoming-calendar__task-dot{border-radius:50%;flex:0 0 auto;height:6px;width:6px}.upcoming-calendar__task span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.upcoming-calendar__more{border:0;color:var(--color-success,#267553);font-size:12px;padding:3px 5px;text-align:left}.upcoming-calendar__year-grid{display:grid;gap:10px;grid-template-columns:repeat(4,minmax(0,1fr))}.upcoming-calendar__month-button{background:var(--color-surface,#fff);border:1px solid var(--color-border,#e4e1dd);border-radius:7px;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:5px;min-height:86px;padding:12px;text-align:left}.upcoming-calendar__month-button:hover{border-color:var(--color-success,#267553);background:color-mix(in srgb,var(--color-success,#267553) 6%,var(--color-surface,#fff))}.upcoming-calendar__month-button span{font-weight:700}.upcoming-calendar__month-button b{color:var(--color-success,#267553);font-size:12px;font-weight:600}.upcoming-calendar button:focus-visible{outline:2px solid var(--color-focus-ring,#276fbb);outline-offset:2px}@media (max-width:720px){.upcoming-calendar__toolbar{grid-template-columns:1fr auto}.upcoming-calendar__toolbar h2{grid-column:1/-1;grid-row:1;text-align:left}.upcoming-calendar__nav{grid-row:2}.upcoming-calendar__modes{grid-row:2}.upcoming-calendar__day{min-height:94px;padding:5px}.upcoming-calendar__grid--week{overflow-x:auto}.upcoming-calendar__grid--week .upcoming-calendar__day{min-width:130px}.upcoming-calendar__task{font-size:11px;padding:3px 4px}.upcoming-calendar__year-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}`
