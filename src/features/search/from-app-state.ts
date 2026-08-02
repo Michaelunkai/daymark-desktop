@@ -1,7 +1,17 @@
 import type { AppState } from "../../core/types";
 import type { SearchRecord } from "./search-index";
 
-export function buildSearchRecords(state: AppState): SearchRecord[] {
+export interface SearchTaskMetadata {
+  assignee?: string | null;
+  comments?: readonly string[];
+}
+
+export type SearchMetadataByTaskId = Readonly<Record<string, SearchTaskMetadata | undefined>>;
+
+export function buildSearchRecords(
+  state: AppState,
+  taskMetadata: SearchMetadataByTaskId = {},
+): SearchRecord[] {
   const projectNames = new Map(
     Object.values(state.projects).map((project) => [project.id, project.name]),
   );
@@ -55,21 +65,42 @@ export function buildSearchRecords(state: AppState): SearchRecord[] {
     route: `filter:${filter.id}`,
   }));
 
-  const tasks = Object.values(state.tasks).map<SearchRecord>((task) => ({
-    id: task.id,
-    type: "task",
-    title: task.content,
-    subtitle: task.description || projectNames.get(task.projectId),
-    keywords: [
-      projectNames.get(task.projectId) ?? "",
-      task.sectionId ? sectionNames.get(task.sectionId) ?? "" : "",
-      ...task.labelIds.map((labelId) => labelNames.get(labelId) ?? ""),
-      `p${task.priority}`,
-      task.completedAt ? "completed" : "active",
-    ],
-    isCompleted: task.completedAt !== null,
-    recentRank: task.order + (task.completedAt ? 100 : 0),
-  }));
+  const tasks = Object.values(state.tasks).map<SearchRecord>((task) => {
+    const metadata = taskMetadata[task.id];
+    const project = projectNames.get(task.projectId) ?? "";
+    const section = task.sectionId ? sectionNames.get(task.sectionId) ?? "" : "";
+    const labels = task.labelIds.map((labelId) => labelNames.get(labelId) ?? "");
+    return {
+      id: task.id,
+      type: "task",
+      title: task.content,
+      subtitle: task.description || project,
+      keywords: [
+        project,
+        section,
+        ...labels,
+        `p${task.priority}`,
+        task.completedAt ? "completed" : "active",
+        task.due?.date ?? "",
+        task.due?.recurrence ?? "",
+        metadata?.assignee ?? "",
+        ...(metadata?.comments ?? []),
+      ],
+      facets: {
+        project,
+        section,
+        labels,
+        priority: task.priority,
+        dueDate: task.due?.date ?? null,
+        recurrence: task.due?.recurrence ?? null,
+        completed: task.completedAt !== null,
+        assignee: metadata?.assignee ?? null,
+        comments: metadata?.comments ?? [],
+      },
+      isCompleted: task.completedAt !== null,
+      recentRank: task.order + (task.completedAt ? 100 : 0),
+    };
+  });
 
   return [...views, ...projects, ...sections, ...labels, ...filters, ...tasks];
 }

@@ -12,9 +12,22 @@ export interface SearchRecord {
   title: string;
   subtitle?: string;
   keywords?: readonly string[];
+  facets?: SearchFacets;
   recentRank?: number;
   isCompleted?: boolean;
   route?: string;
+}
+
+export interface SearchFacets {
+  project?: string;
+  section?: string;
+  labels?: readonly string[];
+  priority?: number;
+  dueDate?: string | null;
+  recurrence?: string | null;
+  completed?: boolean;
+  assignee?: string | null;
+  comments?: readonly string[];
 }
 
 export interface SearchResult extends SearchRecord {
@@ -81,7 +94,16 @@ export function flattenSearchGroups(groups: readonly SearchResultGroup[]): Searc
 function scoreRecord(record: SearchRecord, query: string): number {
   const title = normalizeSearchText(record.title);
   const subtitle = normalizeSearchText(record.subtitle ?? "");
-  const keywords = (record.keywords ?? []).map(normalizeSearchText);
+  const keywords = [
+    ...(record.keywords ?? []),
+    record.facets?.project ?? "",
+    record.facets?.section ?? "",
+    ...(record.facets?.labels ?? []),
+    record.facets?.assignee ?? "",
+    ...(record.facets?.comments ?? []),
+    record.facets?.recurrence ?? "",
+    record.facets?.dueDate ?? "",
+  ].map(normalizeSearchText);
 
   if (query.length === 0) {
     return 100 + Math.max(0, 50 - (record.recentRank ?? 50));

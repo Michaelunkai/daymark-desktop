@@ -14,6 +14,7 @@ import {
   type SearchRecord,
   type SearchResult,
 } from "./search-index";
+import { filterSearchRecords, parseSearchQuery } from "./query-parser";
 import "./search.css";
 
 export interface SearchDialogProps {
@@ -39,7 +40,15 @@ export function SearchDialog({
   const listId = useId();
   const [query, setQuery] = useState(initialQuery);
   const [activeIndex, setActiveIndex] = useState(0);
-  const groups = useMemo(() => rankSearchRecords(records, query), [query, records]);
+  const parsedQuery = useMemo(() => parseSearchQuery(query), [query]);
+  const matchingRecords = useMemo(
+    () => filterSearchRecords(records, query),
+    [query, records],
+  );
+  const groups = useMemo(
+    () => rankSearchRecords(matchingRecords, parsedQuery.text),
+    [matchingRecords, parsedQuery.text],
+  );
   const results = useMemo(() => flattenSearchGroups(groups), [groups]);
 
   useEffect(() => {
@@ -159,7 +168,7 @@ export function SearchDialog({
               setActiveIndex(0);
             }}
             onKeyDown={handleKeyDown}
-            placeholder="Search tasks, projects, and views"
+            placeholder='Search or filter: project:"Work" priority:1'
             ref={inputRef}
             role="combobox"
             type="search"
