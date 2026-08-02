@@ -1,0 +1,106 @@
+.ui-icon-button {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: center;
+  padding: 0;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.ui-icon-button:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.ui-icon-button:active:not(:disabled) {
+  background: var(--color-surface-selected);
+}
+
+.ui-icon-button:disabled {
+  color: var(--color-text-tertiary);
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.ui-icon-button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.ui-focus-ring:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.ui-icon-button--sm {
+  height: var(--control-size-sm);
+  width: var(--control-size-sm);
+}
+
+.ui-icon-button--md {
+  height: var(--control-size-md);
+  width: var(--control-size-md);
+}
+
+.ui-icon-button--lg {
+  height: var(--control-size-lg);
+  width: var(--control-size-lg);
+}
+
+.ui-icon-button--subtle {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+.ui-tooltip {
+  display: inline-flex;
+  position: relative;
+}
+
+.ui-tooltip__content {
+  background: var(--color-text-primary);
+  border-radius: var(--radius-sm);
+  color: var(--color-surface);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-tight);
+  max-width: 16rem;
+  opacity: 0;
+  padding: var(--space-1) var(--space-2);
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: calc(100% + var(--space-2));
+  transform: translate(-50%, -0.125rem);
+  transition:
+    opacity var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+  visibility: hidden;
+  inline-size: max-content;
+  max-inline-size: min(16rem, calc(100vw - 2rem));
+  text-align: center;
+  white-space: normal;
+  z-index: 20;
+}
+
+.ui-tooltip:hover .ui-tooltip__content,
+.ui-tooltip:focus-within .ui-tooltip__content {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  visibility: visible;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .ui-tooltip__content {
+    display: none;
+  }
+}

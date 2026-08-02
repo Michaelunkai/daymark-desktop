@@ -1,0 +1,63 @@
+export type TaskPriority = 1 | 2 | 3 | 4;
+
+export type TaskEditorMode = 'create' | 'edit';
+
+export type TaskEditorField = keyof TaskEditorDraft;
+
+export type TaskEditorDraft = {
+  title: string;
+  description: string;
+  projectId: string | null;
+  sectionId: string | null;
+  labelIds: string[];
+  priority: TaskPriority;
+  dueText: string;
+  recurrenceText: string;
+  reminderText: string;
+};
+
+export type TaskEditorOption = {
+  id: string;
+  label: string;
+  color?: string;
+  hint?: string;
+  disabled?: boolean;
+};
+
+export type TaskEditorErrors = Partial<
+  Record<TaskEditorField | 'form', string>
+>;
+
+export type TaskEditorValidationResult = {
+  valid: boolean;
+  value: TaskEditorDraft;
+  errors: TaskEditorErrors;
+};
+
+export type TaskEditorChange<Field extends TaskEditorField = TaskEditorField> = {
+  field: Field;
+  value: TaskEditorDraft[Field];
+};
+
+export type TaskEditorProps = {
+  isOpen: boolean;
+  draft: TaskEditorDraft;
+  mode?: TaskEditorMode;
+  projects?: TaskEditorOption[];
+  sections?: TaskEditorOption[];
+  labels?: TaskEditorOption[];
+  isSaving?: boolean;
+  saveError?: string;
+  validationErrors?: TaskEditorErrors;
+  presentation?: 'dialog' | 'panel';
+  onDraftChange: (
+    nextDraft: TaskEditorDraft,
+    change: TaskEditorChange,
+  ) => void;
+  onSave: (draft: TaskEditorDraft) => void;
+  onCancel?: () => void;
+  onClose: () => void;
+  onRequestProjectPicker?: () => void;
+  onRequestLabelPicker?: () => void;
+  onRequestReminderPicker?: () => void;
+};

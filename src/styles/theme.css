@@ -1,0 +1,121 @@
+@import "./tokens.css";
+
+:root {
+  color-scheme: light;
+  --color-canvas: #f7f7f6;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-surface-hover: #f0f0ef;
+  --color-surface-selected: #fce9e5;
+  --color-text-primary: #252321;
+  --color-text-secondary: #6d6965;
+  --color-text-tertiary: #918c87;
+  --color-border: #e4e1dd;
+  --color-border-strong: #cac5bf;
+  --color-accent: #c44536;
+  --color-accent-hover: #a93429;
+  --color-accent-contrast: #ffffff;
+  --color-danger: #b42318;
+  --color-success: #267553;
+  --color-focus-ring: #276fbb;
+  --shadow-raised: 0 1px 2px rgb(35 31 28 / 0.08), 0 4px 12px rgb(35 31 28 / 0.05);
+
+  /*
+   * Compatibility aliases keep independently-owned feature styles on the
+   * shared semantic palette while they migrate away from older token names.
+   */
+  --canvas: var(--color-canvas);
+  --sidebar: var(--color-surface);
+  --surface: var(--color-surface);
+  --surface-raised: var(--color-surface-raised);
+  --surface-soft: var(--color-canvas);
+  --surface-tint: var(--color-surface-hover);
+  --surface-hover: var(--color-surface-hover);
+  --surfaceHover: var(--color-surface-hover);
+  --surface-muted: var(--color-canvas);
+  --surface-selected: var(--color-surface-selected);
+  --ink: var(--color-text-primary);
+  --ink-soft: var(--color-text-secondary);
+  --ink-muted: var(--color-text-tertiary);
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-tertiary: var(--color-text-tertiary);
+  --textPrimary: var(--color-text-primary);
+  --textSecondary: var(--color-text-secondary);
+  --textTertiary: var(--color-text-tertiary);
+  --line: var(--color-border);
+  --line-strong: var(--color-border-strong);
+  --border: var(--color-border);
+  --border-subtle: var(--color-border);
+  --accent: var(--color-accent);
+  --accent-strong: var(--color-accent-hover);
+  --accent-soft: var(--color-surface-selected);
+  --accentHover: var(--color-accent-hover);
+  --teal: var(--color-success);
+  --teal-soft: var(--color-surface-hover);
+  --amber: #8a5a00;
+  --amber-soft: #fff3d6;
+  --indigo: #505caa;
+  --focus: var(--color-focus-ring);
+  --focus-ring: var(--color-focus-ring);
+  --focusRing: var(--color-focus-ring);
+  --shadow: var(--shadow-raised);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-canvas: #1d1e20;
+  --color-surface: #26272a;
+  --color-surface-raised: #303135;
+  --color-surface-hover: #38393d;
+  --color-surface-selected: #4a2e2c;
+  --color-text-primary: #f4f2ef;
+  --color-text-secondary: #c2beb8;
+  --color-text-tertiary: #938f8a;
+  --color-border: #424348;
+  --color-border-strong: #595b60;
+  --color-accent: #f07867;
+  --color-accent-hover: #ff9587;
+  --color-accent-contrast: #251d1b;
+  --color-danger: #ff928a;
+  --color-success: #73c9a5;
+  --color-focus-ring: #78b7f5;
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.24), 0 8px 18px rgb(0 0 0 / 0.2);
+  --amber: #ffd075;
+  --amber-soft: #4a3917;
+  --indigo: #adbaff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    color-scheme: dark;
+    --color-canvas: #1d1e20;
+    --color-surface: #26272a;
+    --color-surface-raised: #303135;
+    --color-surface-hover: #38393d;
+    --color-surface-selected: #4a2e2c;
+    --color-text-primary: #f4f2ef;
+    --color-text-secondary: #c2beb8;
+    --color-text-tertiary: #938f8a;
+    --color-border: #424348;
+    --color-border-strong: #595b60;
+    --color-accent: #f07867;
+    --color-accent-hover: #ff9587;
+    --color-accent-contrast: #251d1b;
+    --color-danger: #ff928a;
+    --color-success: #73c9a5;
+    --color-focus-ring: #78b7f5;
+    --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.24), 0 8px 18px rgb(0 0 0 / 0.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
