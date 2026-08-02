@@ -31,7 +31,9 @@ function run(command, args) {
 }
 
 function git(args) {
-  return spawnSync("git", args, {
+  const executable =
+    process.platform === "win32" ? "C:\\Program Files\\Git\\cmd\\git.exe" : "git";
+  return spawnSync(executable, args, {
     cwd: root,
     encoding: "utf8",
     windowsHide: true,
