@@ -1,7 +1,24 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { addDays, toLocalDate } from './core/dates'
+import { addDays, addMonths, addYears, fromLocalDate, startOfMonth, startOfWeek, toLocalDate } from './core/dates'
+import { createId } from './core/sample-data'
 import { createAppStore } from './core/store'
 import { createBrowserStorage } from './core/storage'
+import { UpcomingCalendar as IntegratedUpcomingCalendar } from './features/calendar/UpcomingCalendar'
+import { moveTaskToDate as buildMovedTask } from './features/calendar/task-movement'
+import './features/calendar/upcoming-calendar.css'
+import './features/calendar/calendar-task-chips.css'
+import { ProjectCreateDialog } from './features/projects/ProjectCreateDialog'
+import './features/projects/project-create-dialog.css'
+import {
+  TaskEditor,
+  createTaskEditorDraft,
+  taskEditorDraftToTaskInput,
+  taskEditorDraftToTaskPatch,
+  taskToTaskEditorDraft,
+  toTaskEditorLabelOptions,
+  toTaskEditorProjectOptions,
+  toTaskEditorSectionOptions,
+} from './features/task-editor'
 
 const NAV_ITEMS = [
   { id: 'today', label: 'Today', icon: 'sun', count: 5 },
@@ -531,6 +548,248 @@ function getRouteInfo(route, state) {
   return { title: 'Today', kicker: 'SUNDAY, AUGUST 2', subtitle: 'A clear view of what matters now.' }
 }
 
+const CALENDAR_WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+function calendarDates(cursor, mode) {
+  if (mode === 'week') {
+    const start = startOfWeek(cursor, 1)
+    return Array.from({ length: 7 }, (_, index) => addDays(start, index))
+  }
+  const start = startOfWeek(startOfMonth(cursor), 1)
+  return Array.from({ length: 42 }, (_, index) => addDays(start, index))
+}
+
+function calendarRangeLabel(cursor, mode) {
+  const date = fromLocalDate(cursor)
+  if (mode === 'year') return String(date.getFullYear())
+  if (mode === 'week') {
+    const end = fromLocalDate(addDays(startOfWeek(cursor, 1), 6))
+    const formatter = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
+    return `${formatter.format(fromLocalDate(startOfWeek(cursor, 1)))} - ${formatter.format(end)}`
+  }
+  return new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(date)
+}
+
+function monthLabel(date) {
+  return new Intl.DateTimeFormat(undefined, { month: 'short' }).format(fromLocalDate(date))
+}
+
+function UpcomingCalendar({
+  cursor,
+  mode,
+  onCursorChange,
+  onModeChange,
+  onCreate,
+  onEdit,
+  onMove,
+  onSelectedDateChange,
+  selectedDate,
+  tasks,
+}) {
+  const taskBuckets = useMemo(() => {
+    return tasks.reduce((buckets, task) => {
+      if (!task.due?.date) return buckets
+      if (!buckets[task.due.date]) buckets[task.due.date] = []
+      buckets[task.due.date].push(task)
+      return buckets
+    }, {})
+  }, [tasks])
+
+  const moveCursor = (amount) => {
+    onCursorChange((current) => {
+      if (mode === 'year') return addYears(current, amount)
+      if (mode === 'month') return addMonths(current, amount)
+      return addDays(current, amount * 7)
+    })
+  }
+
+  const renderDay = (date, compact = false) => {
+    const dayTasks = taskBuckets[date] ?? []
+    const dateObject = fromLocalDate(date)
+    const isToday = date === toLocalDate(new Date())
+    const isSelected = date === selectedDate
+    const isCurrentMonth = date.slice(0, 7) === cursor.slice(0, 7)
+
+    return (
+      <section
+        className={[
+          'upcoming-day',
+          compact && 'upcoming-day--week',
+          !compact && !isCurrentMonth && 'upcoming-day--outside',
+          isToday && 'upcoming-day--today',
+          isSelected && 'upcoming-day--selected',
+          dayTasks.length && 'upcoming-day--scheduled',
+        ].filter(Boolean).join(' ')}
+        key={date}
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={(event) => {
+          const taskId = event.dataTransfer.getData('text/daymark-task')
+          if (taskId) onMove(taskId, date)
+        }}
+      >
+        <button
+          aria-label={`Open ${new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(dateObject)}${dayTasks.length ? `, ${dayTasks.length} tasks` : ''}`}
+          className="upcoming-day__date"
+          onClick={() => onSelectedDateChange(date)}
+          type="button"
+        >
+          <span>{dateObject.getDate()}</span>
+          {dayTasks.length ? <i aria-hidden="true" /> : null}
+        </button>
+        <div className="upcoming-day__tasks">
+          {dayTasks.slice(0, compact ? 6 : 3).map((task) => (
+            <button
+              className={`upcoming-task-chip ${task.completedAt ? 'is-completed' : ''}`}
+              draggable
+              key={task.id}
+              onClick={() => onEdit(task)}
+              onDragStart={(event) => {
+                event.dataTransfer.effectAllowed = 'move'
+                event.dataTransfer.setData('text/daymark-task', task.id)
+              }}
+              type="button"
+            >
+              <span className={`project-dot project-dot--${PROJECT_COLORS[task.projectId] ?? 'teal'}`} />
+              <b>{task.content}</b>
+              {task.due?.time ? <small>{formatTime(task.due.time)}</small> : null}
+            </button>
+          ))}
+          {dayTasks.length > (compact ? 6 : 3) ? <span className="upcoming-day__more">+{dayTasks.length - (compact ? 6 : 3)} more</span> : null}
+        </div>
+        <button
+          aria-label={`Add task on ${date}`}
+          className="upcoming-day__add"
+          onClick={() => onCreate(date)}
+          title="Add task on this day"
+          type="button"
+        >
+          <Icon name="plus" size={14} />
+        </button>
+      </section>
+    )
+  }
+
+  const renderMiniMonth = (monthOffset) => {
+    const month = addMonths(startOfMonth(cursor), monthOffset)
+    const monthDates = calendarDates(month, 'month').filter((date) => date.slice(0, 7) === month.slice(0, 7))
+    return (
+      <button
+        className={`year-month ${month.slice(0, 4) === selectedDate.slice(0, 4) && month.slice(5, 7) === selectedDate.slice(5, 7) ? 'is-selected' : ''}`}
+        key={month}
+        onClick={() => {
+          onCursorChange(month)
+          onSelectedDateChange(month)
+        }}
+        type="button"
+      >
+        <strong>{monthLabel(month)}</strong>
+        <span className="year-month__dots" aria-label={`${taskBuckets[month] ? taskBuckets[month].length : 0} tasks`}>
+          {monthDates.map((date) => <i className={(taskBuckets[date]?.length ?? 0) > 0 ? 'is-scheduled' : ''} key={date} />)}
+        </span>
+      </button>
+    )
+  }
+
+  return (
+    <section aria-label="Upcoming calendar" className="upcoming-calendar">
+      <div className="upcoming-calendar__toolbar">
+        <div className="calendar-mode-control" role="group" aria-label="Calendar mode">
+          {['week', 'month', 'year'].map((candidate) => (
+            <button
+              aria-pressed={mode === candidate}
+              className={mode === candidate ? 'is-selected' : ''}
+              key={candidate}
+              onClick={() => onModeChange(candidate)}
+              type="button"
+            >
+              {candidate[0].toUpperCase() + candidate.slice(1)}
+            </button>
+          ))}
+        </div>
+        <div className="calendar-nav">
+          <button aria-label="Previous calendar range" className="icon-button" onClick={() => moveCursor(-1)} title="Previous" type="button"><Icon name="arrowUp" size={16} /></button>
+          <button className="calendar-today-button" onClick={() => { const today = toLocalDate(new Date()); onCursorChange(today); onSelectedDateChange(today) }} type="button">Today</button>
+          <button aria-label="Next calendar range" className="icon-button calendar-nav__next" onClick={() => moveCursor(1)} title="Next" type="button"><Icon name="arrowUp" size={16} /></button>
+        </div>
+        <strong className="calendar-range-label" aria-live="polite">{calendarRangeLabel(cursor, mode)}</strong>
+      </div>
+
+      {mode === 'year' ? (
+        <div className="year-grid">{Array.from({ length: 12 }, (_, index) => renderMiniMonth(index))}</div>
+      ) : (
+        <div className={`upcoming-grid upcoming-grid--${mode}`}>
+          {mode === 'month' ? CALENDAR_WEEKDAYS.map((day) => <span className="upcoming-grid__weekday" key={day}>{day}</span>) : null}
+          {calendarDates(cursor, mode).map((date) => renderDay(date, mode === 'week'))}
+        </div>
+      )}
+
+      <footer className="upcoming-calendar__footer">
+        <span><i className="calendar-legend-dot" /> Days with tasks are marked in green</span>
+        <button className="text-button" onClick={() => onCreate(selectedDate)} type="button"><Icon name="plus" size={14} /> Add task on {new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(fromLocalDate(selectedDate))}</button>
+      </footer>
+    </section>
+  )
+}
+
+function ProjectDialog({ draft, error, onChange, onClose, onSubmit }) {
+  return (
+    <div className="integration-modal" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <form aria-labelledby="project-dialog-title" className="project-dialog" onSubmit={onSubmit}>
+        <div className="project-dialog__header">
+          <div>
+            <span className="section-kicker">NEW PROJECT</span>
+            <h2 id="project-dialog-title">Make a place for this work</h2>
+          </div>
+          <button aria-label="Close project creation" className="icon-button" onClick={onClose} type="button"><Icon name="close" size={17} /></button>
+        </div>
+        <label>Project name<input autoFocus onChange={(event) => onChange({ ...draft, name: event.target.value })} placeholder="e.g. Client launch" value={draft.name} /></label>
+        <label>Description<textarea onChange={(event) => onChange({ ...draft, description: event.target.value })} placeholder="What is this project for?" rows="3" value={draft.description} /></label>
+        <fieldset>
+          <legend>Color</legend>
+          <div className="project-color-options">
+            {['teal', 'amber', 'indigo'].map((color) => <button aria-label={`${color} project color`} aria-pressed={draft.color === color} className={`project-color project-color--${color}`} key={color} onClick={() => onChange({ ...draft, color })} type="button" />)}
+          </div>
+        </fieldset>
+        <label className="project-dialog__checkbox"><input checked={draft.addSection} onChange={(event) => onChange({ ...draft, addSection: event.target.checked })} type="checkbox" /> Add a "Next" section</label>
+        {error ? <p className="project-dialog__error" role="alert">{error}</p> : null}
+        <footer><button className="secondary-button" onClick={onClose} type="button">Cancel</button><button className="primary-button" type="submit">Create project</button></footer>
+      </form>
+    </div>
+  )
+}
+
+function IntegrationStyles() {
+  return (
+    <style>{`
+      .upcoming-calendar{border:1px solid var(--line);border-radius:8px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+      .upcoming-calendar__toolbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;min-height:68px;padding:0 16px;border-bottom:1px solid var(--line)}
+      .calendar-mode-control{display:inline-flex;justify-self:start;padding:3px;border:1px solid var(--line);border-radius:7px;background:var(--surface-soft)}
+      .calendar-mode-control button{min-height:29px;padding:0 9px;border-radius:5px;background:transparent;color:var(--ink-soft);cursor:pointer;font-size:11px;font-weight:700}.calendar-mode-control button.is-selected{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+      .calendar-nav{display:inline-flex;align-items:center;gap:2px}.calendar-nav .icon-button{transform:rotate(-90deg)}.calendar-nav__next{transform:rotate(90deg)!important}.calendar-today-button{min-height:30px;padding:0 9px;background:transparent;color:var(--ink-soft);cursor:pointer;font-size:11px;font-weight:700}.calendar-today-button:hover{color:var(--teal)}
+      .calendar-range-label{justify-self:end;color:var(--ink);font-size:13px}.upcoming-grid{display:grid}.upcoming-grid--month{grid-template-columns:repeat(7,minmax(0,1fr))}.upcoming-grid--week{grid-template-columns:repeat(7,minmax(140px,1fr));overflow:auto}
+      .upcoming-grid__weekday{padding:10px 12px;color:var(--ink-muted);border-bottom:1px solid var(--line);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+      .upcoming-day{position:relative;min-height:128px;padding:8px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--surface)}.upcoming-day:nth-child(7n){border-right:0}.upcoming-day--outside{background:var(--surface-soft);opacity:.72}.upcoming-day--week{min-height:420px}.upcoming-day--selected{box-shadow:inset 0 0 0 2px var(--focus)}.upcoming-day--today .upcoming-day__date>span{background:var(--accent);color:white}.upcoming-day--scheduled{background:linear-gradient(180deg,rgba(38,117,83,.055),transparent 42%)}
+      .upcoming-day__date{display:inline-flex;align-items:center;gap:5px;width:30px;height:30px;padding:0;background:transparent;color:var(--ink);cursor:pointer;font-size:11px;font-weight:700}.upcoming-day__date span{display:grid;width:24px;height:24px;place-items:center;border-radius:50%}.upcoming-day__date i{width:5px;height:5px;border-radius:50%;background:var(--teal)}.upcoming-day__date:hover span{background:var(--surface-tint)}
+      .upcoming-day__tasks{display:grid;gap:4px;margin-top:4px}.upcoming-task-chip{display:grid;grid-template-columns:7px minmax(0,1fr);align-items:center;gap:5px;min-width:0;min-height:25px;padding:4px 5px;border:1px solid transparent;border-radius:4px;background:var(--surface-soft);color:var(--ink);cursor:grab;text-align:left}.upcoming-task-chip:hover{border-color:#a9c8bc;background:#eef7f2}.upcoming-task-chip.is-completed{opacity:.52;text-decoration:line-through}.upcoming-task-chip .project-dot{width:5px;height:5px}.upcoming-task-chip b{overflow:hidden;font-size:10px;font-weight:650;text-overflow:ellipsis;white-space:nowrap}.upcoming-task-chip small{grid-column:2;color:var(--ink-muted);font-size:9px}
+      .upcoming-day__more{padding:2px 5px;color:var(--teal);font-size:10px;font-weight:700}.upcoming-day__add{position:absolute;right:6px;bottom:5px;display:grid;width:24px;height:24px;place-items:center;border-radius:5px;background:transparent;color:var(--ink-muted);cursor:pointer;opacity:0}.upcoming-day:hover .upcoming-day__add,.upcoming-day:focus-within .upcoming-day__add{opacity:1}.upcoming-day__add:hover{color:var(--teal);background:var(--teal-soft)}
+      .year-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:18px}.year-month{display:grid;gap:9px;padding:12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);cursor:pointer;text-align:left}.year-month:hover,.year-month.is-selected{border-color:var(--teal);background:var(--teal-soft)}.year-month strong{font-size:11px}.year-month__dots{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}.year-month__dots i{width:100%;aspect-ratio:1;border-radius:2px;background:var(--surface-tint)}.year-month__dots i.is-scheduled{background:var(--teal)}
+      .upcoming-calendar__footer{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:0 15px;background:var(--surface-soft);color:var(--ink-muted);font-size:11px}.upcoming-calendar__footer span{display:inline-flex;align-items:center;gap:6px}.upcoming-calendar__footer .text-button{display:inline-flex;align-items:center;gap:5px}.calendar-legend-dot{width:7px;height:7px;border-radius:50%;background:var(--teal)}
+      .integration-modal{position:fixed;z-index:30;inset:0;display:grid;place-items:center;padding:20px;background:rgba(24,32,31,.35);backdrop-filter:blur(3px)}.project-dialog{display:grid;gap:17px;width:min(440px,100%);padding:24px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);box-shadow:var(--shadow)}.project-dialog__header{display:flex;align-items:flex-start;justify-content:space-between}.project-dialog h2{margin:0;color:var(--ink);font-size:20px}.project-dialog label,.project-dialog fieldset{display:grid;gap:7px;padding:0;color:var(--ink-soft);border:0;font-size:12px;font-weight:700}.project-dialog input[type="text"],.project-dialog input:not([type]),.project-dialog textarea{width:100%;padding:10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit}.project-dialog textarea{resize:vertical}.project-color-options{display:flex;gap:8px}.project-color{width:27px;height:27px;border:3px solid var(--surface);border-radius:50%;cursor:pointer}.project-color[aria-pressed="true"]{outline:2px solid var(--focus)}.project-color--teal{background:var(--teal)}.project-color--amber{background:#d99a20}.project-color--indigo{background:var(--indigo)}.project-dialog__checkbox{display:flex!important;align-items:center;gap:8px}.project-dialog__error{margin:0;color:var(--color-danger);font-size:12px}.project-dialog footer{display:flex;justify-content:flex-end;gap:9px;padding-top:3px}
+      @media(max-width:900px){.upcoming-calendar__toolbar{grid-template-columns:1fr auto}.calendar-range-label{grid-column:1/-1;justify-self:start;margin-top:-8px;padding-bottom:12px}.year-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.upcoming-day{min-height:112px}}@media(max-width:620px){.upcoming-calendar__toolbar{gap:8px;padding:10px}.calendar-mode-control button{padding:0 7px}.upcoming-grid--month{overflow:auto;grid-template-columns:repeat(7,minmax(112px,1fr))}.upcoming-day{min-height:118px}.year-grid{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px}.upcoming-calendar__footer{align-items:flex-start;flex-direction:column;padding:10px 14px}.upcoming-task-chip b{font-size:9px}}
+    `}</style>
+  )
+}
+
+function CalendarIntegrationStyle() {
+  return (
+    <style>{`
+      .upcoming-calendar__day:has(.upcoming-calendar__task)::before{background:var(--teal,var(--color-success));border-radius:999px;content:"";height:6px;position:absolute;right:var(--space-2,8px);top:var(--space-2,8px);width:6px}
+      .upcoming-plan-tray{margin-top:14px;border:1px solid var(--line);border-radius:7px;background:var(--surface)}.upcoming-plan-tray summary{display:flex;align-items:center;justify-content:space-between;min-height:42px;padding:0 13px;color:var(--ink);cursor:pointer;font-size:12px;font-weight:750}.upcoming-plan-tray summary span{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:10px;background:var(--surface-tint);color:var(--ink-muted);font-size:10px}.upcoming-plan-tray>div{display:grid;gap:2px;padding:0 7px 8px}.upcoming-plan-tray button{display:grid;grid-template-columns:12px minmax(0,1fr) auto;align-items:center;gap:7px;min-height:33px;padding:0 7px;border-radius:5px;background:transparent;color:var(--ink);cursor:pointer;text-align:left}.upcoming-plan-tray button:hover{background:var(--surface-soft)}.upcoming-plan-tray button span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}.upcoming-plan-tray button small{color:var(--ink-muted);font-size:10px}.upcoming-plan-tray p{margin:0;padding:8px;color:var(--ink-muted);font-size:12px}
+      @media (max-width:900px){.app-shell.sidebar-is-collapsed .shell-grid{grid-template-columns:0 minmax(0,1fr)}}
+    `}</style>
+  )
+}
+
 function App() {
   const state = useAppState()
   const [route, setRoute] = useState('today')
@@ -543,6 +802,10 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [selectedTask, setSelectedTask] = useState(null)
   const [notice, setNotice] = useState('')
+  const [undoAvailable, setUndoAvailable] = useState(false)
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(() => toLocalDate(new Date()))
+  const [taskEditor, setTaskEditor] = useState(null)
+  const [projectDialogOpen, setProjectDialogOpen] = useState(false)
   const composerRef = useRef(null)
 
   useEffect(() => {
@@ -553,6 +816,8 @@ function App() {
     () => Object.values(state.tasks).map((task) => toViewTask(task, state)),
     [state],
   )
+  const calendarTasks = useMemo(() => Object.values(state.tasks), [state.tasks])
+  const today = toLocalDate(new Date())
   const projectItems = useMemo(
     () =>
       Object.values(state.projects)
@@ -566,18 +831,18 @@ function App() {
   )
   const routeInfo = getRouteInfo(route, state)
   const visibleTasks = useMemo(() => {
-    let scoped = tasks
-    if (route === 'inbox') scoped = tasks.filter((task) => task.project === state.preferences.inboxProjectId)
-    if (route === 'upcoming') scoped = tasks.filter((task) => task.due.includes('Tomorrow') || task.due.includes('Sunday'))
-    if (route.startsWith('project:')) scoped = tasks.filter((task) => task.project === route.slice('project:'.length))
-    if (route.startsWith('label:')) scoped = tasks.filter((task) => task.tag === route.slice('label:'.length))
-    if (route === 'today') scoped = tasks.filter((task) => task.due.includes('Today'))
     if (searchTerm.trim()) {
       const query = searchTerm.trim().toLowerCase()
-      scoped = scoped.filter((task) => `${task.title} ${task.note} ${task.priority}`.toLowerCase().includes(query))
+      return tasks.filter((task) => `${task.title} ${task.note} ${task.priority} ${task.projectName} ${task.tagName}`.toLowerCase().includes(query))
     }
+    let scoped = tasks
+    if (route === 'inbox') scoped = tasks.filter((task) => task.project === state.preferences.inboxProjectId)
+    if (route === 'upcoming') scoped = tasks.filter((task) => state.tasks[task.id]?.due?.date >= today)
+    if (route.startsWith('project:')) scoped = tasks.filter((task) => task.project === route.slice('project:'.length))
+    if (route.startsWith('label:')) scoped = tasks.filter((task) => task.tag === route.slice('label:'.length))
+    if (route === 'today') scoped = tasks.filter((task) => state.tasks[task.id]?.due?.date === today)
     return scoped
-  }, [route, searchTerm, state.preferences.inboxProjectId, tasks])
+  }, [route, searchTerm, state.preferences.inboxProjectId, state.tasks, tasks, today])
 
   const sections = useMemo(() => {
     const names = [...new Set(visibleTasks.map((task) => task.section))]
@@ -608,7 +873,7 @@ function App() {
         setCommandOpen(true)
       } else if (modifier && event.key.toLowerCase() === 'n') {
         event.preventDefault()
-        setComposerOpen(true)
+        openTaskEditor('create')
       } else if (modifier && event.key === '1') {
         event.preventDefault()
         setRoute('inbox')
@@ -642,7 +907,10 @@ function App() {
       taskId,
     })
     if (!result.ok) setNotice(result.message)
-    else setNotice('')
+    else {
+      setNotice('')
+      setUndoAvailable(false)
+    }
   }
 
   const submitTask = (event) => {
@@ -674,13 +942,112 @@ function App() {
       return
     }
     setNotice('')
+    setUndoAvailable(false)
     setDraft('')
     setComposerOpen(false)
   }
 
+  const openTaskEditor = (mode = 'create', task = null, scheduledDate = null) => {
+    const fallbackProjectId = route.startsWith('project:')
+      ? route.slice('project:'.length)
+      : route === 'inbox'
+        ? state.preferences.inboxProjectId
+        : null
+    const draft = task
+      ? taskToTaskEditorDraft(task)
+      : createTaskEditorDraft({
+        projectId: fallbackProjectId,
+        dueText: scheduledDate ?? (route === 'today' ? today : ''),
+      })
+    setComposerOpen(false)
+    setSelectedTask(null)
+    setTaskEditor({ mode, taskId: task?.id ?? null, draft })
+  }
+
+  const saveTaskEditor = (draft) => {
+    if (!taskEditor) return
+    const context = { today, inboxProjectId: state.preferences.inboxProjectId }
+    const adapted = taskEditor.mode === 'edit'
+      ? taskEditorDraftToTaskPatch(draft, context)
+      : taskEditorDraftToTaskInput(draft, context)
+    if (!adapted.ok) {
+      setNotice(Object.values(adapted.errors).find(Boolean) ?? 'Check the task details and try again.')
+      return
+    }
+    const result = taskEditor.mode === 'edit'
+      ? appStore.dispatch({ type: 'task.update', taskId: taskEditor.taskId, patch: adapted.value })
+      : appStore.dispatch({ type: 'task.add', input: adapted.value })
+    if (!result.ok) {
+      setNotice(result.message)
+      return
+    }
+    setNotice('')
+    setUndoAvailable(false)
+    setTaskEditor(null)
+  }
+
+  const moveTaskToDate = (taskId, date) => {
+    const task = state.tasks[taskId]
+    if (!task) return
+    const movement = buildMovedTask(task, date)
+    if (!movement.ok) {
+      setNotice('That task could not be moved to the selected day.')
+      return
+    }
+    const result = appStore.dispatch({
+      type: 'task.update',
+      taskId,
+      patch: { due: movement.task.due },
+    })
+    if (!result.ok) {
+      setNotice(result.message)
+      setUndoAvailable(false)
+    } else {
+      setNotice(`Moved task to ${new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(fromLocalDate(date))}.`)
+      setUndoAvailable(true)
+    }
+  }
+
+  const undoLastChange = () => {
+    const result = appStore.dispatch({ type: 'undo' })
+    if (!result.ok) {
+      setNotice(result.message)
+      setUndoAvailable(false)
+      return
+    }
+    setNotice('Last change undone.')
+    setUndoAvailable(false)
+  }
+
+  const createProject = ({ project, defaultSectionName }) => {
+    const projectId = createId('project')
+    const result = appStore.dispatch({
+      type: 'project.add',
+      input: {
+        id: projectId,
+        ...project,
+      },
+    })
+    if (!result.ok) {
+      setNotice(result.message)
+      return
+    }
+    if (defaultSectionName) {
+      const sectionResult = appStore.dispatch({
+        type: 'section.add',
+        input: { id: createId('section'), projectId, name: defaultSectionName },
+      })
+      if (!sectionResult.ok) {
+        setNotice(`Project created, but its default section could not be added: ${sectionResult.message}`)
+      }
+    }
+    setProjectDialogOpen(false)
+    navigate(`project:${projectId}`)
+  }
+
   const utilityAction = (action) => {
     if (action === 'compose') {
-      setComposerOpen(true)
+      openTaskEditor('create')
       return
     }
     navigate(action)
@@ -688,6 +1055,7 @@ function App() {
 
   return (
     <div className={`app-shell ${sidebarOpen ? '' : 'sidebar-is-collapsed'}`}>
+      <CalendarIntegrationStyle />
       <header className="topbar">
         <div className="topbar__brand">
           <button aria-label={sidebarOpen ? 'Collapse navigation' : 'Expand navigation'} className="icon-button topbar__menu" onClick={() => setSidebarOpen((open) => !open)} title="Toggle navigation" type="button">
@@ -720,7 +1088,7 @@ function App() {
               {NAV_ITEMS.map((item) => (
                 <SidebarRow
                   active={route === item.id}
-                  count={item.id === 'today' ? tasks.filter((task) => task.due.includes('Today') && !task.completed).length : item.id === 'inbox' ? tasks.filter((task) => task.project === state.preferences.inboxProjectId && !task.completed).length : tasks.filter((task) => (task.due.includes('Tomorrow') || task.due.includes('Sunday')) && !task.completed).length}
+                  count={item.id === 'today' ? tasks.filter((task) => state.tasks[task.id]?.due?.date === today && !task.completed).length : item.id === 'inbox' ? tasks.filter((task) => task.project === state.preferences.inboxProjectId && !task.completed).length : tasks.filter((task) => state.tasks[task.id]?.due?.date >= today && !task.completed).length}
                   icon={item.icon}
                   key={item.id}
                   label={item.label}
@@ -733,7 +1101,7 @@ function App() {
             <SidebarSection
               title="PROJECTS"
               action={
-                <button aria-label="Add project" className="section-action" title="Add project" type="button">
+                <button aria-label="Add project" className="section-action" onClick={() => setProjectDialogOpen(true)} title="Add project" type="button">
                   <Icon name="plus" size={15} />
                 </button>
               }
@@ -785,17 +1153,19 @@ function App() {
                 <p>{routeInfo.subtitle}</p>
               </div>
               <div className="view-header__actions">
-                <div aria-label="View mode" className="segmented-control" role="group">
-                  <button className={viewMode === 'list' ? 'is-selected' : ''} onClick={() => setViewMode('list')} title="List view" type="button">
-                    <Icon name="list" size={16} />
-                    List
-                  </button>
-                  <button className={viewMode === 'board' ? 'is-selected' : ''} onClick={() => setViewMode('board')} title="Board view" type="button">
-                    <Icon name="board" size={16} />
-                    Board
-                  </button>
-                </div>
-                <button className="primary-button" onClick={() => setComposerOpen(true)} type="button">
+                {route !== 'upcoming' ? (
+                  <div aria-label="View mode" className="segmented-control" role="group">
+                    <button className={viewMode === 'list' ? 'is-selected' : ''} onClick={() => setViewMode('list')} title="List view" type="button">
+                      <Icon name="list" size={16} />
+                      List
+                    </button>
+                    <button className={viewMode === 'board' ? 'is-selected' : ''} onClick={() => setViewMode('board')} title="Board view" type="button">
+                      <Icon name="board" size={16} />
+                      Board
+                    </button>
+                  </div>
+                ) : null}
+                <button className="primary-button" onClick={() => openTaskEditor('create', null, route === 'upcoming' ? selectedCalendarDate : null)} type="button">
                   <Icon name="plus" size={17} />
                   Add task
                 </button>
@@ -816,12 +1186,61 @@ function App() {
             {notice ? (
               <div className="shell-notice" role="status">
                 <span>{notice}</span>
-                <button className="text-button" onClick={() => setNotice('')} type="button">
-                  Dismiss
-                </button>
+                <span>
+                  {undoAvailable ? <button className="text-button" onClick={undoLastChange} type="button">Undo</button> : null}
+                  <button className="text-button" onClick={() => { setNotice(''); setUndoAvailable(false) }} type="button">
+                    Dismiss
+                  </button>
+                </span>
               </div>
             ) : null}
 
+            {route === 'upcoming' ? (
+              <>
+              <IntegratedUpcomingCalendar
+                initialMode="month"
+                onDateSelect={setSelectedCalendarDate}
+                onTaskAdd={(date) => openTaskEditor('create', null, date)}
+                onTaskEdit={(taskId) => openTaskEditor('edit', state.tasks[taskId])}
+                onTaskMove={moveTaskToDate}
+                selectedDate={selectedCalendarDate}
+                weekStartsOn={1}
+                tasks={calendarTasks
+                  .filter((task) => {
+                    if (!task.due?.date) return false
+                    if (!searchTerm.trim()) return true
+                    const project = state.projects[task.projectId]
+                    const labels = task.labelIds.map((labelId) => state.labels[labelId]?.name ?? '').join(' ')
+                    const query = searchTerm.trim().toLowerCase()
+                    return `${task.content} ${task.description} ${project?.name ?? ''} ${labels}`.toLowerCase().includes(query)
+                  })
+                  .map((task) => ({
+                    id: task.id,
+                    title: task.content,
+                    dueDate: task.due.date,
+                    completed: Boolean(task.completedAt),
+                    projectName: state.projects[task.projectId]?.name,
+                    projectColor: ({ teal: '#267553', amber: '#b77b28', indigo: '#505caa', charcoal: '#4c5652' })[state.projects[task.projectId]?.color] ?? '#267553',
+                  }))}
+              />
+              <details className="upcoming-plan-tray">
+                <summary>Plan tray <span>{calendarTasks.filter((task) => !task.completedAt && (!task.due?.date || task.due.date < today)).length}</span></summary>
+                <div>
+                  {calendarTasks.filter((task) => !task.completedAt && (!task.due?.date || task.due.date < today)).length ? (
+                    calendarTasks
+                      .filter((task) => !task.completedAt && (!task.due?.date || task.due.date < today))
+                      .map((task) => (
+                        <button key={task.id} onClick={() => openTaskEditor('edit', task)} type="button">
+                          <span className={`project-dot project-dot--${PROJECT_COLORS[state.projects[task.projectId]?.color] ?? 'teal'}`} />
+                          <span>{task.content}</span>
+                          <small>{task.due?.date ? 'Overdue' : 'Unscheduled'}</small>
+                        </button>
+                      ))
+                  ) : <p>Nothing needs rescheduling.</p>}
+                </div>
+              </details>
+              </>
+            ) : (
             <div className="task-canvas">
               <div className="canvas-toolbar">
                 <div className="canvas-toolbar__label">
@@ -848,7 +1267,7 @@ function App() {
                           </button>
                         </div>
                         {section.tasks.map((task) => (
-                          <TaskRow key={task.id} onOpen={setSelectedTask} onToggle={toggleTask} task={task} />
+                          <TaskRow key={task.id} onOpen={(viewTask) => openTaskEditor('edit', state.tasks[viewTask.id])} onToggle={toggleTask} task={task} />
                         ))}
                       </section>
                     ))
@@ -857,7 +1276,7 @@ function App() {
                       <span className="empty-state__icon"><Icon name="focus" size={22} /></span>
                       <h2>No tasks in this view</h2>
                       <p>Add a task here or choose another view from the navigation rail.</p>
-                      <button className="secondary-button" onClick={() => setComposerOpen(true)} type="button">
+                      <button className="secondary-button" onClick={() => openTaskEditor('create')} type="button">
                         <Icon name="plus" size={16} />
                         Add the next step
                       </button>
@@ -874,13 +1293,13 @@ function App() {
                       </div>
                       <div className="board-column__body">
                         {section.tasks.map((task) => (
-                          <button className="board-task" key={task.id} onClick={() => setSelectedTask(task)} type="button">
+                          <button className="board-task" key={task.id} onClick={() => openTaskEditor('edit', state.tasks[task.id])} type="button">
                             <span className={`board-task__priority board-task__priority--${task.priorityTone}`} />
                             <strong>{task.title}</strong>
                             <small>{task.due}</small>
                           </button>
                         ))}
-                        <button className="board-add" onClick={() => setComposerOpen(true)} type="button">
+                        <button className="board-add" onClick={() => openTaskEditor('create')} type="button">
                           <Icon name="plus" size={15} />
                           Add task
                         </button>
@@ -893,13 +1312,14 @@ function App() {
               {composerOpen ? (
                 <TaskComposer inputRef={composerRef} onCancel={() => setComposerOpen(false)} onChange={setDraft} onSubmit={submitTask} value={draft} />
               ) : (
-                <button className="empty-composer" onClick={() => setComposerOpen(true)} type="button">
+                <button className="empty-composer" onClick={() => openTaskEditor('create')} type="button">
                   <Icon name="plus" size={18} />
                   <span>Add task</span>
                   <kbd>Ctrl N</kbd>
                 </button>
               )}
             </div>
+            )}
           </div>
         </main>
 
@@ -931,12 +1351,32 @@ function App() {
       {commandOpen ? (
         <CommandPalette
           onClose={() => setCommandOpen(false)}
-          onCompose={() => setComposerOpen(true)}
+          onCompose={() => openTaskEditor('create')}
           onNavigate={navigate}
           onQueryChange={setCommandQuery}
           query={commandQuery}
         />
       ) : null}
+
+      <TaskEditor
+        draft={taskEditor?.draft ?? createTaskEditorDraft()}
+        isOpen={Boolean(taskEditor)}
+        labels={toTaskEditorLabelOptions(Object.values(state.labels))}
+        mode={taskEditor?.mode ?? 'create'}
+        onClose={() => setTaskEditor(null)}
+        onDraftChange={(draft) => setTaskEditor((editor) => editor ? { ...editor, draft } : editor)}
+        onRequestProjectPicker={() => setProjectDialogOpen(true)}
+        onSave={saveTaskEditor}
+        presentation="dialog"
+        projects={toTaskEditorProjectOptions(Object.values(state.projects))}
+        sections={toTaskEditorSectionOptions(Object.values(state.sections), taskEditor?.draft.projectId ?? null)}
+      />
+
+      <ProjectCreateDialog
+        isOpen={projectDialogOpen}
+        onCancel={() => setProjectDialogOpen(false)}
+        onCreate={createProject}
+      />
     </div>
   )
 }
