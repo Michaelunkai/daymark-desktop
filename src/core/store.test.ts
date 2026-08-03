@@ -194,7 +194,7 @@ try {
 }
 assert(importRejected, "Import should reject malformed state instead of silently accepting it.");
 
-const originalWindow = (globalThis as unknown as { window?: unknown }).window;
+const resilienceOriginalWindow = (globalThis as unknown as { window?: unknown }).window;
 try {
   const blockedWindow = {};
   Object.defineProperty(blockedWindow, "localStorage", {
@@ -207,8 +207,8 @@ try {
   const guardedDefaultStorage = createBrowserStorage();
   assert(guardedDefaultStorage.getStatus?.() === "memory", "A throwing localStorage getter must fall back to memory.");
 } finally {
-  if (originalWindow === undefined) delete (globalThis as unknown as { window?: unknown }).window;
-  else Object.defineProperty(globalThis, "window", { configurable: true, value: originalWindow });
+  if (resilienceOriginalWindow === undefined) delete (globalThis as unknown as { window?: unknown }).window;
+  else Object.defineProperty(globalThis, "window", { configurable: true, value: resilienceOriginalWindow });
 }
 
 const persistentValues = new Map<string, string>();
