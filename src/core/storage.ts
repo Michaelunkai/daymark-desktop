@@ -29,15 +29,44 @@ export type SaveResult =
 
 export function createBrowserStorage(
   storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null | undefined =
-    typeof window === "undefined" ? undefined : window.localStorage,
+    getDefaultBrowserStorage(),
   key = STORAGE_KEY,
 ): StateStorage {
   let memoryValue: string | null = null;
+  let memoryDirty = false;
+  let memoryRemoved = false;
+  let recoveryValue: string | null = null;
+  let recoveryDirty = false;
   let status: StorageStatus = storage ? "persistent" : "memory";
+
+  const flushMemory = (): boolean => {
+    if (!storage) return false;
+    try {
+      if (memoryDirty) {
+        if (memoryRemoved) storage.removeItem(key);
+        else storage.setItem(key, memoryValue ?? "");
+      }
+      if (recoveryDirty && recoveryValue !== null) {
+        storage.setItem(`${key}${RECOVERY_KEY_SUFFIX}`, recoveryValue);
+      }
+      memoryDirty = false;
+      memoryRemoved = false;
+      recoveryDirty = false;
+      status = "persistent";
+      return true;
+    } catch {
+      status = "memory";
+      return false;
+    }
+  };
 
   return {
     read: () => {
       if (!storage) return memoryValue;
+      if (memoryDirty || memoryRemoved || recoveryDirty) {
+        flushMemory();
+        return memoryValue;
+      }
       try {
         const value = storage.getItem(key);
         memoryValue = value;
@@ -50,9 +79,12 @@ export function createBrowserStorage(
     },
     write: (value) => {
       memoryValue = value;
+      memoryDirty = true;
+      memoryRemoved = false;
       if (!storage) return;
       try {
         storage.setItem(key, value);
+        memoryDirty = false;
         status = "persistent";
       } catch {
         status = "memory";
@@ -60,24 +92,40 @@ export function createBrowserStorage(
     },
     remove: () => {
       memoryValue = null;
+      memoryDirty = true;
+      memoryRemoved = true;
       if (!storage) return;
       try {
         storage.removeItem(key);
+        memoryDirty = false;
+        memoryRemoved = false;
         status = "persistent";
       } catch {
         status = "memory";
       }
     },
     backup: (value) => {
+      recoveryValue = value;
+      recoveryDirty = true;
       if (!storage) return;
       try {
         storage.setItem(`${key}${RECOVERY_KEY_SUFFIX}`, value);
+        recoveryDirty = false;
       } catch {
         status = "memory";
       }
     },
     getStatus: () => status,
   };
+}
+
+function getDefaultBrowserStorage(): Pick<Storage, "getItem" | "setItem" | "removeItem"> | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    return window.localStorage;
+  } catch {
+    return undefined;
+  }
 }
 
 export function loadState(storage: StateStorage, fallback = createSampleState): LoadResult {
@@ -102,7 +150,12 @@ export function loadState(storage: StateStorage, fallback = createSampleState): 
   }
 }
 
-export function saveState(storage: StateStorage, next: AppState, expectedRevision: number): SaveResult {
+export function saveState(
+  storage: StateStorage,
+  next: AppState,
+  expectedRevision: number,
+  fallback = createSampleState,
+): SaveResult {
   let raw: string | null;
   try {
     raw = storage.read();
@@ -117,9 +170,11 @@ export function saveState(storage: StateStorage, next: AppState, expectedRevisio
 
   if (raw) {
     let current: AppState;
+    let currentWasMalformed = false;
     try {
       current = migrate(JSON.parse(raw));
     } catch {
+      currentWasMalformed = true;
       try {
         storage.backup?.(raw);
       } catch {
@@ -127,7 +182,7 @@ export function saveState(storage: StateStorage, next: AppState, expectedRevisio
       }
       current = next;
     }
-    if (current.revision !== expectedRevision && current !== next) {
+    if (!currentWasMalformed && current.revision !== expectedRevision) {
       return {
         ok: false,
         reason: "conflict",
@@ -139,7 +194,7 @@ export function saveState(storage: StateStorage, next: AppState, expectedRevisio
     return {
       ok: false,
       reason: "conflict",
-      state: createSampleState(),
+      state: fallback(),
       message: "Saved data was cleared in another tab. Reloaded the initial state.",
     };
   }
@@ -168,7 +223,7 @@ export function exportState(state: AppState): string {
 
 export function importState(raw: string): AppState {
   if (typeof raw !== "string" || !raw.trim()) throw new Error("Import data is empty.");
-  return migrate(JSON.parse(raw));
+  return migrate(JSON.parse(raw.replace(/^\uFEFF/, "")));
 }
 
 export function migrate(value: unknown): AppState {

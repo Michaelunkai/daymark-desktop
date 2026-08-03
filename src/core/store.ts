@@ -53,7 +53,7 @@ export function createAppStore(storage: StateStorage, fallback?: () => AppState)
       const result = reduce(durable, action);
       if (!result.ok) return result;
 
-      const saved = saveState(storage, result.state, durable.revision);
+      const saved = saveState(storage, result.state, durable.revision, fallback);
       if (!saved.ok) {
         state = saved.state;
         notify();

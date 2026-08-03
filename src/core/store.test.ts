@@ -6,7 +6,9 @@ import {
   importState,
   loadState,
   migrate,
+  RECOVERY_KEY_SUFFIX,
   saveState,
+  STORAGE_KEY,
 } from "./storage";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -167,5 +169,143 @@ try {
   importRejected = true;
 }
 assert(importRejected, "Import should reject malformed state instead of silently accepting it.");
+
+const originalWindow = (globalThis as unknown as { window?: unknown }).window;
+try {
+  const blockedWindow = {};
+  Object.defineProperty(blockedWindow, "localStorage", {
+    configurable: true,
+    get: () => {
+      throw new Error("Storage access denied");
+    },
+  });
+  Object.defineProperty(globalThis, "window", { configurable: true, value: blockedWindow });
+  const guardedDefaultStorage = createBrowserStorage();
+  assert(guardedDefaultStorage.getStatus?.() === "memory", "A throwing localStorage getter must fall back to memory.");
+} finally {
+  if (originalWindow === undefined) delete (globalThis as unknown as { window?: unknown }).window;
+  else Object.defineProperty(globalThis, "window", { configurable: true, value: originalWindow });
+}
+
+const persistentValues = new Map<string, string>();
+let storageBlocked = true;
+const recoveringStorage = createBrowserStorage({
+  getItem: (key) => {
+    if (storageBlocked) throw new Error("Storage blocked");
+    return persistentValues.get(key) ?? null;
+  },
+  setItem: (key, value) => {
+    if (storageBlocked) throw new Error("Storage blocked");
+    persistentValues.set(key, value);
+  },
+  removeItem: (key) => {
+    if (storageBlocked) throw new Error("Storage blocked");
+    persistentValues.delete(key);
+  },
+});
+const recoveringApp = createAppStore(
+  recoveringStorage,
+  () => createSampleState(timestamp, "recovering-client"),
+);
+const sessionOnlyWrite = recoveringApp.dispatch({
+  type: "task.add",
+  input: { id: "task-session-only", content: "Keep this while storage is blocked" },
+});
+assert(sessionOnlyWrite.ok && recoveringApp.getStorageStatus() === "memory", "Blocked writes must remain usable in memory.");
+storageBlocked = false;
+const recoveredDurableWrite = recoveringApp.dispatch({
+  type: "task.add",
+  input: { id: "task-after-recovery", content: "Persist after storage recovers" },
+});
+assert(recoveredDurableWrite.ok, "A recovered storage adapter should accept the next mutation.");
+const recoveredPersisted = persistentValues.get(STORAGE_KEY);
+assert(recoveredPersisted, "Recovered memory state should be flushed to durable storage.");
+const recoveredState = migrate(JSON.parse(recoveredPersisted));
+assert(
+  recoveredState.tasks["task-session-only"] && recoveredState.tasks["task-after-recovery"],
+  "Storage recovery must not discard session-only edits.",
+);
+assert(recoveringApp.getStorageStatus() === "persistent", "Successful storage recovery should restore persistent status.");
+
+const malformedPersistentValues = new Map<string, string>([[STORAGE_KEY, "{still-malformed"]]);
+let malformedStorageBlocked = false;
+const recoverableMalformedStorage = createBrowserStorage({
+  getItem: (key) => {
+    if (malformedStorageBlocked) throw new Error("Storage blocked");
+    return malformedPersistentValues.get(key) ?? null;
+  },
+  setItem: (key, value) => {
+    if (malformedStorageBlocked) throw new Error("Storage blocked");
+    malformedPersistentValues.set(key, value);
+  },
+  removeItem: (key) => {
+    if (malformedStorageBlocked) throw new Error("Storage blocked");
+    malformedPersistentValues.delete(key);
+  },
+});
+const malformedRecoveryApp = createAppStore(
+  recoverableMalformedStorage,
+  () => createSampleState(timestamp, "malformed-recovery-client"),
+);
+assert(
+  malformedPersistentValues.get(`${STORAGE_KEY}${RECOVERY_KEY_SUFFIX}`) === "{still-malformed",
+  "Malformed state should be preserved in a recovery backup during initial load.",
+);
+malformedStorageBlocked = true;
+const malformedRecoveryWrite = malformedRecoveryApp.dispatch({
+  type: "task.add",
+  input: { id: "task-malformed-recovery", content: "Replace malformed state" },
+});
+assert(malformedRecoveryWrite.ok, "Malformed state must remain writable while storage is blocked.");
+malformedStorageBlocked = false;
+const malformedRecoveryFlush = malformedRecoveryApp.dispatch({
+  type: "task.add",
+  input: { id: "task-malformed-recovery-2", content: "Keep recovered state" },
+});
+assert(malformedRecoveryFlush.ok, "Malformed recovery state should flush after storage returns.");
+assert(
+  malformedPersistentValues.get(`${STORAGE_KEY}${RECOVERY_KEY_SUFFIX}`) === "{still-malformed",
+  "The malformed primary payload must remain available as a recovery backup.",
+);
+const repairedMalformedState = migrate(JSON.parse(malformedPersistentValues.get(STORAGE_KEY)!));
+assert(
+  repairedMalformedState.tasks["task-malformed-recovery"] &&
+    repairedMalformedState.tasks["task-malformed-recovery-2"],
+  "The first valid mutation must replace malformed primary storage.",
+);
+
+const memoryOnlyStorage = createBrowserStorage(null);
+const memoryOnlyApp = createAppStore(memoryOnlyStorage, () => createSampleState(timestamp, "offline-client"));
+const memoryOnlyWrite = memoryOnlyApp.dispatch({
+  type: "task.add",
+  input: { id: "task-offline", content: "Offline task" },
+});
+assert(memoryOnlyWrite.ok && memoryOnlyApp.getStorageStatus() === "memory", "Offline memory storage must remain usable.");
+memoryOnlyApp.reload();
+assert(memoryOnlyApp.getState().tasks["task-offline"], "Reloading within the offline session must retain memory state.");
+
+const customFallback = () => createSampleState(timestamp, "custom-fallback-client");
+const clearedSave = saveState(
+  { read: () => null, write: () => {} },
+  left.ok ? left.state : base,
+  1,
+  customFallback,
+);
+assert(
+  !clearedSave.ok &&
+    clearedSave.reason === "conflict" &&
+    clearedSave.state.clientId === "custom-fallback-client",
+  "A cleared store must use the caller's fallback state when reporting a conflict.",
+);
+
+const unavailableSave = saveState(
+  { read: () => JSON.stringify(base), write: () => { throw new Error("Write denied"); } },
+  left.ok ? left.state : base,
+  base.revision,
+);
+assert(!unavailableSave.ok && unavailableSave.reason === "unavailable", "Thrown storage writes must be reported as unavailable.");
+
+const bomImported = importState(`\uFEFF${portable}`);
+assert(bomImported.notes["note-release"], "Imports should accept files with a UTF-8 BOM.");
 
 console.log("CORE_STATE_TESTS_OK");
