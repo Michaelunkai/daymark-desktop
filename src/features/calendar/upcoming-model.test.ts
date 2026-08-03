@@ -3,7 +3,6 @@ import test from "node:test"
 
 import {
   bucketTasksByDate,
-  buildUpcomingGrid,
   buildUpcomingRange,
   countTasksByDate,
   moveTaskToDate,
@@ -18,23 +17,6 @@ const task = (id: string, date: string | null, order = 0) => ({
   due: date
     ? { date, time: "09:30", timezone: "Asia/Jerusalem", recurrence: null }
     : null,
-})
-
-test("builds a seven-day week grid and a six-week month grid", () => {
-  assert.deepEqual(buildUpcomingGrid("week", "2026-08-05", 1), [
-    "2026-08-03",
-    "2026-08-04",
-    "2026-08-05",
-    "2026-08-06",
-    "2026-08-07",
-    "2026-08-08",
-    "2026-08-09",
-  ])
-
-  const monthGrid = buildUpcomingGrid("month", "2026-08-05", 1)
-  assert.equal(monthGrid.length, 42)
-  assert.equal(monthGrid[0], "2026-07-27")
-  assert.equal(monthGrid.at(-1), "2026-09-06")
 })
 
 test("builds bounded week, month, and year date ranges", () => {

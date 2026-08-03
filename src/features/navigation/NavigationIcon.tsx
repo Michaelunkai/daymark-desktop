@@ -25,25 +25,6 @@ const paths: Record<NavigationIconName, ReactNode> = {
       <path d="M12 7.5V12l3 2" />
     </>
   ),
-  tasks: (
-    <>
-      <rect x="4" y="4" width="16" height="16" rx="2" />
-      <path d="m8 12 2 2 5-5M8 8h.01M8 16h.01" />
-    </>
-  ),
-  note: (
-    <>
-      <path d="M6 3.5h9l3 3v14H6a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z" />
-      <path d="M14.5 3.5V7H18M8 11h8M8 15h6" />
-    </>
-  ),
-  diary: (
-    <>
-      <path d="M6 4.5h10a2 2 0 0 1 2 2v13H8a2 2 0 0 1-2-2v-13Z" />
-      <path d="M6 17.5h12M10 8h5M10 11.5h5M10 15h3" />
-      <path d="M6 4.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2" />
-    </>
-  ),
   layers: (
     <>
       <path d="m12 4 8 4-8 4-8-4 8-4Z" />

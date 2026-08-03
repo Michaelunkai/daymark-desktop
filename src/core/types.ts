@@ -1,9 +1,8 @@
-export const CURRENT_SCHEMA_VERSION = 3 as const;
+export const CURRENT_SCHEMA_VERSION = 2 as const;
 
 export type EntityId = string;
 export type Priority = 1 | 2 | 3 | 4;
 export type ViewLayout = "list" | "board";
-export type DiaryMood = "great" | "good" | "okay" | "low" | "rough";
 
 export interface Project {
   id: EntityId;
@@ -73,32 +72,6 @@ export interface Task {
   updatedAt: string;
 }
 
-export interface Note {
-  id: EntityId;
-  title: string;
-  content: string;
-  tags: string[];
-  isPinned: boolean;
-  isArchived: boolean;
-  linkedTaskIds: EntityId[];
-  linkedProjectId: EntityId | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface DiaryEntry {
-  id: EntityId;
-  date: string;
-  title: string;
-  content: string;
-  mood: DiaryMood | null;
-  tags: string[];
-  isFavorite: boolean;
-  linkedTaskIds: EntityId[];
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface AppPreferences {
   inboxProjectId: EntityId;
   activeProjectId: EntityId | null;
@@ -124,8 +97,6 @@ export interface AppState {
   labels: Record<EntityId, Label>;
   filters: Record<EntityId, SavedFilter>;
   tasks: Record<EntityId, Task>;
-  notes: Record<EntityId, Note>;
-  diaryEntries: Record<EntityId, DiaryEntry>;
   preferences: AppPreferences;
   undoStack: UndoEntry[];
 }
@@ -157,36 +128,6 @@ export type TaskPatch = Partial<
     | "completedAt"
     | "order"
   >
->;
-
-export type NoteInput = {
-  id?: EntityId;
-  title?: string;
-  content: string;
-  tags?: string[];
-  isPinned?: boolean;
-  isArchived?: boolean;
-  linkedTaskIds?: EntityId[];
-  linkedProjectId?: EntityId | null;
-};
-
-export type NotePatch = Partial<
-  Pick<Note, "title" | "content" | "tags" | "isPinned" | "isArchived" | "linkedTaskIds" | "linkedProjectId">
->;
-
-export type DiaryEntryInput = {
-  id?: EntityId;
-  date: string;
-  title?: string;
-  content: string;
-  mood?: DiaryMood | null;
-  tags?: string[];
-  isFavorite?: boolean;
-  linkedTaskIds?: EntityId[];
-};
-
-export type DiaryEntryPatch = Partial<
-  Pick<DiaryEntry, "date" | "title" | "content" | "mood" | "tags" | "isFavorite" | "linkedTaskIds">
 >;
 
 export type ProjectInput = {
@@ -231,12 +172,6 @@ export type UserAction =
   | { type: "task.complete"; taskId: EntityId }
   | { type: "task.uncomplete"; taskId: EntityId }
   | { type: "task.delete"; taskId: EntityId }
-  | { type: "note.add"; input: NoteInput }
-  | { type: "note.update"; noteId: EntityId; patch: NotePatch }
-  | { type: "note.delete"; noteId: EntityId }
-  | { type: "diary.add"; input: DiaryEntryInput }
-  | { type: "diary.update"; entryId: EntityId; patch: DiaryEntryPatch }
-  | { type: "diary.delete"; entryId: EntityId }
   | { type: "project.add"; input: ProjectInput }
   | { type: "project.update"; projectId: EntityId; patch: Partial<Omit<Project, "id" | "createdAt" | "updatedAt">> }
   | { type: "project.archive"; projectId: EntityId; archived: boolean }
@@ -250,15 +185,9 @@ export type UserAction =
   | { type: "undo" };
 
 export type UndoAction =
-  | { type: "task.restore"; task: Task; noteLinks?: Record<EntityId, EntityId[]>; diaryLinks?: Record<EntityId, EntityId[]> }
+  | { type: "task.restore"; task: Task }
   | { type: "task.remove"; taskId: EntityId }
   | { type: "task.update"; taskId: EntityId; patch: TaskPatch }
-  | { type: "note.restore"; note: Note }
-  | { type: "note.remove"; noteId: EntityId }
-  | { type: "note.update"; noteId: EntityId; patch: NotePatch }
-  | { type: "diary.restore"; entry: DiaryEntry }
-  | { type: "diary.remove"; entryId: EntityId }
-  | { type: "diary.update"; entryId: EntityId; patch: DiaryEntryPatch }
   | { type: "project.restore"; project: Project }
   | { type: "project.remove"; projectId: EntityId }
   | { type: "project.update"; projectId: EntityId; patch: Partial<Omit<Project, "id" | "createdAt" | "updatedAt">> }
@@ -277,14 +206,10 @@ export type StoreAction = UserAction | UndoAction;
 
 export type DispatchResult =
   | { ok: true; state: AppState }
-  | { ok: false; reason: "conflict" | "invalid" | "unavailable"; message: string; state?: AppState };
-
-export type StorageStatus = "persistent" | "memory";
+  | { ok: false; reason: "conflict" | "invalid"; message: string; state?: AppState };
 
 export interface StateStorage {
   read(): string | null;
   write(value: string): void;
   remove?(): void;
-  backup?(value: string): void;
-  getStatus?(): StorageStatus;
 }

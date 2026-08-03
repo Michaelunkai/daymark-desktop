@@ -1,17 +1,13 @@
-import { fromLocalDate } from "./dates";
 import { createId } from "./sample-data";
 import { loadState, saveState } from "./storage";
 import type {
   AppState,
-  DiaryEntry,
   DispatchResult,
   Label,
-  Note,
   Project,
   SavedFilter,
   Section,
   StateStorage,
-  StorageStatus,
   StoreAction,
   Task,
   UndoAction,
@@ -25,7 +21,6 @@ type MutationResult = { ok: true; inverse: UndoAction } | InvalidResult;
 
 export interface AppStore {
   getState(): AppState;
-  getStorageStatus(): StorageStatus;
   dispatch(action: UserAction): DispatchResult;
   reload(): AppState;
   subscribe(listener: (state: AppState) => void): () => void;
@@ -38,7 +33,6 @@ export function createAppStore(storage: StateStorage, fallback?: () => AppState)
 
   return {
     getState: () => state,
-    getStorageStatus: () => storage.getStatus?.() ?? "persistent",
     reload: () => {
       state = loadState(storage, fallback).state;
       notify();
@@ -53,14 +47,14 @@ export function createAppStore(storage: StateStorage, fallback?: () => AppState)
       const result = reduce(durable, action);
       if (!result.ok) return result;
 
-      const saved = saveState(storage, result.state, durable.revision, fallback);
+      const saved = saveState(storage, result.state, durable.revision);
       if (!saved.ok) {
         state = saved.state;
         notify();
         return {
           ok: false,
-          reason: saved.reason,
-          message: saved.message,
+          reason: "conflict",
+          message: "Data changed in another tab. Reloaded the latest saved state.",
           state,
         };
       }
@@ -89,7 +83,7 @@ function apply(state: AppState, action: StoreAction, now: string, recordUndo = t
 
   const result = mutate(state, action, now);
   if (!result.ok) return result;
-  if (recordUndo && isUserAction(action)) {
+  if (recordUndo && isUserAction(action) && action.type !== "task.delete") {
     state.undoStack.push(createUndoEntry(result.inverse, now));
     state.undoStack = state.undoStack.slice(-MAX_UNDO_ENTRIES);
   }
@@ -119,50 +113,18 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       };
       if (!isValidTaskLocation(state, task.projectId, task.sectionId)) return invalid("The task section does not belong to its project.");
       if (!hasKnownLabels(state, task.labelIds)) return invalid("One or more task labels do not exist.");
-      if (!isValidDue(task.due)) return invalid("The task due date is invalid.");
       state.tasks[id] = task;
       return { ok: true, inverse: { type: "task.remove", taskId: id } };
     }
-    case "task.restore": {
+    case "task.restore":
       state.tasks[action.task.id] = structuredClone(action.task);
-      restoreTaskLinks(state, action.task.id, action.noteLinks, action.diaryLinks);
       return { ok: true, inverse: { type: "task.remove", taskId: action.task.id } };
-    }
-    case "task.remove": {
+    case "task.remove":
+    case "task.delete": {
       const task = state.tasks[action.taskId];
       if (!task) return invalid("The task no longer exists.");
       delete state.tasks[action.taskId];
       return { ok: true, inverse: { type: "task.restore", task: structuredClone(task) } };
-    }
-    case "task.delete": {
-      const task = state.tasks[action.taskId];
-      if (!task) return invalid("The task no longer exists.");
-      const noteLinks: Record<string, string[]> = {};
-      const diaryLinks: Record<string, string[]> = {};
-      Object.values(state.notes).forEach((note) => {
-        if (note.linkedTaskIds.includes(action.taskId)) {
-          noteLinks[note.id] = note.linkedTaskIds;
-          note.linkedTaskIds = note.linkedTaskIds.filter((taskId) => taskId !== action.taskId);
-          note.updatedAt = now;
-        }
-      });
-      Object.values(state.diaryEntries).forEach((entry) => {
-        if (entry.linkedTaskIds.includes(action.taskId)) {
-          diaryLinks[entry.id] = entry.linkedTaskIds;
-          entry.linkedTaskIds = entry.linkedTaskIds.filter((taskId) => taskId !== action.taskId);
-          entry.updatedAt = now;
-        }
-      });
-      delete state.tasks[action.taskId];
-      return {
-        ok: true,
-        inverse: {
-          type: "task.restore",
-          task: structuredClone(task),
-          noteLinks,
-          diaryLinks,
-        },
-      };
     }
     case "task.update": {
       const task = state.tasks[action.taskId];
@@ -171,11 +133,8 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       const nextSectionId = action.patch.sectionId === undefined ? task.sectionId : action.patch.sectionId;
       if (!isValidTaskLocation(state, nextProjectId, nextSectionId)) return invalid("The task section does not belong to its project.");
       if (action.patch.labelIds && !hasKnownLabels(state, action.patch.labelIds)) return invalid("One or more task labels do not exist.");
-      if (action.patch.content !== undefined && !action.patch.content.trim()) return invalid("A task needs a name.");
-      if (action.patch.due !== undefined && !isValidDue(action.patch.due)) return invalid("The task due date is invalid.");
       const before = pick(task, action.patch);
       Object.assign(task, action.patch, {
-        content: action.patch.content?.trim() ?? task.content,
         labelIds: action.patch.labelIds ? unique(action.patch.labelIds) : task.labelIds,
         updatedAt: now,
       });
@@ -189,124 +148,6 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       task.completedAt = action.type === "task.complete" ? now : null;
       task.updatedAt = now;
       return { ok: true, inverse: { type: "task.update", taskId: task.id, patch: { completedAt: before } } };
-    }
-    case "note.add": {
-      const title = typeof action.input.title === "string" ? action.input.title.trim() : "";
-      const content = typeof action.input.content === "string" ? action.input.content.trim() : "";
-      if (!title && !content) return invalid("A note needs a title or some content.");
-      const id = action.input.id ?? createId("note");
-      if (state.notes[id]) return invalid("That note already exists.");
-      const note: Note = {
-        id,
-        title,
-        content,
-        tags: normalizeTags(action.input.tags),
-        isPinned: action.input.isPinned ?? false,
-        isArchived: action.input.isArchived ?? false,
-        linkedTaskIds: unique(action.input.linkedTaskIds ?? []),
-        linkedProjectId: action.input.linkedProjectId ?? null,
-        createdAt: now,
-        updatedAt: now,
-      };
-      if (!hasKnownTasks(state, note.linkedTaskIds)) return invalid("One or more note tasks do not exist.");
-      if (note.linkedProjectId && !state.projects[note.linkedProjectId]) return invalid("The note project does not exist.");
-      state.notes[id] = note;
-      return { ok: true, inverse: { type: "note.remove", noteId: id } };
-    }
-    case "note.restore":
-      state.notes[action.note.id] = structuredClone(action.note);
-      return { ok: true, inverse: { type: "note.remove", noteId: action.note.id } };
-    case "note.remove":
-    case "note.delete": {
-      const note = state.notes[action.noteId];
-      if (!note) return invalid("The note no longer exists.");
-      delete state.notes[action.noteId];
-      return { ok: true, inverse: { type: "note.restore", note: structuredClone(note) } };
-    }
-    case "note.update": {
-      const note = state.notes[action.noteId];
-      if (!note) return invalid("The note no longer exists.");
-      const before = pick(note, action.patch);
-      const nextTitle = action.patch.title === undefined ? note.title : action.patch.title.trim();
-      const nextContent = action.patch.content === undefined ? note.content : action.patch.content.trim();
-      if (!nextTitle && !nextContent) return invalid("A note needs a title or some content.");
-      if (action.patch.linkedTaskIds && !hasKnownTasks(state, action.patch.linkedTaskIds)) {
-        return invalid("One or more note tasks do not exist.");
-      }
-      if (action.patch.linkedProjectId && !state.projects[action.patch.linkedProjectId]) {
-        return invalid("The note project does not exist.");
-      }
-      const patch = {
-        ...action.patch,
-        title: nextTitle,
-        content: nextContent,
-        ...(action.patch.tags ? { tags: normalizeTags(action.patch.tags) } : {}),
-        ...(action.patch.linkedTaskIds ? { linkedTaskIds: unique(action.patch.linkedTaskIds) } : {}),
-      };
-      Object.assign(note, patch, { updatedAt: now });
-      return { ok: true, inverse: { type: "note.update", noteId: note.id, patch: before } };
-    }
-    case "diary.add": {
-      const title = typeof action.input.title === "string" ? action.input.title.trim() : "";
-      const content = typeof action.input.content === "string" ? action.input.content.trim() : "";
-      if (!isValidLocalDate(action.input.date)) return invalid("A diary entry needs a valid date.");
-      if (!title && !content) return invalid("A diary entry needs a title or some content.");
-      if (action.input.mood !== undefined && action.input.mood !== null && !isDiaryMood(action.input.mood)) {
-        return invalid("That mood is not supported.");
-      }
-      const id = action.input.id ?? createId("diary");
-      if (state.diaryEntries[id]) return invalid("That diary entry already exists.");
-      const entry: DiaryEntry = {
-        id,
-        date: action.input.date,
-        title,
-        content,
-        mood: action.input.mood ?? null,
-        tags: normalizeTags(action.input.tags),
-        isFavorite: action.input.isFavorite ?? false,
-        linkedTaskIds: unique(action.input.linkedTaskIds ?? []),
-        createdAt: now,
-        updatedAt: now,
-      };
-      if (!hasKnownTasks(state, entry.linkedTaskIds)) return invalid("One or more diary tasks do not exist.");
-      state.diaryEntries[id] = entry;
-      return { ok: true, inverse: { type: "diary.remove", entryId: id } };
-    }
-    case "diary.restore":
-      state.diaryEntries[action.entry.id] = structuredClone(action.entry);
-      return { ok: true, inverse: { type: "diary.remove", entryId: action.entry.id } };
-    case "diary.remove":
-    case "diary.delete": {
-      const entry = state.diaryEntries[action.entryId];
-      if (!entry) return invalid("The diary entry no longer exists.");
-      delete state.diaryEntries[action.entryId];
-      return { ok: true, inverse: { type: "diary.restore", entry: structuredClone(entry) } };
-    }
-    case "diary.update": {
-      const entry = state.diaryEntries[action.entryId];
-      if (!entry) return invalid("The diary entry no longer exists.");
-      const before = pick(entry, action.patch);
-      const nextDate = action.patch.date === undefined ? entry.date : action.patch.date;
-      const nextTitle = action.patch.title === undefined ? entry.title : action.patch.title.trim();
-      const nextContent = action.patch.content === undefined ? entry.content : action.patch.content.trim();
-      if (!isValidLocalDate(nextDate)) return invalid("A diary entry needs a valid date.");
-      if (!nextTitle && !nextContent) return invalid("A diary entry needs a title or some content.");
-      if (action.patch.mood !== undefined && action.patch.mood !== null && !isDiaryMood(action.patch.mood)) {
-        return invalid("That mood is not supported.");
-      }
-      if (action.patch.linkedTaskIds && !hasKnownTasks(state, action.patch.linkedTaskIds)) {
-        return invalid("One or more diary tasks do not exist.");
-      }
-      const patch = {
-        ...action.patch,
-        date: nextDate,
-        title: nextTitle,
-        content: nextContent,
-        ...(action.patch.tags ? { tags: normalizeTags(action.patch.tags) } : {}),
-        ...(action.patch.linkedTaskIds ? { linkedTaskIds: unique(action.patch.linkedTaskIds) } : {}),
-      };
-      Object.assign(entry, patch, { updatedAt: now });
-      return { ok: true, inverse: { type: "diary.update", entryId: entry.id, patch: before } };
     }
     case "project.add": {
       if (!action.input.name.trim()) return invalid("A project needs a name.");
@@ -437,11 +278,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
 }
 
 function isUserAction(action: StoreAction): action is UserAction {
-  return (
-    !action.type.endsWith(".restore") &&
-    !action.type.endsWith(".remove") &&
-    !action.type.endsWith(".delete")
-  );
+  return !action.type.endsWith(".restore") && !action.type.endsWith(".remove");
 }
 
 function createUndoEntry(inverse: UndoAction, createdAt: string): UndoEntry {
@@ -456,48 +293,6 @@ function hasKnownLabels(state: AppState, labelIds: string[]): boolean {
   return labelIds.every((labelId) => Boolean(state.labels[labelId]));
 }
 
-function normalizeTags(values: string[] | undefined): string[] {
-  return [...new Set((values ?? []).filter((value): value is string => typeof value === "string").map((value) => value.trim()).filter(Boolean))];
-}
-
-function isDiaryMood(value: unknown): boolean {
-  return value === "great" || value === "good" || value === "okay" || value === "low" || value === "rough";
-}
-
-function isValidLocalDate(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  try {
-    fromLocalDate(value);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function hasKnownTasks(state: AppState, taskIds: string[]): boolean {
-  return taskIds.every((taskId) => Boolean(state.tasks[taskId]));
-}
-
-function restoreTaskLinks(
-  state: AppState,
-  taskId: string,
-  noteLinks: Record<string, string[]> | undefined,
-  diaryLinks: Record<string, string[]> | undefined,
-): void {
-  Object.entries(noteLinks ?? {}).forEach(([noteId, taskIds]) => {
-    const note = state.notes[noteId];
-    if (note) note.linkedTaskIds = unique([...note.linkedTaskIds, ...taskIds.filter((id) => id === taskId)]);
-  });
-  Object.entries(diaryLinks ?? {}).forEach(([entryId, taskIds]) => {
-    const entry = state.diaryEntries[entryId];
-    if (entry) entry.linkedTaskIds = unique([...entry.linkedTaskIds, ...taskIds.filter((id) => id === taskId)]);
-  });
-}
-
-function isValidDue(due: Task["due"]): boolean {
-  if (due === null) return true;
-  return isValidLocalDate(due.date);
-}
 function unique(values: string[]): string[] {
   return [...new Set(values)];
 }
