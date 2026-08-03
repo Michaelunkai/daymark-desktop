@@ -1502,6 +1502,133 @@ kbd {
   color: var(--teal);
 }
 
+.journal-view {
+  min-width: 0;
+  border-top: 1px solid var(--line);
+}
+
+.journal-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 64px;
+  padding: 14px 2px;
+  border-bottom: 1px solid var(--line);
+}
+
+.journal-toolbar label {
+  display: grid;
+  gap: 4px;
+}
+
+.journal-toolbar input,
+.note-editor > input {
+  min-width: 0;
+  padding: 9px 10px;
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--surface);
+  font-size: 12px;
+}
+
+.journal-saved,
+.journal-count {
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+
+.journal-editor {
+  width: 100%;
+  min-height: 340px;
+  padding: 16px;
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  outline: 0;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.65;
+  resize: vertical;
+}
+
+.journal-editor:focus,
+.journal-toolbar input:focus,
+.note-editor > input:focus {
+  border-color: #9ebfb2;
+  box-shadow: 0 0 0 3px rgba(46, 142, 139, 0.1);
+}
+
+.journal-view > .journal-editor {
+  margin-top: 18px;
+}
+
+.notes-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.42fr) minmax(0, 1fr);
+  gap: 18px;
+  padding-top: 18px;
+}
+
+.notes-list {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+}
+
+.note-list-item {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px;
+  color: var(--ink);
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.note-list-item:hover,
+.note-list-item.is-selected {
+  border-color: var(--line);
+  background: var(--surface);
+}
+
+.note-list-item strong,
+.note-list-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-list-item strong {
+  font-size: 12px;
+}
+
+.note-list-item span {
+  color: var(--ink-muted);
+  font-size: 10px;
+}
+
+.note-editor {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.note-editor .journal-editor {
+  min-height: 300px;
+}
+
+.journal-empty {
+  margin: 16px 0;
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 @media (max-width: 1160px) {
   .shell-grid {
     grid-template-columns: 220px minmax(0, 1fr) 240px;
@@ -1670,6 +1797,15 @@ kbd {
   .thought-capture__actions {
     width: 100%;
     justify-content: flex-end;
+  }
+
+  .notes-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .notes-list {
+    max-height: 180px;
+    overflow: auto;
   }
 }
 
