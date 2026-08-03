@@ -4,6 +4,7 @@ import {
   useMemo,
   useState,
   type FormEvent,
+  type KeyboardEvent,
   type ReactNode,
 } from "react";
 
@@ -138,6 +139,7 @@ export function NotesWorkspace({
   const [diaryDraft, setDiaryDraft] = useState<DiaryDraft>(() => makeDiaryDraft());
   const [error, setError] = useState("");
   const [deletePending, setDeletePending] = useState(false);
+  const [keyboardResultIndex, setKeyboardResultIndex] = useState(0);
 
   const sortedNotes = useMemo(() => sortNotes(notes.filter((note) => !note.isArchived)), [notes]);
   const diaryDates = useMemo(() => getDiaryDates(diaryEntries), [diaryEntries]);
@@ -149,6 +151,9 @@ export function NotesWorkspace({
     () => (query.trim() ? searchableItems.map((result) => result.item as DiaryEntry) : sortDiaryEntries(diaryEntries, selectedDate)),
     [diaryEntries, query, searchableItems, selectedDate],
   );
+  const resultItems = mode === "notes"
+    ? searchableItems.map((result) => result.item as Note)
+    : diaryItems;
   const listIsEmpty = mode === "notes" ? searchableItems.length === 0 : diaryItems.length === 0;
   const activeNote = editor.kind === "note" && editor.id ? notes.find((note) => note.id === editor.id) : undefined;
   const activeDiaryEntry = editor.kind === "diary" && editor.id
@@ -185,9 +190,40 @@ export function NotesWorkspace({
     }
   }, [diaryEntries, diaryItems, editor.id, editor.kind, mode, notes, selectedDate, sortedNotes]);
 
+  useEffect(() => {
+    setKeyboardResultIndex((current) => Math.min(current, Math.max(0, resultItems.length - 1)));
+  }, [resultItems.length]);
+
+  function selectResultAt(index: number) {
+    const item = resultItems[index];
+    if (!item) return;
+    if (mode === "notes") selectNote(item as Note);
+    else selectDiaryEntry(item as DiaryEntry);
+  }
+
+  function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp" || event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      if (!resultItems.length) return;
+      setKeyboardResultIndex((current) => {
+        if (event.key === "Home") return 0;
+        if (event.key === "End") return resultItems.length - 1;
+        const offset = event.key === "ArrowDown" ? 1 : -1;
+        return (current + offset + resultItems.length) % resultItems.length;
+      });
+      return;
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      selectResultAt(keyboardResultIndex);
+    }
+  }
+
   function selectMode(nextMode: WritingMode) {
     setMode(nextMode);
     setQuery("");
+    setKeyboardResultIndex(0);
     setDeletePending(false);
     setError("");
   }
@@ -342,13 +378,27 @@ export function NotesWorkspace({
           <SearchIcon />
           <span className="visually-hidden">Search {mode}</span>
           <input
+            aria-activedescendant={resultItems[keyboardResultIndex] ? `${titleId}-result-${resultItems[keyboardResultIndex].id}` : undefined}
+            aria-controls={`${titleId}-results`}
             type="search"
             value={query}
-            onChange={(event) => setQuery(event.currentTarget.value)}
+            onChange={(event) => {
+              setKeyboardResultIndex(0);
+              setQuery(event.currentTarget.value);
+            }}
+            onKeyDown={handleSearchKeyDown}
             placeholder={`Search ${mode === "notes" ? "notes" : "diary entries"}`}
           />
           {query ? (
-            <button type="button" aria-label="Clear writing search" title="Clear search" onClick={() => setQuery("")}>
+            <button
+              type="button"
+              aria-label="Clear writing search"
+              title="Clear search"
+              onClick={() => {
+                setKeyboardResultIndex(0);
+                setQuery("");
+              }}
+            >
               <CloseIcon />
             </button>
           ) : null}
@@ -369,6 +419,7 @@ export function NotesWorkspace({
             onChange={(event) => {
               const nextDate = event.currentTarget.value || selectedDate;
               setSelectedDate(nextDate);
+              setKeyboardResultIndex(0);
               setQuery("");
               startNew("diary", nextDate);
             }}
@@ -381,6 +432,7 @@ export function NotesWorkspace({
                 type="button"
                 onClick={() => {
                   setSelectedDate(date);
+                  setKeyboardResultIndex(0);
                   setQuery("");
                   startNew("diary", date);
                 }}
@@ -398,16 +450,22 @@ export function NotesWorkspace({
             <span>{query ? "Search results" : mode === "notes" ? "Your notes" : selectedDate === todayLocalDate() ? "Today" : formatDiaryDate(selectedDate, { month: "long", day: "numeric", year: "numeric" })}</span>
             <span>{mode === "notes" ? searchableItems.length : diaryItems.length}</span>
           </div>
-          <div className="notes-workspace__index-list">
+          <div className="notes-workspace__index-list" id={`${titleId}-results`} role="listbox">
             {mode === "notes"
-              ? searchableItems.map((result) => {
+              ? searchableItems.map((result, index) => {
                   const note = result.item as Note;
                   return (
                     <button
+                      aria-selected={keyboardResultIndex === index}
+                      id={`${titleId}-result-${note.id}`}
+                      role="option"
                       key={note.id}
                       type="button"
-                      className={`notes-workspace__index-item ${editor.id === note.id ? "is-selected" : ""}`}
-                      onClick={() => selectNote(note)}
+                      className={`notes-workspace__index-item ${editor.id === note.id ? "is-selected" : ""} ${keyboardResultIndex === index ? "is-keyboard-active" : ""}`}
+                      onClick={() => {
+                        setKeyboardResultIndex(index);
+                        selectNote(note);
+                      }}
                     >
                       <span className="notes-workspace__index-item-title">
                         {note.isPinned ? <PinIcon /> : null}
@@ -417,13 +475,19 @@ export function NotesWorkspace({
                     </button>
                   );
                 })
-              : diaryItems.map((entry) => (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    className={`notes-workspace__index-item ${editor.id === entry.id ? "is-selected" : ""}`}
-                    onClick={() => selectDiaryEntry(entry)}
-                  >
+              : diaryItems.map((entry, index) => (
+                <button
+                  aria-selected={keyboardResultIndex === index}
+                  id={`${titleId}-result-${entry.id}`}
+                  role="option"
+                  key={entry.id}
+                  type="button"
+                  className={`notes-workspace__index-item ${editor.id === entry.id ? "is-selected" : ""} ${keyboardResultIndex === index ? "is-keyboard-active" : ""}`}
+                  onClick={() => {
+                    setKeyboardResultIndex(index);
+                    selectDiaryEntry(entry);
+                  }}
+                >
                     <span className="notes-workspace__index-item-title">
                       {entry.isFavorite ? <FavoriteIcon /> : null}
                       {entry.title || "Untitled entry"}

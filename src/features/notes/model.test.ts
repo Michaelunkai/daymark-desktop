@@ -35,6 +35,8 @@ assert(sortNotes([note, state.notes["note-welcome"]])[0].id === "note-welcome", 
 assert(getDiaryDates([state.diaryEntries["diary-welcome"], entry]).join(",") === "2026-08-03,2026-08-02", "Diary dates should sort newest first.");
 assert(searchWriting("notes", "quiet room", [note], []).length === 1, "Note body text should be searchable.");
 assert(searchWriting("diary", "rest", [], [entry]).length === 1, "Diary tags should be searchable.");
+assert(searchWriting("notes", "  MEETING IDEAS ", [note], []).at(0)?.item.id === "note-second", "Writing search should trim and ignore case.");
+assert(searchWriting("diary", "missing", [], [entry]).length === 0, "Writing search should return an explicit empty result for misses.");
 assert(parseTags(" work, rest, work ") .join(",") === "work,rest", "Tags should be trimmed and deduplicated.");
 assert(countWords("one  two\nthree") === 3, "Word count should ignore repeated whitespace.");
 
