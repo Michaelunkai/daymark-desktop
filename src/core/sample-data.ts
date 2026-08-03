@@ -6,6 +6,7 @@ export function createSampleState(
   now = new Date().toISOString(),
   clientId: EntityId = createId("client"),
 ): AppState {
+  const today = now.slice(0, 10);
   const inbox = {
     id: INBOX_PROJECT_ID,
     name: "Inbox",
@@ -78,6 +79,31 @@ export function createSampleState(
         due: null,
         completedAt: null,
         order: 0,
+        createdAt: now,
+        updatedAt: now,
+      },
+    },
+    notes: {
+      "note-welcome": {
+        id: "note-welcome",
+        title: "A place for the things between tasks",
+        content: "Capture ideas, reference material, and small details here without turning them into work.",
+        tags: ["welcome", "reference"],
+        isPinned: true,
+        isArchived: false,
+        createdAt: now,
+        updatedAt: now,
+      },
+    },
+    diaryEntries: {
+      "diary-welcome": {
+        id: "diary-welcome",
+        date: today,
+        title: "A clear start",
+        content: "A short daily entry can hold the context that a task list cannot.",
+        mood: "good",
+        tags: ["welcome"],
+        isFavorite: false,
         createdAt: now,
         updatedAt: now,
       },

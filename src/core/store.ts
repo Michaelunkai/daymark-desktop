@@ -2,8 +2,10 @@ import { createId } from "./sample-data";
 import { loadState, saveState } from "./storage";
 import type {
   AppState,
+  DiaryEntry,
   DispatchResult,
   Label,
+  Note,
   Project,
   SavedFilter,
   Section,
@@ -149,6 +151,107 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       task.updatedAt = now;
       return { ok: true, inverse: { type: "task.update", taskId: task.id, patch: { completedAt: before } } };
     }
+    case "note.add": {
+      const title = typeof action.input.title === "string" ? action.input.title.trim() : "";
+      const content = typeof action.input.content === "string" ? action.input.content.trim() : "";
+      if (!title && !content) return invalid("A note needs a title or some content.");
+      const id = action.input.id ?? createId("note");
+      if (state.notes[id]) return invalid("That note already exists.");
+      const note: Note = {
+        id,
+        title,
+        content,
+        tags: normalizeTags(action.input.tags),
+        isPinned: action.input.isPinned ?? false,
+        isArchived: action.input.isArchived ?? false,
+        createdAt: now,
+        updatedAt: now,
+      };
+      state.notes[id] = note;
+      return { ok: true, inverse: { type: "note.remove", noteId: id } };
+    }
+    case "note.restore":
+      state.notes[action.note.id] = structuredClone(action.note);
+      return { ok: true, inverse: { type: "note.remove", noteId: action.note.id } };
+    case "note.remove":
+    case "note.delete": {
+      const note = state.notes[action.noteId];
+      if (!note) return invalid("The note no longer exists.");
+      delete state.notes[action.noteId];
+      return { ok: true, inverse: { type: "note.restore", note: structuredClone(note) } };
+    }
+    case "note.update": {
+      const note = state.notes[action.noteId];
+      if (!note) return invalid("The note no longer exists.");
+      const before = pick(note, action.patch);
+      const nextTitle = action.patch.title === undefined ? note.title : action.patch.title.trim();
+      const nextContent = action.patch.content === undefined ? note.content : action.patch.content.trim();
+      if (!nextTitle && !nextContent) return invalid("A note needs a title or some content.");
+      const patch = {
+        ...action.patch,
+        title: nextTitle,
+        content: nextContent,
+        ...(action.patch.tags ? { tags: normalizeTags(action.patch.tags) } : {}),
+      };
+      Object.assign(note, patch, { updatedAt: now });
+      return { ok: true, inverse: { type: "note.update", noteId: note.id, patch: before } };
+    }
+    case "diary.add": {
+      const title = typeof action.input.title === "string" ? action.input.title.trim() : "";
+      const content = typeof action.input.content === "string" ? action.input.content.trim() : "";
+      if (!isValidLocalDate(action.input.date)) return invalid("A diary entry needs a valid date.");
+      if (!title && !content) return invalid("A diary entry needs a title or some content.");
+      if (action.input.mood !== undefined && action.input.mood !== null && !isDiaryMood(action.input.mood)) {
+        return invalid("That mood is not supported.");
+      }
+      const id = action.input.id ?? createId("diary");
+      if (state.diaryEntries[id]) return invalid("That diary entry already exists.");
+      const entry: DiaryEntry = {
+        id,
+        date: action.input.date,
+        title,
+        content,
+        mood: action.input.mood ?? null,
+        tags: normalizeTags(action.input.tags),
+        isFavorite: action.input.isFavorite ?? false,
+        createdAt: now,
+        updatedAt: now,
+      };
+      state.diaryEntries[id] = entry;
+      return { ok: true, inverse: { type: "diary.remove", entryId: id } };
+    }
+    case "diary.restore":
+      state.diaryEntries[action.entry.id] = structuredClone(action.entry);
+      return { ok: true, inverse: { type: "diary.remove", entryId: action.entry.id } };
+    case "diary.remove":
+    case "diary.delete": {
+      const entry = state.diaryEntries[action.entryId];
+      if (!entry) return invalid("The diary entry no longer exists.");
+      delete state.diaryEntries[action.entryId];
+      return { ok: true, inverse: { type: "diary.restore", entry: structuredClone(entry) } };
+    }
+    case "diary.update": {
+      const entry = state.diaryEntries[action.entryId];
+      if (!entry) return invalid("The diary entry no longer exists.");
+      const before = pick(entry, action.patch);
+      const nextDate = action.patch.date === undefined ? entry.date : action.patch.date;
+      const nextTitle = action.patch.title === undefined ? entry.title : action.patch.title.trim();
+      const nextContent = action.patch.content === undefined ? entry.content : action.patch.content.trim();
+      if (!isValidLocalDate(nextDate)) return invalid("A diary entry needs a valid date.");
+      if (!nextTitle && !nextContent) return invalid("A diary entry needs a title or some content.");
+      if (action.patch.mood !== undefined && action.patch.mood !== null && !isDiaryMood(action.patch.mood)) {
+        return invalid("That mood is not supported.");
+      }
+      const patch = {
+        ...action.patch,
+        date: nextDate,
+        title: nextTitle,
+        content: nextContent,
+        ...(action.patch.tags ? { tags: normalizeTags(action.patch.tags) } : {}),
+      };
+      Object.assign(entry, patch, { updatedAt: now });
+      return { ok: true, inverse: { type: "diary.update", entryId: entry.id, patch: before } };
+    }
     case "project.add": {
       if (!action.input.name.trim()) return invalid("A project needs a name.");
       const id = action.input.id ?? createId("project");
@@ -291,6 +394,21 @@ function isValidTaskLocation(state: AppState, projectId: string, sectionId: stri
 
 function hasKnownLabels(state: AppState, labelIds: string[]): boolean {
   return labelIds.every((labelId) => Boolean(state.labels[labelId]));
+}
+
+function normalizeTags(values: string[] | undefined): string[] {
+  return [...new Set((values ?? []).filter((value): value is string => typeof value === "string").map((value) => value.trim()).filter(Boolean))];
+}
+
+function isDiaryMood(value: unknown): boolean {
+  return value === "great" || value === "good" || value === "okay" || value === "low" || value === "rough";
+}
+
+function isValidLocalDate(value: unknown): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
 }
 
 function unique(values: string[]): string[] {
