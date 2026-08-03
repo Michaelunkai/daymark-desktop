@@ -332,7 +332,7 @@ export function NotesWorkspace({
       return;
     }
     setDeletePending(false);
-    startNew(editor.kind);
+    startNew(editor.kind === "note" ? "notes" : "diary");
   }
 
   return (

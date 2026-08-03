@@ -32,6 +32,7 @@ const entry = {
 };
 
 assert(sortNotes([note, state.notes["note-welcome"]])[0].id === "note-welcome", "Pinned notes should sort first.");
+assert(searchWriting("notes", "", [note, state.notes["note-welcome"]], [])[0].item.id === "note-welcome", "Empty notes search should preserve pinned ordering.");
 assert(getDiaryDates([state.diaryEntries["diary-welcome"], entry]).join(",") === "2026-08-03,2026-08-02", "Diary dates should sort newest first.");
 assert(searchWriting("notes", "quiet room", [note], []).length === 1, "Note body text should be searchable.");
 assert(searchWriting("diary", "rest", [], [entry]).length === 1, "Diary tags should be searchable.");

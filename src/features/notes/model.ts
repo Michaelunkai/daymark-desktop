@@ -39,9 +39,10 @@ export function searchWriting(
     : diaryEntries.map((item) => ({ kind: "diary" as const, item }));
 
   if (!normalizedQuery) {
-    return source
-      .map(({ kind, item }) => ({ kind, item, score: 0 }))
-      .sort((left, right) => right.item.updatedAt.localeCompare(left.item.updatedAt));
+    const ordered = mode === "notes"
+      ? sortNotes(notes).map((item) => ({ kind: "note" as const, item }))
+      : sortDiaryEntries(diaryEntries).map((item) => ({ kind: "diary" as const, item }));
+    return ordered.map(({ kind, item }) => ({ kind, item, score: 0 }));
   }
 
   return source
