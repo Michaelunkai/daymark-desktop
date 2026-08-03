@@ -80,6 +80,10 @@ export function UpcomingCalendar({
     grouped.forEach((items) => items.sort((left, right) => Number(left.completed) - Number(right.completed) || left.title.localeCompare(right.title)))
     return grouped
   }, [tasks])
+  const tasksById = useMemo(
+    () => new Map(tasks.map((task) => [task.id, task])),
+    [tasks],
+  )
 
   const range = calendarRange(mode, cursor, weekStartsOn)
   const heading = mode === "year"
@@ -120,8 +124,10 @@ export function UpcomingCalendar({
   function handleDrop(event: DragEvent<HTMLElement>, date: LocalDate): void {
     event.preventDefault()
     const pointerPayload = parseTaskMovePointerPayload(event.dataTransfer.getData(TASK_MOVE_POINTER_MIME))
-    const taskId = pointerPayload?.taskId || event.dataTransfer.getData("text/plain") || draggingTaskId
-    if (taskId) onTaskMove?.(taskId, date)
+    const task = pointerPayload ? tasksById.get(pointerPayload.taskId) : undefined
+    if (task && pointerPayload?.sourceDate === task.dueDate) {
+      onTaskMove?.(task.id, date)
+    }
     setDraggingTaskId(undefined)
   }
 
@@ -168,7 +174,7 @@ export function UpcomingCalendar({
                 className="upcoming-calendar__month-button"
                 key={date}
                 onClick={() => {
-                  setCursor(date)
+                  selectDate(date)
                   setMode("month")
                 }}
                 type="button"
@@ -189,7 +195,7 @@ export function UpcomingCalendar({
               <CalendarDay
                 date={date}
                 draggingTaskId={draggingTaskId}
-                isCurrentMonth={date.slice(0, 7) === cursor.slice(0, 7)}
+                isCurrentMonth={mode !== "month" || date.slice(0, 7) === cursor.slice(0, 7)}
                 isSelected={date === selectedDate}
                 isToday={date === today}
                 key={date}

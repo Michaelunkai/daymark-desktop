@@ -4,7 +4,11 @@ import { createId } from './core/sample-data'
 import { createAppStore } from './core/store'
 import { createBrowserStorage } from './core/storage'
 import { UpcomingCalendar as IntegratedUpcomingCalendar } from './features/calendar/UpcomingCalendar'
-import { moveTaskToDate as buildMovedTask } from './features/calendar/task-movement'
+import {
+  createTaskMovePointerPayload,
+  moveTaskToDate as buildMovedTask,
+  serializeTaskMovePointerPayload,
+} from './features/calendar/task-movement'
 import './features/calendar/upcoming-calendar.css'
 import './features/calendar/calendar-task-chips.css'
 import { ProjectCreateDialog } from './features/projects/ProjectCreateDialog'
@@ -1312,7 +1316,10 @@ function App() {
                           onClick={() => openTaskEditor('edit', task)}
                           onDragStart={(event) => {
                             event.dataTransfer.effectAllowed = 'move'
-                            event.dataTransfer.setData('text/plain', task.id)
+                            event.dataTransfer.setData(
+                              'application/x-daymark-task-move',
+                              serializeTaskMovePointerPayload(createTaskMovePointerPayload(task)),
+                            )
                           }}
                           type="button"
                         >
