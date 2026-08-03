@@ -160,11 +160,20 @@ export function saveState(
   try {
     raw = storage.read();
   } catch {
+    try {
+      storage.write(JSON.stringify(next));
+    } catch {
+      return {
+        ok: false,
+        reason: "unavailable",
+        state: next,
+        message: "Saved data is unavailable. The change was kept only in memory.",
+      };
+    }
     return {
-      ok: false,
-      reason: "unavailable",
+      ok: true,
       state: next,
-      message: "Saved data is unavailable. The change was kept only in memory.",
+      durable: storage.getStatus?.() !== "memory",
     };
   }
 

@@ -154,9 +154,43 @@ const blockedStorage = createBrowserStorage({
   removeItem: () => { throw new Error("Storage blocked"); },
 });
 const blockedApp = createAppStore(blockedStorage, () => createSampleState(timestamp, "blocked-client"));
-const blockedWrite = blockedApp.dispatch({ type: "task.add", input: { content: "Session-only task" } });
+const blockedWrite = blockedApp.dispatch({
+  type: "task.add",
+  input: { id: "task-session-only", content: "Session-only task" },
+});
 assert(blockedWrite.ok, "Blocked storage should keep the organizer usable in memory.");
 assert(blockedApp.getStorageStatus() === "memory", "Blocked storage should be observable as session-only.");
+blockedApp.reload();
+assert(
+  blockedApp.getState().tasks["task-session-only"],
+  "A blocked-storage reload must retain the captured thought for the current session.",
+);
+
+let readFailures = 0;
+let readFailureSnapshot: string | null = null;
+const readFailureStorage = {
+  read: () => {
+    if (readFailures < 3) {
+      readFailures += 1;
+      throw new Error("Read unavailable");
+    }
+    return readFailureSnapshot;
+  },
+  write: (value: string) => {
+    readFailureSnapshot = value;
+  },
+};
+const readFailureApp = createAppStore(readFailureStorage, () => createSampleState(timestamp, "read-failure-client"));
+const readFailureWrite = readFailureApp.dispatch({
+  type: "task.add",
+  input: { id: "task-read-failure", content: "Keep this through a failed storage probe" },
+});
+assert(readFailureWrite.ok, "A failed storage probe must not reject a recoverable local write.");
+readFailureApp.reload();
+assert(
+  readFailureApp.getState().tasks["task-read-failure"],
+  "A write retained after a failed storage probe must be recoverable on reload.",
+);
 
 const originalWindow = (globalThis as { window?: unknown }).window;
 try {
