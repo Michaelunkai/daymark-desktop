@@ -7,6 +7,7 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
+import { getBrowserStorage } from "../core/storage";
 
 export type ThemePreference = "light" | "dark" | "system";
 
@@ -22,18 +23,31 @@ export type ThemeProviderProps = PropsWithChildren<{
   storageKey?: string;
 }>;
 
-function readStoredPreference(
+export function readStoredPreference(
   storageKey: string,
   fallback: ThemePreference,
 ): ThemePreference {
-  if (typeof window === "undefined") {
+  const storage = getBrowserStorage();
+  if (!storage) return fallback;
+
+  try {
+    const stored = storage.getItem(storageKey);
+    return stored === "light" || stored === "dark" || stored === "system"
+      ? stored
+      : fallback;
+  } catch {
     return fallback;
   }
+}
 
-  const stored = window.localStorage.getItem(storageKey);
-  return stored === "light" || stored === "dark" || stored === "system"
-    ? stored
-    : fallback;
+export function persistPreference(storageKey: string, preference: ThemePreference): void {
+  const storage = getBrowserStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(storageKey, preference);
+  } catch {
+    // Theme changes remain session-local when browser storage is unavailable.
+  }
 }
 
 export function ThemeProvider({
@@ -52,7 +66,7 @@ export function ThemeProvider({
   const setPreference = useCallback(
     (nextPreference: ThemePreference) => {
       setPreferenceState(nextPreference);
-      window.localStorage.setItem(storageKey, nextPreference);
+      persistPreference(storageKey, nextPreference);
     },
     [storageKey],
   );

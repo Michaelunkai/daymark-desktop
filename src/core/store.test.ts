@@ -3,6 +3,7 @@ import { createAppStore, reduce } from "./store";
 import {
   createBrowserStorage,
   exportState,
+  getBrowserStorage,
   importState,
   loadState,
   migrate,
@@ -156,6 +157,29 @@ const blockedApp = createAppStore(blockedStorage, () => createSampleState(timest
 const blockedWrite = blockedApp.dispatch({ type: "task.add", input: { content: "Session-only task" } });
 assert(blockedWrite.ok, "Blocked storage should keep the organizer usable in memory.");
 assert(blockedApp.getStorageStatus() === "memory", "Blocked storage should be observable as session-only.");
+
+const originalWindow = (globalThis as { window?: unknown }).window;
+try {
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: {
+      get localStorage() {
+        throw new Error("Storage access blocked");
+      },
+    },
+  });
+  assert(getBrowserStorage() === undefined, "Blocked localStorage access should fall back without throwing.");
+  assert(createBrowserStorage().getStatus() === "memory", "Default browser storage should support memory-only mode.");
+} finally {
+  if (originalWindow === undefined) {
+    delete (globalThis as { window?: unknown }).window;
+  } else {
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: originalWindow,
+    });
+  }
+}
 
 const portable = exportState(integrated.getState());
 const imported = importState(portable);

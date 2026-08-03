@@ -27,9 +27,18 @@ export type SaveResult =
   | { ok: true; state: AppState; durable: boolean }
   | { ok: false; reason: "conflict" | "unavailable"; state: AppState; message: string };
 
+export function getBrowserStorage(): Pick<Storage, "getItem" | "setItem" | "removeItem"> | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    return window.localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
 export function createBrowserStorage(
   storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null | undefined =
-    getDefaultBrowserStorage(),
+    getBrowserStorage(),
   key = STORAGE_KEY,
 ): StateStorage {
   let memoryValue: string | null = null;
@@ -117,15 +126,6 @@ export function createBrowserStorage(
     },
     getStatus: () => status,
   };
-}
-
-function getDefaultBrowserStorage(): Pick<Storage, "getItem" | "setItem" | "removeItem"> | undefined {
-  if (typeof window === "undefined") return undefined;
-  try {
-    return window.localStorage;
-  } catch {
-    return undefined;
-  }
 }
 
 export function loadState(storage: StateStorage, fallback = createSampleState): LoadResult {
