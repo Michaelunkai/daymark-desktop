@@ -955,11 +955,12 @@ function App() {
     }
   }
 
-  const toggleTask = (taskId) => {
+  const toggleTask = (taskId, nextCompleted) => {
     const sourceTask = state.tasks[taskId]
     if (!sourceTask) return
+    const completed = nextCompleted ?? !sourceTask.completedAt
     const result = appStore.dispatch({
-      type: sourceTask.completedAt ? 'task.uncomplete' : 'task.complete',
+      type: completed ? 'task.complete' : 'task.uncomplete',
       taskId,
     })
     if (!result.ok) setNotice(result.message)
@@ -1273,6 +1274,7 @@ function App() {
                 initialMode="month"
                 onDateSelect={setSelectedCalendarDate}
                 onTaskAdd={(date) => openTaskEditor('create', null, date)}
+                onTaskComplete={toggleTask}
                 onTaskEdit={(taskId) => openTaskEditor('edit', state.tasks[taskId])}
                 onTaskMove={moveTaskToDate}
                 selectedDate={selectedCalendarDate}
@@ -1290,6 +1292,8 @@ function App() {
                     id: task.id,
                     title: task.content,
                     dueDate: task.due.date,
+                    time: task.due.time,
+                    priority: task.priority,
                     completed: Boolean(task.completedAt),
                     projectName: state.projects[task.projectId]?.name,
                     projectColor: ({ teal: '#267553', amber: '#b77b28', indigo: '#505caa', charcoal: '#4c5652' })[state.projects[task.projectId]?.color] ?? '#267553',
@@ -1302,7 +1306,16 @@ function App() {
                     calendarTasks
                       .filter((task) => !task.completedAt && (!task.due?.date || task.due.date < today))
                       .map((task) => (
-                        <button key={task.id} onClick={() => openTaskEditor('edit', task)} type="button">
+                        <button
+                          draggable
+                          key={task.id}
+                          onClick={() => openTaskEditor('edit', task)}
+                          onDragStart={(event) => {
+                            event.dataTransfer.effectAllowed = 'move'
+                            event.dataTransfer.setData('text/plain', task.id)
+                          }}
+                          type="button"
+                        >
                           <span className={`project-dot project-dot--${PROJECT_COLORS[state.projects[task.projectId]?.color] ?? 'teal'}`} />
                           <span>{task.content}</span>
                           <small>{task.due?.date ? 'Overdue' : 'Unscheduled'}</small>

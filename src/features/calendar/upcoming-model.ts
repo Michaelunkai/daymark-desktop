@@ -30,6 +30,21 @@ export type UpcomingRange = {
   end: LocalDate
 }
 
+export function buildUpcomingGrid(
+  view: Exclude<UpcomingCalendarView, "year">,
+  focus: LocalDate,
+  weekStartsOn: WeekStart = 0,
+): LocalDate[] {
+  const selectedDate = selectUpcomingDate(focus)
+  const start =
+    view === "week"
+      ? startOfWeek(selectedDate, weekStartsOn)
+      : startOfWeek(startOfMonth(selectedDate), weekStartsOn)
+  const length = view === "week" ? 7 : 42
+
+  return Array.from({ length }, (_, index) => addDays(start, index))
+}
+
 export function buildUpcomingRange(
   view: UpcomingCalendarView,
   focus: LocalDate,

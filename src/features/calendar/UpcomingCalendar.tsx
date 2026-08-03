@@ -1,16 +1,22 @@
-import { useMemo, useState, type DragEvent, type KeyboardEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react"
 import {
   addDays,
   addMonths,
   addYears,
   formatDate,
   fromLocalDate,
-  startOfMonth,
-  startOfWeek,
   toLocalDate,
   type LocalDate,
   type WeekStart,
 } from "../../core/dates"
+import {
+  TASK_MOVE_POINTER_MIME,
+  dateForTaskMoveCommand,
+  parseTaskMovePointerPayload,
+  serializeTaskMovePointerPayload,
+  taskMoveCommandForKey,
+} from "./task-movement"
+import { buildUpcomingGrid } from "./upcoming-model"
 
 export type UpcomingCalendarMode = "week" | "month" | "year"
 
@@ -18,6 +24,8 @@ export type UpcomingCalendarTask = {
   id: string
   title: string
   dueDate: LocalDate
+  time?: string | null
+  priority?: 1 | 2 | 3 | 4
   completed?: boolean
   projectName?: string
   projectColor?: string
@@ -33,6 +41,7 @@ export type UpcomingCalendarProps = {
   onTaskAdd?: (date: LocalDate) => void
   onTaskEdit?: (taskId: string) => void
   onTaskMove?: (taskId: string, date: LocalDate) => void
+  onTaskComplete?: (taskId: string, completed: boolean) => void
 }
 
 const modes: readonly UpcomingCalendarMode[] = ["week", "month", "year"]
@@ -47,10 +56,19 @@ export function UpcomingCalendar({
   onTaskAdd,
   onTaskEdit,
   onTaskMove,
+  onTaskComplete,
 }: UpcomingCalendarProps) {
   const [mode, setMode] = useState<UpcomingCalendarMode>(initialMode)
   const [cursor, setCursor] = useState<LocalDate>(selectedDate ?? today)
   const [draggingTaskId, setDraggingTaskId] = useState<string>()
+  const previousSelectedDate = useRef(selectedDate)
+
+  useEffect(() => {
+    if (selectedDate && selectedDate !== previousSelectedDate.current) {
+      setCursor(selectedDate)
+    }
+    previousSelectedDate.current = selectedDate
+  }, [selectedDate])
 
   const tasksByDate = useMemo(() => {
     const grouped = new Map<LocalDate, UpcomingCalendarTask[]>()
@@ -95,26 +113,32 @@ export function UpcomingCalendar({
     }
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault()
-      onTaskAdd?.(date)
+      selectDate(date)
     }
   }
 
   function handleDrop(event: DragEvent<HTMLElement>, date: LocalDate): void {
     event.preventDefault()
-    const taskId = event.dataTransfer.getData("text/plain") || draggingTaskId
+    const pointerPayload = parseTaskMovePointerPayload(event.dataTransfer.getData(TASK_MOVE_POINTER_MIME))
+    const taskId = pointerPayload?.taskId || event.dataTransfer.getData("text/plain") || draggingTaskId
     if (taskId) onTaskMove?.(taskId, date)
     setDraggingTaskId(undefined)
+  }
+
+  function goToToday(): void {
+    selectDate(today)
   }
 
   return (
     <section className="upcoming-calendar" aria-label="Upcoming calendar">
       <style>{calendarStyles}</style>
+      <style>{calendarInteractionStyles}</style>
       <header className="upcoming-calendar__toolbar">
         <div className="upcoming-calendar__nav">
           <button aria-label={`Previous ${mode}`} className="upcoming-calendar__icon-button" onClick={() => shift(-1)} type="button">
             <span aria-hidden="true">‹</span>
           </button>
-          <button className="upcoming-calendar__today-button" onClick={() => setCursor(today)} type="button">Today</button>
+          <button className="upcoming-calendar__today-button" onClick={goToToday} type="button">Today</button>
           <button aria-label={`Next ${mode}`} className="upcoming-calendar__icon-button" onClick={() => shift(1)} type="button">
             <span aria-hidden="true">›</span>
           </button>
@@ -175,7 +199,9 @@ export function UpcomingCalendar({
                 onDayKeyDown={handleDayKeyDown}
                 onDrop={handleDrop}
                 onDraggingTaskIdChange={setDraggingTaskId}
+                onTaskComplete={onTaskComplete}
                 onEdit={onTaskEdit}
+                onTaskMove={onTaskMove}
                 tasks={tasksByDate.get(date) ?? []}
               />
             ))}
@@ -198,7 +224,9 @@ type CalendarDayProps = {
   onDayKeyDown: (event: KeyboardEvent<HTMLButtonElement>, date: LocalDate) => void
   onDrop: (event: DragEvent<HTMLElement>, date: LocalDate) => void
   onDraggingTaskIdChange: (taskId?: string) => void
+  onTaskComplete?: (taskId: string, completed: boolean) => void
   onEdit?: (taskId: string) => void
+  onTaskMove?: (taskId: string, date: LocalDate) => void
   tasks: readonly UpcomingCalendarTask[]
 }
 
@@ -214,7 +242,9 @@ function CalendarDay({
   onDayKeyDown,
   onDrop,
   onDraggingTaskIdChange,
+  onTaskComplete,
   onEdit,
+  onTaskMove,
   tasks,
 }: CalendarDayProps) {
   const visibleTasks = mode === "week" ? tasks : tasks.slice(0, 3)
@@ -237,6 +267,7 @@ function CalendarDay({
       <div className="upcoming-calendar__day-header">
         <button
           aria-current={isToday ? "date" : undefined}
+          aria-selected={isSelected}
           aria-label={`Select ${formatDate(date, { month: "long", day: "numeric", year: "numeric" })}`}
           className="upcoming-calendar__day-number"
           onClick={() => onDateSelect(date)}
@@ -249,23 +280,52 @@ function CalendarDay({
       </div>
       <div className="upcoming-calendar__task-list">
         {visibleTasks.map((task) => (
-          <button
-            className={`upcoming-calendar__task ${task.completed ? "upcoming-calendar__task--completed" : ""}`}
-            draggable
-            key={task.id}
-            onClick={() => onEdit?.(task.id)}
-            onDragEnd={() => onDraggingTaskIdChange(undefined)}
-            onDragStart={(event) => {
-              event.dataTransfer.effectAllowed = "move"
-              event.dataTransfer.setData("text/plain", task.id)
-              onDraggingTaskIdChange(task.id)
-            }}
-            title={`${task.title}${task.projectName ? ` · ${task.projectName}` : ""}`}
-            type="button"
-          >
-            <span aria-hidden="true" className="upcoming-calendar__task-dot" style={{ background: task.projectColor ?? "var(--color-success, #267553)" }} />
-            <span>{task.title}</span>
-          </button>
+          <div className="upcoming-calendar__task-row" key={task.id}>
+            {onTaskComplete ? (
+              <button
+                aria-label={`${task.completed ? "Mark incomplete" : "Complete"} ${task.title}`}
+                className={`upcoming-calendar__task-complete${task.completed ? " upcoming-calendar__task-complete--checked" : ""}`}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onTaskComplete(task.id, !task.completed)
+                }}
+                title={task.completed ? "Mark incomplete" : "Complete task"}
+                type="button"
+              >
+                {task.completed ? "✓" : ""}
+              </button>
+            ) : null}
+            <button
+              aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown PageUp PageDown"
+              className={`upcoming-calendar__task ${task.completed ? "upcoming-calendar__task--completed" : ""}`}
+              data-priority={task.priority}
+              draggable
+              onClick={() => onEdit?.(task.id)}
+              onDragEnd={() => onDraggingTaskIdChange(undefined)}
+              onDragStart={(event) => {
+                event.dataTransfer.effectAllowed = "move"
+                event.dataTransfer.setData(
+                  TASK_MOVE_POINTER_MIME,
+                  serializeTaskMovePointerPayload({ taskId: task.id, sourceDate: task.dueDate }),
+                )
+                event.dataTransfer.setData("text/plain", task.id)
+                onDraggingTaskIdChange(task.id)
+              }}
+              onKeyDown={(event) => {
+                const command = taskMoveCommandForKey(event)
+                const targetDate = command ? dateForTaskMoveCommand(command, task.dueDate) : undefined
+                if (!targetDate || !onTaskMove) return
+                event.preventDefault()
+                onTaskMove(task.id, targetDate)
+              }}
+              title={`${task.title}${task.projectName ? ` · ${task.projectName}` : ""}${task.time ? ` · ${task.time}` : ""}`}
+              type="button"
+            >
+              <span aria-hidden="true" className="upcoming-calendar__task-dot" style={{ background: task.projectColor ?? "var(--color-success, #267553)" }} />
+              <span>{task.title}</span>
+              {task.time ? <small>{task.time}</small> : null}
+            </button>
+          </div>
         ))}
         {overflow > 0 ? <button className="upcoming-calendar__more" onClick={() => onDateSelect(date)} type="button">+{overflow} more</button> : null}
       </div>
@@ -274,12 +334,7 @@ function CalendarDay({
 }
 
 function calendarRange(mode: Exclude<UpcomingCalendarMode, "year">, cursor: LocalDate, weekStartsOn: WeekStart): LocalDate[] {
-  if (mode === "week") {
-    const start = startOfWeek(cursor, weekStartsOn)
-    return Array.from({ length: 7 }, (_, index) => addDays(start, index))
-  }
-  const start = startOfWeek(startOfMonth(cursor), weekStartsOn)
-  return Array.from({ length: 42 }, (_, index) => addDays(start, index))
+  return buildUpcomingGrid(mode, cursor, weekStartsOn)
 }
 
 function weekdayLabels(weekStartsOn: WeekStart): string[] {
@@ -298,3 +353,13 @@ function countTasksInMonth(tasksByDate: Map<LocalDate, UpcomingCalendarTask[]>, 
 const calendarStyles = `
 .upcoming-calendar{color:var(--color-text-primary,#252321);font:14px/1.35 var(--font-sans,Inter,"Segoe UI",sans-serif);min-width:0}
 .upcoming-calendar button{font:inherit}.upcoming-calendar__toolbar{align-items:center;display:grid;gap:12px;grid-template-columns:1fr auto 1fr;margin-bottom:18px}.upcoming-calendar__toolbar h2{font-size:18px;margin:0;text-align:center}.upcoming-calendar__nav,.upcoming-calendar__modes{align-items:center;display:flex;gap:4px}.upcoming-calendar__modes{justify-content:flex-end}.upcoming-calendar__icon-button,.upcoming-calendar__today-button,.upcoming-calendar__modes button,.upcoming-calendar__add-day,.upcoming-calendar__more{background:transparent;border:1px solid var(--color-border,#e4e1dd);border-radius:6px;color:inherit;cursor:pointer}.upcoming-calendar__icon-button{font-size:24px;height:32px;line-height:1;width:32px}.upcoming-calendar__today-button{height:32px;padding:0 10px}.upcoming-calendar__modes{background:var(--color-surface-hover,#f0f0ef);border-radius:7px;padding:3px}.upcoming-calendar__modes button{border:0;border-radius:4px;color:var(--color-text-secondary,#6d6965);height:28px;padding:0 9px}.upcoming-calendar__modes button[aria-pressed="true"]{background:var(--color-surface,#fff);box-shadow:0 1px 2px rgb(35 31 28 / 10%);color:var(--color-text-primary,#252321);font-weight:700}.upcoming-calendar__weekdays,.upcoming-calendar__grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}.upcoming-calendar__weekdays{color:var(--color-text-tertiary,#918c87);font-size:11px;font-weight:700;margin-bottom:6px;text-align:center;text-transform:uppercase}.upcoming-calendar__grid{border-left:1px solid var(--color-border,#e4e1dd);border-top:1px solid var(--color-border,#e4e1dd)}.upcoming-calendar__day{background:var(--color-surface,#fff);border-bottom:1px solid var(--color-border,#e4e1dd);border-right:1px solid var(--color-border,#e4e1dd);min-height:124px;padding:8px}.upcoming-calendar__grid--week .upcoming-calendar__day{min-height:300px}.upcoming-calendar__day--outside{background:var(--color-canvas,#f7f7f6);color:var(--color-text-tertiary,#918c87)}.upcoming-calendar__day--selected{box-shadow:inset 0 0 0 2px var(--color-focus-ring,#276fbb)}.upcoming-calendar__day--droppable{background:color-mix(in srgb,var(--color-success,#267553) 8%,var(--color-surface,#fff))}.upcoming-calendar__day-header{align-items:center;display:flex;justify-content:space-between;margin-bottom:7px}.upcoming-calendar__day-number{background:transparent;border:0;border-radius:50%;color:inherit;cursor:pointer;font-weight:650;height:27px;padding:0;width:27px}.upcoming-calendar__day--today .upcoming-calendar__day-number{background:var(--color-success,#267553);color:#fff}.upcoming-calendar__add-day{align-items:center;border:0;color:var(--color-text-tertiary,#918c87);display:inline-flex;font-size:18px;height:27px;justify-content:center;opacity:0;width:27px}.upcoming-calendar__day:hover .upcoming-calendar__add-day,.upcoming-calendar__day:focus-within .upcoming-calendar__add-day{opacity:1}.upcoming-calendar__task-list{display:grid;gap:4px}.upcoming-calendar__task{align-items:center;background:var(--color-surface-hover,#f0f0ef);border:0;border-radius:4px;color:inherit;cursor:grab;display:flex;font-size:12px;gap:6px;min-width:0;padding:4px 6px;text-align:left}.upcoming-calendar__task:hover{background:color-mix(in srgb,var(--color-success,#267553) 13%,var(--color-surface,#fff))}.upcoming-calendar__task--completed{color:var(--color-text-tertiary,#918c87);text-decoration:line-through}.upcoming-calendar__task-dot{border-radius:50%;flex:0 0 auto;height:6px;width:6px}.upcoming-calendar__task span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.upcoming-calendar__more{border:0;color:var(--color-success,#267553);font-size:12px;padding:3px 5px;text-align:left}.upcoming-calendar__year-grid{display:grid;gap:10px;grid-template-columns:repeat(4,minmax(0,1fr))}.upcoming-calendar__month-button{background:var(--color-surface,#fff);border:1px solid var(--color-border,#e4e1dd);border-radius:7px;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:5px;min-height:86px;padding:12px;text-align:left}.upcoming-calendar__month-button:hover{border-color:var(--color-success,#267553);background:color-mix(in srgb,var(--color-success,#267553) 6%,var(--color-surface,#fff))}.upcoming-calendar__month-button span{font-weight:700}.upcoming-calendar__month-button b{color:var(--color-success,#267553);font-size:12px;font-weight:600}.upcoming-calendar button:focus-visible{outline:2px solid var(--color-focus-ring,#276fbb);outline-offset:2px}@media (max-width:720px){.upcoming-calendar__toolbar{grid-template-columns:1fr auto}.upcoming-calendar__toolbar h2{grid-column:1/-1;grid-row:1;text-align:left}.upcoming-calendar__nav{grid-row:2}.upcoming-calendar__modes{grid-row:2}.upcoming-calendar__day{min-height:94px;padding:5px}.upcoming-calendar__grid--week{overflow-x:auto}.upcoming-calendar__grid--week .upcoming-calendar__day{min-width:130px}.upcoming-calendar__task{font-size:11px;padding:3px 4px}.upcoming-calendar__year-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}`
+const calendarInteractionStyles = `
+.upcoming-calendar__task-row{align-items:center;display:grid;gap:4px;grid-template-columns:auto minmax(0,1fr);min-width:0}
+.upcoming-calendar__task-row .upcoming-calendar__task{min-width:0;width:100%}
+.upcoming-calendar__task span:nth-child(2){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upcoming-calendar__task-complete{align-items:center;background:var(--color-surface,#fff);border:1.5px solid var(--color-success,#267553);border-radius:50%;color:var(--color-success,#267553);cursor:pointer;display:inline-flex;font-size:10px;font-weight:800;height:16px;justify-content:center;padding:0;width:16px}
+.upcoming-calendar__task-complete:hover{background:color-mix(in srgb,var(--color-success,#267553) 13%,var(--color-surface,#fff))}
+.upcoming-calendar__task-complete--checked{background:var(--color-success,#267553);color:var(--color-accent-contrast,#fff)}
+.upcoming-calendar__task-complete:focus-visible{outline:2px solid var(--color-focus-ring,#276fbb);outline-offset:2px}
+.upcoming-calendar__task small{color:var(--color-text-tertiary,#918c87);font-size:10px;margin-left:auto;overflow:visible;text-overflow:clip;white-space:nowrap}
+@media (max-width:720px){.upcoming-calendar__task-complete{height:14px;width:14px}.upcoming-calendar__task small{display:none}}`
