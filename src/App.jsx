@@ -9,8 +9,9 @@ import './features/calendar/upcoming-calendar.css'
 import './features/calendar/calendar-task-chips.css'
 import { ProjectCreateDialog } from './features/projects/ProjectCreateDialog'
 import './features/projects/project-create-dialog.css'
-import { OrganizerNavigation, getOrganizerEmptyState } from './features/organizer'
+import { OrganizerNavigation } from './features/organizer'
 import './features/organizer/organizer.css'
+import { NotesWorkspace } from './features/notes'
 import {
   TaskEditor,
   createTaskEditorDraft,
@@ -393,32 +394,6 @@ function TaskComposer({ inputRef, value, onChange, onSubmit, onCancel }) {
         <Icon name="close" size={16} />
       </button>
     </form>
-  )
-}
-
-function OrganizerEmptyState({ section, onNavigate }) {
-  const copy = getOrganizerEmptyState(section)
-  const icon = section === 'notes' ? 'note' : 'diary'
-
-  return (
-    <section aria-labelledby={`${section}-empty-title`} className="organizer-empty-state">
-      <span className="organizer-empty-state__icon">
-        <Icon name={icon} size={24} />
-      </span>
-      <span className="section-kicker">PART OF YOUR WORKSPACE</span>
-      <h2 id={`${section}-empty-title`}>{copy.title}</h2>
-      <p>{copy.description}</p>
-      <div className="organizer-empty-state__actions">
-        <button className="primary-button" onClick={() => onNavigate('today')} type="button">
-          <Icon name="focus" size={16} />
-          {copy.primaryLabel}
-        </button>
-        <button className="secondary-button" onClick={() => onNavigate('upcoming')} type="button">
-          <Icon name="calendar" size={16} />
-          {copy.secondaryLabel}
-        </button>
-      </div>
-    </section>
   )
 }
 
@@ -1285,7 +1260,13 @@ function App() {
             ) : null}
 
             {route === 'notes' || route === 'diary' ? (
-              <OrganizerEmptyState onNavigate={navigate} section={route} />
+              <NotesWorkspace
+                diaryEntries={Object.values(state.diaryEntries)}
+                initialMode={route === 'diary' ? 'diary' : 'notes'}
+                key={route}
+                notes={Object.values(state.notes)}
+                onDispatch={appStore.dispatch}
+              />
             ) : route === 'upcoming' ? (
               <>
               <IntegratedUpcomingCalendar

@@ -346,6 +346,13 @@ function normalizeNote(
   tasks: Record<EntityId, Task>,
 ): Note {
   const record = recordFor(id, value, "note");
+  if (
+    typeof record.id !== "string" ||
+    typeof record.createdAt !== "string" ||
+    typeof record.updatedAt !== "string"
+  ) {
+    throw new Error(`Note ${id} metadata is invalid.`);
+  }
   const title = stringValue(record.title, "");
   const content = stringValue(record.content, "");
   if (!title.trim() && !content.trim()) throw new Error(`Note ${id} is empty.`);
@@ -370,6 +377,13 @@ function normalizeDiaryEntry(
   tasks: Record<EntityId, Task>,
 ): DiaryEntry {
   const record = recordFor(id, value, "diary entry");
+  if (
+    typeof record.id !== "string" ||
+    typeof record.createdAt !== "string" ||
+    typeof record.updatedAt !== "string"
+  ) {
+    throw new Error(`Diary entry ${id} metadata is invalid.`);
+  }
   const date = requiredString(record.date, "diary date");
   assertLocalDate(date);
   const title = stringValue(record.title, "");

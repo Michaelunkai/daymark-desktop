@@ -74,6 +74,7 @@ export function parseTags(value: string): string[] {
 }
 
 export function formatDiaryDate(value: string, options?: Intl.DateTimeFormatOptions): string {
+  if (!value) return "Choose a date";
   return new Intl.DateTimeFormat(undefined, options ?? {
     weekday: "long",
     month: "long",

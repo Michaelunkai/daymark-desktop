@@ -367,7 +367,7 @@ export function NotesWorkspace({
             type="date"
             value={selectedDate}
             onChange={(event) => {
-              const nextDate = event.currentTarget.value;
+              const nextDate = event.currentTarget.value || selectedDate;
               setSelectedDate(nextDate);
               setQuery("");
               startNew("diary", nextDate);
@@ -454,14 +454,20 @@ export function NotesWorkspace({
                 className="notes-workspace__title-input"
                 aria-label="Note title"
                 value={noteDraft.title}
-                onChange={(event) => setNoteDraft((draft) => ({ ...draft, title: event.currentTarget.value }))}
+                onChange={(event) => {
+                  const value = event.currentTarget.value;
+                  setNoteDraft((draft) => ({ ...draft, title: value }));
+                }}
                 placeholder="Untitled note"
               />
               <textarea
                 className="notes-workspace__content-input"
                 aria-label="Note content"
                 value={noteDraft.content}
-                onChange={(event) => setNoteDraft((draft) => ({ ...draft, content: event.currentTarget.value }))}
+                onChange={(event) => {
+                  const value = event.currentTarget.value;
+                  setNoteDraft((draft) => ({ ...draft, content: value }));
+                }}
                 placeholder="Write down an idea, reference, or anything worth keeping..."
               />
               <MetadataRow>
@@ -470,7 +476,10 @@ export function NotesWorkspace({
                   <input
                     aria-label="Note tags"
                     value={noteDraft.tags}
-                    onChange={(event) => setNoteDraft((draft) => ({ ...draft, tags: event.currentTarget.value }))}
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
+                      setNoteDraft((draft) => ({ ...draft, tags: value }));
+                    }}
                     placeholder="work, ideas"
                   />
                 </label>
@@ -478,7 +487,10 @@ export function NotesWorkspace({
                   <input
                     type="checkbox"
                     checked={noteDraft.isPinned}
-                    onChange={(event) => setNoteDraft((draft) => ({ ...draft, isPinned: event.currentTarget.checked }))}
+                    onChange={(event) => {
+                      const checked = event.currentTarget.checked;
+                      setNoteDraft((draft) => ({ ...draft, isPinned: checked }));
+                    }}
                   />
                   <span>Pin note</span>
                 </label>
@@ -492,7 +504,10 @@ export function NotesWorkspace({
                   className="notes-workspace__title-input"
                   aria-label="Diary entry title"
                   value={diaryDraft.title}
-                  onChange={(event) => setDiaryDraft((draft) => ({ ...draft, title: event.currentTarget.value }))}
+                  onChange={(event) => {
+                    const value = event.currentTarget.value;
+                    setDiaryDraft((draft) => ({ ...draft, title: value }));
+                  }}
                   placeholder="A title for today"
                 />
                 <label className="notes-workspace__date-input">
@@ -501,7 +516,10 @@ export function NotesWorkspace({
                     aria-label="Diary entry date"
                     type="date"
                     value={diaryDraft.date}
-                    onChange={(event) => setDiaryDraft((draft) => ({ ...draft, date: event.currentTarget.value }))}
+                    onChange={(event) => {
+                      const value = event.currentTarget.value || diaryDraft.date;
+                      setDiaryDraft((draft) => ({ ...draft, date: value }));
+                    }}
                   />
                 </label>
               </div>
@@ -509,7 +527,10 @@ export function NotesWorkspace({
                 className="notes-workspace__content-input"
                 aria-label="Diary entry content"
                 value={diaryDraft.content}
-                onChange={(event) => setDiaryDraft((draft) => ({ ...draft, content: event.currentTarget.value }))}
+                onChange={(event) => {
+                  const value = event.currentTarget.value;
+                  setDiaryDraft((draft) => ({ ...draft, content: value }));
+                }}
                 placeholder="What is present for you today?"
               />
               <MetadataRow>
@@ -518,7 +539,10 @@ export function NotesWorkspace({
                   <select
                     aria-label="Diary mood"
                     value={diaryDraft.mood}
-                    onChange={(event) => setDiaryDraft((draft) => ({ ...draft, mood: event.currentTarget.value as DiaryDraft["mood"] }))}
+                    onChange={(event) => {
+                      const value = event.currentTarget.value as DiaryDraft["mood"];
+                      setDiaryDraft((draft) => ({ ...draft, mood: value }));
+                    }}
                   >
                     <option value="">No mood</option>
                     {MOODS.map((mood) => <option key={mood.value} value={mood.value}>{mood.label}</option>)}
@@ -529,7 +553,10 @@ export function NotesWorkspace({
                   <input
                     aria-label="Diary entry tags"
                     value={diaryDraft.tags}
-                    onChange={(event) => setDiaryDraft((draft) => ({ ...draft, tags: event.currentTarget.value }))}
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
+                      setDiaryDraft((draft) => ({ ...draft, tags: value }));
+                    }}
                     placeholder="rest, family"
                   />
                 </label>
@@ -537,7 +564,10 @@ export function NotesWorkspace({
                   <input
                     type="checkbox"
                     checked={diaryDraft.isFavorite}
-                    onChange={(event) => setDiaryDraft((draft) => ({ ...draft, isFavorite: event.currentTarget.checked }))}
+                    onChange={(event) => {
+                      const checked = event.currentTarget.checked;
+                      setDiaryDraft((draft) => ({ ...draft, isFavorite: checked }));
+                    }}
                   />
                   <span>Favorite</span>
                 </label>
