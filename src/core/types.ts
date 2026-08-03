@@ -80,6 +80,8 @@ export interface Note {
   tags: string[];
   isPinned: boolean;
   isArchived: boolean;
+  linkedTaskIds: EntityId[];
+  linkedProjectId: EntityId | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -92,6 +94,7 @@ export interface DiaryEntry {
   mood: DiaryMood | null;
   tags: string[];
   isFavorite: boolean;
+  linkedTaskIds: EntityId[];
   createdAt: string;
   updatedAt: string;
 }
@@ -163,10 +166,12 @@ export type NoteInput = {
   tags?: string[];
   isPinned?: boolean;
   isArchived?: boolean;
+  linkedTaskIds?: EntityId[];
+  linkedProjectId?: EntityId | null;
 };
 
 export type NotePatch = Partial<
-  Pick<Note, "title" | "content" | "tags" | "isPinned" | "isArchived">
+  Pick<Note, "title" | "content" | "tags" | "isPinned" | "isArchived" | "linkedTaskIds" | "linkedProjectId">
 >;
 
 export type DiaryEntryInput = {
@@ -177,10 +182,11 @@ export type DiaryEntryInput = {
   mood?: DiaryMood | null;
   tags?: string[];
   isFavorite?: boolean;
+  linkedTaskIds?: EntityId[];
 };
 
 export type DiaryEntryPatch = Partial<
-  Pick<DiaryEntry, "date" | "title" | "content" | "mood" | "tags" | "isFavorite">
+  Pick<DiaryEntry, "date" | "title" | "content" | "mood" | "tags" | "isFavorite" | "linkedTaskIds">
 >;
 
 export type ProjectInput = {
@@ -244,7 +250,7 @@ export type UserAction =
   | { type: "undo" };
 
 export type UndoAction =
-  | { type: "task.restore"; task: Task }
+  | { type: "task.restore"; task: Task; noteLinks?: Record<EntityId, EntityId[]>; diaryLinks?: Record<EntityId, EntityId[]> }
   | { type: "task.remove"; taskId: EntityId }
   | { type: "task.update"; taskId: EntityId; patch: TaskPatch }
   | { type: "note.restore"; note: Note }
@@ -271,10 +277,14 @@ export type StoreAction = UserAction | UndoAction;
 
 export type DispatchResult =
   | { ok: true; state: AppState }
-  | { ok: false; reason: "conflict" | "invalid"; message: string; state?: AppState };
+  | { ok: false; reason: "conflict" | "invalid" | "unavailable"; message: string; state?: AppState };
+
+export type StorageStatus = "persistent" | "memory";
 
 export interface StateStorage {
   read(): string | null;
   write(value: string): void;
   remove?(): void;
+  backup?(value: string): void;
+  getStatus?(): StorageStatus;
 }
