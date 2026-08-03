@@ -17,6 +17,15 @@ import { OrganizerNavigation } from './features/organizer'
 import './features/organizer/organizer.css'
 import { NotesWorkspace } from './features/notes'
 import {
+  createLocalThoughtCaptureStore,
+  discardCapture,
+  dismissCapture,
+  getCaptureInteractionAction,
+  openCapture,
+  submitCapture,
+  updateCaptureDraft,
+} from './features/capture'
+import {
   TaskEditor,
   createTaskEditorDraft,
   taskEditorDraftToTaskInput,
@@ -398,6 +407,46 @@ function TaskComposer({ inputRef, value, onChange, onSubmit, onCancel }) {
         <Icon name="close" size={16} />
       </button>
     </form>
+  )
+}
+
+function ThoughtCaptureTray({ inputRef, session, onChange, onDiscard, onDismiss, onSubmit }) {
+  const text = session?.draft?.text ?? ''
+  const isEmpty = session?.status === 'empty'
+
+  return (
+    <div className="thought-capture" onMouseDown={(event) => event.target === event.currentTarget && onDismiss()}>
+      <form aria-describedby="thought-capture-privacy" aria-labelledby="thought-capture-title" className="thought-capture__tray" onSubmit={onSubmit}>
+        <div className="thought-capture__heading">
+          <div>
+            <span className="section-kicker">QUICK CAPTURE</span>
+            <h2 id="thought-capture-title">Keep the thought</h2>
+          </div>
+          <button aria-label="Close quick capture" className="icon-button" onClick={onDismiss} title="Close and keep draft" type="button">
+            <Icon name="close" size={17} />
+          </button>
+        </div>
+        <textarea
+          aria-invalid={isEmpty || undefined}
+          aria-label="Thought"
+          autoComplete="off"
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="What do you want to remember?"
+          ref={inputRef}
+          rows="4"
+          value={text}
+        />
+        <div className="thought-capture__meta">
+          <p id="thought-capture-privacy">Stored only in this browser. No account or sync.</p>
+          <span>Enter to save · Shift Enter for a new line</span>
+        </div>
+        {isEmpty ? <p className="thought-capture__error" role="alert">Add a thought before saving.</p> : null}
+        <footer>
+          <button className="text-button" onClick={onDiscard} type="button">Discard</button>
+          <button className="primary-button" type="submit">Save thought</button>
+        </footer>
+      </form>
+    </div>
   )
 }
 
@@ -863,6 +912,16 @@ function App() {
   const [taskEditor, setTaskEditor] = useState(null)
   const [projectDialogOpen, setProjectDialogOpen] = useState(false)
   const composerRef = useRef(null)
+  const captureInputRef = useRef(null)
+  const captureStoreRef = useRef(null)
+  if (!captureStoreRef.current) {
+    captureStoreRef.current = createLocalThoughtCaptureStore(
+      typeof window === 'undefined' ? null : window.localStorage,
+    )
+  }
+  const captureStore = captureStoreRef.current
+  const [captureSnapshot, setCaptureSnapshot] = useState(() => captureStore.read())
+  const [captureSession, setCaptureSession] = useState(null)
 
   useEffect(() => {
     seedDemoWorkspace()
@@ -913,10 +972,87 @@ function App() {
   }, [composerOpen])
 
   useEffect(() => {
+    if (captureSession?.isOpen) {
+      window.setTimeout(() => captureInputRef.current?.focus(), 0)
+    }
+  }, [captureSession?.isOpen])
+
+  const persistCaptureSnapshot = (snapshot) => {
+    captureStore.write(snapshot)
+    setCaptureSnapshot(snapshot)
+  }
+
+  const openThoughtCapture = () => {
+    if (commandOpen || taskEditor || projectDialogOpen) return
+    setCaptureSession(openCapture(captureSnapshot, null))
+  }
+
+  const updateThoughtCapture = (text) => {
+    if (!captureSession) return
+    const next = updateCaptureDraft(captureSnapshot, captureSession, text, new Date().toISOString())
+    persistCaptureSnapshot(next.snapshot)
+    setCaptureSession(next.session)
+  }
+
+  const dismissThoughtCapture = () => {
+    if (captureSession) setCaptureSession(dismissCapture(captureSession))
+  }
+
+  const discardThoughtCapture = () => {
+    if (!captureSession) return
+    const next = discardCapture(captureSnapshot, captureSession)
+    persistCaptureSnapshot(next.snapshot)
+    setCaptureSession(next.session)
+  }
+
+  const submitThoughtCapture = (event) => {
+    event?.preventDefault()
+    if (!captureSession) return
+    const result = submitCapture(captureSnapshot, captureSession, createId('thought'), new Date().toISOString())
+    if (!result.ok) {
+      setCaptureSession(result.session)
+      return
+    }
+
+    persistCaptureSnapshot(result.snapshot)
+    setCaptureSession(result.session)
+    const inboxResult = appStore.dispatch({
+      type: 'note.add',
+      input: {
+        content: result.capture.text,
+        linkedProjectId: null,
+      },
+    })
+    setNotice(inboxResult.ok ? 'Thought captured locally in Notes Inbox.' : 'Thought captured locally in this browser.')
+  }
+
+  useEffect(() => {
     const onKeyDown = (event) => {
       const target = event.target
       const isTyping = target instanceof HTMLElement && Boolean(target.closest('input, textarea, [contenteditable="true"]'))
       const modifier = event.ctrlKey || event.metaKey
+      const captureAction = getCaptureInteractionAction(
+        event,
+        captureSession?.isOpen ? 'open' : 'closed',
+      )
+
+      if (captureAction === 'open') {
+        if (!commandOpen && !taskEditor && !projectDialogOpen) {
+          event.preventDefault()
+          openThoughtCapture()
+        }
+        return
+      }
+      if (captureAction === 'dismiss') {
+        event.preventDefault()
+        dismissThoughtCapture()
+        return
+      }
+      if (captureAction === 'submit') {
+        event.preventDefault()
+        submitThoughtCapture()
+        return
+      }
 
       if (event.key === 'Escape') {
         if (commandOpen) setCommandOpen(false)
@@ -949,7 +1085,7 @@ function App() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [commandOpen, composerOpen])
+  }, [captureSession, captureSnapshot, commandOpen, composerOpen, projectDialogOpen, taskEditor])
 
   const navigate = (nextRoute) => {
     setRoute(nextRoute)
@@ -1128,13 +1264,16 @@ function App() {
           </button>
         </div>
 
-        <div className="topbar__controls">
-          <label className="global-search">
+          <div className="topbar__controls">
+            <label className="global-search">
             <Icon name="search" size={17} />
             <input aria-label="Search tasks and views" onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search your workspace" type="search" value={searchTerm} />
-            <kbd>/</kbd>
-          </label>
-          <button aria-label="Open command palette" className="icon-button" onClick={() => setCommandOpen(true)} title="Command palette (Ctrl K)" type="button">
+              <kbd>/</kbd>
+            </label>
+            <button aria-label="Capture thought" className="icon-button" onClick={openThoughtCapture} title="Capture thought (Ctrl Shift Space)" type="button">
+              <Icon name="note" size={17} />
+            </button>
+            <button aria-label="Open command palette" className="icon-button" onClick={() => setCommandOpen(true)} title="Command palette (Ctrl K)" type="button">
             <Icon name="command" size={17} />
           </button>
           <span className="topbar__divider" />
@@ -1265,13 +1404,15 @@ function App() {
             ) : null}
 
             {route === 'notes' || route === 'diary' ? (
-              <NotesWorkspace
-                diaryEntries={Object.values(state.diaryEntries)}
-                initialMode={route === 'diary' ? 'diary' : 'notes'}
-                key={route}
-                notes={Object.values(state.notes)}
-                onDispatch={appStore.dispatch}
-              />
+                <NotesWorkspace
+                  diaryEntries={Object.values(state.diaryEntries)}
+                  initialMode={route === 'diary' ? 'diary' : 'notes'}
+                  key={route}
+                  notes={Object.values(state.notes)}
+                  defaultNotesProjectId={state.preferences.activeProjectId}
+                  onDispatch={appStore.dispatch}
+                  projects={Object.values(state.projects).filter((project) => !project.isArchived).map(({ id, name }) => ({ id, name }))}
+                />
             ) : route === 'upcoming' ? (
               <>
               <IntegratedUpcomingCalendar
@@ -1447,6 +1588,17 @@ function App() {
           onNavigate={navigate}
           onQueryChange={setCommandQuery}
           query={commandQuery}
+        />
+      ) : null}
+
+      {captureSession?.isOpen ? (
+        <ThoughtCaptureTray
+          inputRef={captureInputRef}
+          onChange={updateThoughtCapture}
+          onDiscard={discardThoughtCapture}
+          onDismiss={dismissThoughtCapture}
+          onSubmit={submitThoughtCapture}
+          session={captureSession}
         />
       ) : null}
 
