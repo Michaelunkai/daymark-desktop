@@ -28,11 +28,14 @@ import {
   toTaskEditorProjectOptions,
   toTaskEditorSectionOptions,
 } from './features/task-editor'
+import { readJournal, removeNote, upsertDiary, upsertNote, writeJournal } from './features/journal/model'
 
 const NAV_ITEMS = [
   { id: 'today', label: 'Today', icon: 'sun', count: 5 },
   { id: 'inbox', label: 'Inbox', icon: 'inbox', count: 4 },
   { id: 'upcoming', label: 'Upcoming', icon: 'calendar', count: 7 },
+  { id: 'notes', label: 'Notes', icon: 'note' },
+  { id: 'diary', label: 'Diary', icon: 'note' },
 ]
 
 const PROJECT_COLORS = {
@@ -56,6 +59,7 @@ const TAGS = [
 
 const appStore = createAppStore(createBrowserStorage())
 const thoughtCaptureStore = createLocalThoughtCaptureStore(getBrowserStorage())
+const journalStorage = getBrowserStorage()
 
 function getBrowserStorage() {
   try {
@@ -493,6 +497,8 @@ function CommandPalette({ query, onQueryChange, onClose, onNavigate, onCompose, 
     { id: 'today', label: 'Open Today', detail: 'See your current focus lane', shortcut: 'Ctrl 2' },
     { id: 'inbox', label: 'Open Inbox', detail: 'Review uncategorized tasks', shortcut: 'Ctrl 1' },
     { id: 'upcoming', label: 'Open Upcoming', detail: 'Plan the next few days', shortcut: 'Ctrl 3' },
+    { id: 'notes', label: 'Open Notes', detail: 'Keep durable personal references', shortcut: '' },
+    { id: 'diary', label: 'Open Diary', detail: 'Write a private daily entry', shortcut: '' },
     { id: 'compose', label: 'Add a task', detail: 'Capture something new', shortcut: 'Ctrl N' },
     { id: 'capture', label: 'Capture a thought', detail: 'Save a local thought without leaving your flow', shortcut: 'Ctrl Shift Space' },
   ]
@@ -624,6 +630,8 @@ function ThoughtCaptureTray({ session, onChange, onSave, onDismiss, onDiscard })
 }
 
 function getRouteInfo(route, state) {
+  if (route === 'notes') return { title: 'Notes', kicker: 'PERSONAL REFERENCE', subtitle: 'Keep durable ideas close to the work.' }
+  if (route === 'diary') return { title: 'Diary', kicker: 'DAILY REFLECTION', subtitle: 'A private record, organized one day at a time.' }
   if (route === 'inbox') {
     return { title: 'Inbox', kicker: 'CAPTURED WORK', subtitle: 'A quiet place to sort what just arrived.' }
   }
@@ -639,6 +647,58 @@ function getRouteInfo(route, state) {
     return { title: tag?.name ?? 'Tag', kicker: 'SAVED VIEW', subtitle: 'A focused lens across your work.' }
   }
   return { title: 'Today', kicker: 'SUNDAY, AUGUST 2', subtitle: 'A clear view of what matters now.' }
+}
+
+function JournalView({ route, journal, onChange }) {
+  const today = toLocalDate(new Date())
+  const [selectedDate, setSelectedDate] = useState(today)
+  const [selectedNoteId, setSelectedNoteId] = useState(null)
+  const selectedNote = journal.notes.find((note) => note.id === selectedNoteId) ?? null
+  const diaryEntry = journal.diary[selectedDate]
+
+  if (route === 'diary') {
+    return (
+      <section className="journal-view" aria-label="Diary">
+        <div className="journal-toolbar">
+          <label>
+            <span className="section-kicker">ENTRY DATE</span>
+            <input aria-label="Diary date" type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} />
+          </label>
+          <span className="journal-saved">{diaryEntry ? `Updated ${new Date(diaryEntry.updatedAt).toLocaleString()}` : 'No entry yet'}</span>
+        </div>
+        <textarea
+          aria-label={`Diary entry for ${selectedDate}`}
+          className="journal-editor"
+          onChange={(event) => onChange(upsertDiary(journal, selectedDate, event.target.value, new Date().toISOString()))}
+          placeholder="What happened today?"
+          value={diaryEntry?.body ?? ''}
+        />
+      </section>
+    )
+  }
+
+  return (
+    <section className="journal-view" aria-label="Notes">
+      <div className="journal-toolbar">
+        <span className="journal-count">{journal.notes.length} {journal.notes.length === 1 ? 'note' : 'notes'}</span>
+        <button className="primary-button" onClick={() => { const next = upsertNote(journal, { title: 'Untitled note', body: '' }, new Date().toISOString()); onChange(next); setSelectedNoteId(next.notes[0].id) }} type="button"><Icon name="plus" size={16} /> New note</button>
+      </div>
+      <div className="notes-layout">
+        <div className="notes-list">
+          {journal.notes.length ? journal.notes.map((note) => (
+            <button className={`note-list-item ${selectedNote?.id === note.id ? 'is-selected' : ''}`} key={note.id} onClick={() => setSelectedNoteId(note.id)} type="button">
+              <strong>{note.title}</strong><span>{note.body || 'Empty note'}</span>
+            </button>
+          )) : <p className="journal-empty">No notes yet. Start with a durable reference.</p>}
+        </div>
+        <div className="note-editor">
+          <input aria-label="Note title" disabled={!selectedNote} onChange={(event) => onChange(upsertNote(journal, { id: selectedNote.id, title: event.target.value, body: selectedNote.body }, new Date().toISOString()))} placeholder="Note title" value={selectedNote?.title ?? ''} />
+          <textarea aria-label="Note body" className="journal-editor" disabled={!selectedNote} onChange={(event) => onChange(upsertNote(journal, { id: selectedNote.id, title: selectedNote.title, body: event.target.value }, new Date().toISOString()))} placeholder="Write a note..." value={selectedNote?.body ?? ''} />
+          {selectedNote ? <button className="text-button" onClick={() => { onChange(removeNote(journal, selectedNote.id)); setSelectedNoteId(null) }} type="button">Delete note</button> : <p className="journal-empty">Select a note or create one to begin.</p>}
+        </div>
+      </div>
+    </section>
+  )
 }
 
 const CALENDAR_WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -901,6 +961,7 @@ function App() {
   const [projectDialogOpen, setProjectDialogOpen] = useState(false)
   const [captureSession, setCaptureSession] = useState(null)
   const [captureNotice, setCaptureNotice] = useState('')
+  const [journal, setJournal] = useState(() => readJournal(journalStorage))
   const composerRef = useRef(null)
   const captureReturnFocusRef = useRef(null)
 
@@ -926,6 +987,10 @@ function App() {
     [state],
   )
   const routeInfo = getRouteInfo(route, state)
+  const updateJournal = (next) => {
+    setJournal(next)
+    writeJournal(journalStorage, next)
+  }
   const visibleTasks = useMemo(() => {
     if (searchTerm.trim()) {
       const query = searchTerm.trim().toLowerCase()
@@ -1286,7 +1351,7 @@ function App() {
               {NAV_ITEMS.map((item) => (
                 <SidebarRow
                   active={route === item.id}
-                  count={item.id === 'today' ? tasks.filter((task) => state.tasks[task.id]?.due?.date === today && !task.completed).length : item.id === 'inbox' ? tasks.filter((task) => task.project === state.preferences.inboxProjectId && !task.completed).length : tasks.filter((task) => state.tasks[task.id]?.due?.date >= today && !task.completed).length}
+                  count={item.id === 'today' ? tasks.filter((task) => state.tasks[task.id]?.due?.date === today && !task.completed).length : item.id === 'inbox' ? tasks.filter((task) => task.project === state.preferences.inboxProjectId && !task.completed).length : item.id === 'upcoming' ? tasks.filter((task) => state.tasks[task.id]?.due?.date >= today && !task.completed).length : undefined}
                   icon={item.icon}
                   key={item.id}
                   label={item.label}
@@ -1393,7 +1458,9 @@ function App() {
               </div>
             ) : null}
 
-            {route === 'upcoming' ? (
+            {route === 'notes' || route === 'diary' ? (
+              <JournalView journal={journal} onChange={updateJournal} route={route} />
+            ) : route === 'upcoming' ? (
               <>
               <IntegratedUpcomingCalendar
                 initialMode="month"
