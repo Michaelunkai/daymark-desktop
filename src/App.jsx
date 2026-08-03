@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { addDays, addMonths, addYears, fromLocalDate, startOfMonth, startOfWeek, toLocalDate } from './core/dates'
 import { createId } from './core/sample-data'
 import { createAppStore } from './core/store'
@@ -28,7 +28,7 @@ import {
   toTaskEditorProjectOptions,
   toTaskEditorSectionOptions,
 } from './features/task-editor'
-import { readJournal, removeNote, upsertDiary, upsertNote, writeJournal } from './features/journal/model'
+import { clearLegacyJournal, readLegacyJournal } from './features/journal/model'
 
 const NAV_ITEMS = [
   { id: 'today', label: 'Today', icon: 'sun', count: 5 },
@@ -59,7 +59,6 @@ const TAGS = [
 
 const appStore = createAppStore(createBrowserStorage())
 const thoughtCaptureStore = createLocalThoughtCaptureStore(getBrowserStorage())
-const journalStorage = getBrowserStorage()
 
 function getBrowserStorage() {
   try {
@@ -67,6 +66,10 @@ function getBrowserStorage() {
   } catch {
     return undefined
   }
+}
+
+function isNarrowViewport() {
+  return typeof window !== 'undefined' && window.innerWidth <= 720
 }
 
 function useAppState() {
@@ -493,6 +496,7 @@ function UtilityPanel({ onAction }) {
 }
 
 function CommandPalette({ query, onQueryChange, onClose, onNavigate, onCompose, onCapture }) {
+  const dialogRef = useRef(null)
   const commands = [
     { id: 'today', label: 'Open Today', detail: 'See your current focus lane', shortcut: 'Ctrl 2' },
     { id: 'inbox', label: 'Open Inbox', detail: 'Review uncategorized tasks', shortcut: 'Ctrl 1' },
@@ -503,10 +507,38 @@ function CommandPalette({ query, onQueryChange, onClose, onNavigate, onCompose, 
     { id: 'capture', label: 'Capture a thought', detail: 'Save a local thought without leaving your flow', shortcut: 'Ctrl Shift Space' },
   ]
   const filtered = commands.filter((command) => `${command.label} ${command.detail}`.toLowerCase().includes(query.toLowerCase()))
+  const handleKeyDown = (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      onClose()
+      return
+    }
+    if (event.key !== 'Tab') return
+    const focusable = [...(dialogRef.current?.querySelectorAll('input, button, [href], [tabindex]:not([tabindex="-1"])') ?? [])]
+      .filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true')
+    if (!focusable.length) return
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
 
   return (
     <div className="command-overlay" onMouseDown={onClose}>
-      <section aria-labelledby="command-title" aria-modal="true" className="command-dialog" onMouseDown={(event) => event.stopPropagation()} role="dialog">
+      <section
+        aria-labelledby="command-title"
+        aria-modal="true"
+        className="command-dialog"
+        onKeyDown={handleKeyDown}
+        onMouseDown={(event) => event.stopPropagation()}
+        ref={dialogRef}
+        role="dialog"
+      >
         <div className="command-dialog__header">
           <div className="command-dialog__title">
             <Icon name="command" size={18} />
@@ -646,15 +678,18 @@ function getRouteInfo(route, state) {
     const tag = state.labels[route.slice('label:'.length)]
     return { title: tag?.name ?? 'Tag', kicker: 'SAVED VIEW', subtitle: 'A focused lens across your work.' }
   }
-  return { title: 'Today', kicker: 'SUNDAY, AUGUST 2', subtitle: 'A clear view of what matters now.' }
+  const todayLabel = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+    .format(new Date())
+    .toLocaleUpperCase()
+  return { title: 'Today', kicker: todayLabel, subtitle: 'A clear view of what matters now.' }
 }
 
-function JournalView({ route, journal, onChange }) {
+function JournalView({ route, journal, onDiaryUpdate, onNoteAdd, onNoteDelete, onNoteUpdate }) {
   const today = toLocalDate(new Date())
   const [selectedDate, setSelectedDate] = useState(today)
   const [selectedNoteId, setSelectedNoteId] = useState(null)
   const selectedNote = journal.notes.find((note) => note.id === selectedNoteId) ?? null
-  const diaryEntry = journal.diary[selectedDate]
+  const diaryEntry = journal.diaryEntries[selectedDate]
 
   if (route === 'diary') {
     return (
@@ -669,7 +704,7 @@ function JournalView({ route, journal, onChange }) {
         <textarea
           aria-label={`Diary entry for ${selectedDate}`}
           className="journal-editor"
-          onChange={(event) => onChange(upsertDiary(journal, selectedDate, event.target.value, new Date().toISOString()))}
+          onChange={(event) => onDiaryUpdate(selectedDate, event.target.value)}
           placeholder="What happened today?"
           value={diaryEntry?.body ?? ''}
         />
@@ -681,20 +716,56 @@ function JournalView({ route, journal, onChange }) {
     <section className="journal-view" aria-label="Notes">
       <div className="journal-toolbar">
         <span className="journal-count">{journal.notes.length} {journal.notes.length === 1 ? 'note' : 'notes'}</span>
-        <button className="primary-button" onClick={() => { const next = upsertNote(journal, { title: 'Untitled note', body: '' }, new Date().toISOString()); onChange(next); setSelectedNoteId(next.notes[0].id) }} type="button"><Icon name="plus" size={16} /> New note</button>
+        <button
+          className="primary-button"
+          onClick={() => {
+            const id = createId('note')
+            const result = onNoteAdd({ id, title: 'Untitled note', body: '' })
+            if (result.ok) setSelectedNoteId(id)
+          }}
+          type="button"
+        >
+          <Icon name="plus" size={16} />
+          New note
+        </button>
       </div>
       <div className="notes-layout">
         <div className="notes-list">
           {journal.notes.length ? journal.notes.map((note) => (
-            <button className={`note-list-item ${selectedNote?.id === note.id ? 'is-selected' : ''}`} key={note.id} onClick={() => setSelectedNoteId(note.id)} type="button">
+            <button
+              aria-pressed={selectedNote?.id === note.id}
+              className={`note-list-item ${selectedNote?.id === note.id ? 'is-selected' : ''}`}
+              key={note.id}
+              onClick={() => setSelectedNoteId(note.id)}
+              type="button"
+            >
               <strong>{note.title}</strong><span>{note.body || 'Empty note'}</span>
             </button>
           )) : <p className="journal-empty">No notes yet. Start with a durable reference.</p>}
         </div>
         <div className="note-editor">
-          <input aria-label="Note title" disabled={!selectedNote} onChange={(event) => onChange(upsertNote(journal, { id: selectedNote.id, title: event.target.value, body: selectedNote.body }, new Date().toISOString()))} placeholder="Note title" value={selectedNote?.title ?? ''} />
-          <textarea aria-label="Note body" className="journal-editor" disabled={!selectedNote} onChange={(event) => onChange(upsertNote(journal, { id: selectedNote.id, title: selectedNote.title, body: event.target.value }, new Date().toISOString()))} placeholder="Write a note..." value={selectedNote?.body ?? ''} />
-          {selectedNote ? <button className="text-button" onClick={() => { onChange(removeNote(journal, selectedNote.id)); setSelectedNoteId(null) }} type="button">Delete note</button> : <p className="journal-empty">Select a note or create one to begin.</p>}
+          <input
+            aria-label="Note title"
+            disabled={!selectedNote}
+            onChange={(event) => onNoteUpdate(selectedNote.id, { title: event.target.value })}
+            placeholder="Note title"
+            value={selectedNote?.title ?? ''}
+          />
+          <textarea
+            aria-label="Note body"
+            className="journal-editor"
+            disabled={!selectedNote}
+            onChange={(event) => onNoteUpdate(selectedNote.id, { body: event.target.value })}
+            placeholder="Write a note..."
+            value={selectedNote?.body ?? ''}
+          />
+          {selectedNote ? (
+            <button className="text-button" onClick={() => { onNoteDelete(selectedNote.id); setSelectedNoteId(null) }} type="button">
+              Delete note
+            </button>
+          ) : (
+            <p className="journal-empty">Select a note or create one to begin.</p>
+          )}
         </div>
       </div>
     </section>
@@ -952,7 +1023,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('')
   const [commandOpen, setCommandOpen] = useState(false)
   const [commandQuery, setCommandQuery] = useState('')
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(() => !isNarrowViewport())
   const [selectedTask, setSelectedTask] = useState(null)
   const [notice, setNotice] = useState('')
   const [undoAvailable, setUndoAvailable] = useState(false)
@@ -961,12 +1032,50 @@ function App() {
   const [projectDialogOpen, setProjectDialogOpen] = useState(false)
   const [captureSession, setCaptureSession] = useState(null)
   const [captureNotice, setCaptureNotice] = useState('')
-  const [journal, setJournal] = useState(() => readJournal(journalStorage))
   const composerRef = useRef(null)
   const captureReturnFocusRef = useRef(null)
+  const commandReturnFocusRef = useRef(null)
+  const sidebarRef = useRef(null)
+  const mainHeadingRef = useRef(null)
 
   useEffect(() => {
     seedDemoWorkspace()
+  }, [])
+
+  useEffect(() => {
+    if (!sidebarOpen || !isNarrowViewport()) return
+    window.requestAnimationFrame(() => {
+      sidebarRef.current?.querySelector('button')?.focus()
+    })
+  }, [sidebarOpen])
+
+  useLayoutEffect(() => {
+    if (sidebarOpen || !isNarrowViewport()) return
+    mainHeadingRef.current?.focus()
+  }, [route, sidebarOpen])
+
+  useEffect(() => {
+    const storage = getBrowserStorage()
+    const legacy = readLegacyJournal(storage)
+    if (!legacy) return
+
+    let migrationSucceeded = true
+    legacy.notes.forEach((note) => {
+      const current = appStore.getState()
+      if (current.notes[note.id]) return
+      const result = appStore.dispatch({
+        type: 'note.add',
+        input: { id: note.id, title: note.title, body: note.body },
+      })
+      if (!result.ok) migrationSucceeded = false
+    })
+    Object.values(legacy.diary).forEach((entry) => {
+      const current = appStore.getState()
+      if (current.diaryEntries[entry.date]) return
+      const result = appStore.dispatch({ type: 'diary.upsert', date: entry.date, body: entry.body })
+      if (!result.ok) migrationSucceeded = false
+    })
+    if (migrationSucceeded) clearLegacyJournal(storage)
   }, [])
 
   const tasks = useMemo(
@@ -987,9 +1096,31 @@ function App() {
     [state],
   )
   const routeInfo = getRouteInfo(route, state)
-  const updateJournal = (next) => {
-    setJournal(next)
-    writeJournal(journalStorage, next)
+  const journal = useMemo(
+    () => ({
+      notes: Object.values(state.notes).sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
+      diaryEntries: state.diaryEntries,
+    }),
+    [state.diaryEntries, state.notes],
+  )
+  const addNote = (input) => appStore.dispatch({ type: 'note.add', input })
+  const updateNote = (noteId, patch) => appStore.dispatch({ type: 'note.update', noteId, patch })
+  const deleteNote = (noteId) => appStore.dispatch({ type: 'note.delete', noteId })
+  const updateDiary = (date, body) => appStore.dispatch({ type: 'diary.upsert', date, body })
+
+  const openCommandPalette = () => {
+    commandReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setCommandQuery('')
+    setCommandOpen(true)
+  }
+
+  const closeCommandPalette = () => {
+    setCommandOpen(false)
+    const element = commandReturnFocusRef.current
+    commandReturnFocusRef.current = null
+    window.requestAnimationFrame(() => {
+      if (element && document.contains(element)) element.focus()
+    })
   }
   const visibleTasks = useMemo(() => {
     if (searchTerm.trim()) {
@@ -1115,27 +1246,26 @@ function App() {
       if (captureAction === 'newline') return
 
       if (event.key === 'Escape') {
-        if (commandOpen) setCommandOpen(false)
+        if (commandOpen) closeCommandPalette()
         else if (composerOpen) setComposerOpen(false)
         return
       }
       if (isTyping) return
       if (modifier && event.key.toLowerCase() === 'k') {
         event.preventDefault()
-        setCommandQuery('')
-        setCommandOpen(true)
+        openCommandPalette()
       } else if (modifier && event.key.toLowerCase() === 'n') {
         event.preventDefault()
         openTaskEditor('create')
       } else if (modifier && event.key === '1') {
         event.preventDefault()
-        setRoute('inbox')
+        navigate('inbox')
       } else if (modifier && event.key === '2') {
         event.preventDefault()
-        setRoute('today')
+        navigate('today')
       } else if (modifier && event.key === '3') {
         event.preventDefault()
-        setRoute('upcoming')
+        navigate('upcoming')
       } else if (event.key === '/') {
         event.preventDefault()
         document.querySelector('.global-search input')?.focus()
@@ -1156,6 +1286,8 @@ function App() {
   const navigate = (nextRoute) => {
     setRoute(nextRoute)
     setSelectedTask(null)
+    if (!isNarrowViewport()) return
+    setSidebarOpen(false)
   }
 
   const toggleTask = (taskId) => {
@@ -1321,7 +1453,7 @@ function App() {
       <CalendarIntegrationStyle />
       <header className="topbar">
         <div className="topbar__brand">
-          <button aria-label={sidebarOpen ? 'Collapse navigation' : 'Expand navigation'} className="icon-button topbar__menu" onClick={() => setSidebarOpen((open) => !open)} title="Toggle navigation" type="button">
+          <button aria-controls="primary-navigation" aria-expanded={sidebarOpen} aria-label={sidebarOpen ? 'Collapse navigation' : 'Expand navigation'} className="icon-button topbar__menu" onClick={() => setSidebarOpen((open) => !open)} title="Toggle navigation" type="button">
             <Icon name="menu" size={18} />
           </button>
           <button className="brand-lockup" onClick={() => navigate('today')} type="button">
@@ -1336,16 +1468,16 @@ function App() {
             <input aria-label="Search tasks and views" onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search your workspace" type="search" value={searchTerm} />
             <kbd>/</kbd>
           </label>
-          <button aria-label="Open command palette" className="icon-button" onClick={() => setCommandOpen(true)} title="Command palette (Ctrl K)" type="button">
+          <button aria-label="Open command palette" className="icon-button" onClick={openCommandPalette} title="Command palette (Ctrl K)" type="button">
             <Icon name="command" size={17} />
           </button>
           <span className="topbar__divider" />
-          <button className="avatar-button" title="Open profile menu" type="button">ML</button>
+          <button aria-label="Open profile menu" className="avatar-button" title="Open profile menu" type="button">ML</button>
         </div>
       </header>
 
       <div className="shell-grid">
-        <aside className="sidebar" aria-label="Primary navigation">
+        <aside aria-hidden={!sidebarOpen} className="sidebar" id="primary-navigation" ref={sidebarRef} aria-label="Primary navigation">
           <div className="sidebar__scroll">
             <SidebarSection title="WORKSPACE">
               {NAV_ITEMS.map((item) => (
@@ -1407,22 +1539,26 @@ function App() {
           </div>
         </aside>
 
+        {sidebarOpen && isNarrowViewport() ? (
+          <button aria-label="Close navigation" className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} type="button" />
+        ) : null}
+
         <main className="main-content">
           <div className="content-frame">
             <div className="view-header">
               <div>
                 <span className="section-kicker">{routeInfo.kicker}</span>
-                <h1>{routeInfo.title}</h1>
+                <h1 ref={mainHeadingRef} tabIndex="-1">{routeInfo.title}</h1>
                 <p>{routeInfo.subtitle}</p>
               </div>
               <div className="view-header__actions">
                 {route !== 'upcoming' ? (
                   <div aria-label="View mode" className="segmented-control" role="group">
-                    <button className={viewMode === 'list' ? 'is-selected' : ''} onClick={() => setViewMode('list')} title="List view" type="button">
+                    <button aria-pressed={viewMode === 'list'} className={viewMode === 'list' ? 'is-selected' : ''} onClick={() => setViewMode('list')} title="List view" type="button">
                       <Icon name="list" size={16} />
                       List
                     </button>
-                    <button className={viewMode === 'board' ? 'is-selected' : ''} onClick={() => setViewMode('board')} title="Board view" type="button">
+                    <button aria-pressed={viewMode === 'board'} className={viewMode === 'board' ? 'is-selected' : ''} onClick={() => setViewMode('board')} title="Board view" type="button">
                       <Icon name="board" size={16} />
                       Board
                     </button>
@@ -1459,7 +1595,14 @@ function App() {
             ) : null}
 
             {route === 'notes' || route === 'diary' ? (
-              <JournalView journal={journal} onChange={updateJournal} route={route} />
+              <JournalView
+                journal={journal}
+                onDiaryUpdate={updateDiary}
+                onNoteAdd={addNote}
+                onNoteDelete={deleteNote}
+                onNoteUpdate={updateNote}
+                route={route}
+              />
             ) : route === 'upcoming' ? (
               <>
               <IntegratedUpcomingCalendar
@@ -1616,7 +1759,7 @@ function App() {
       {commandOpen ? (
         <CommandPalette
           onCapture={openThoughtCapture}
-          onClose={() => setCommandOpen(false)}
+          onClose={closeCommandPalette}
           onCompose={() => openTaskEditor('create')}
           onNavigate={navigate}
           onQueryChange={setCommandQuery}

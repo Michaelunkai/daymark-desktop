@@ -10,13 +10,31 @@ export type SaveResult =
 
 export function createBrowserStorage(
   storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null | undefined =
-    typeof window === "undefined" ? undefined : window.localStorage,
+    getBrowserStorage(),
   key = STORAGE_KEY,
 ): StateStorage {
   return {
-    read: () => storage?.getItem(key) ?? null,
-    write: (value) => storage?.setItem(key, value),
-    remove: () => storage?.removeItem(key),
+    read: () => {
+      try {
+        return storage?.getItem(key) ?? null;
+      } catch {
+        return null;
+      }
+    },
+    write: (value) => {
+      try {
+        storage?.setItem(key, value);
+      } catch {
+        // Keep the active in-memory state usable when browser storage is blocked.
+      }
+    },
+    remove: () => {
+      try {
+        storage?.removeItem(key);
+      } catch {
+        // Storage cleanup is best effort.
+      }
+    },
   };
 }
 
@@ -55,12 +73,14 @@ export function saveState(storage: StateStorage, next: AppState, expectedRevisio
 export function migrate(value: unknown): AppState {
   if (!isRecord(value)) throw new Error("Stored state is not an object.");
   if (value.schemaVersion === CURRENT_SCHEMA_VERSION) return validateCurrentState(value);
-  if (value.schemaVersion === 1 || value.schemaVersion === 0) {
+  if (value.schemaVersion === 2 || value.schemaVersion === 1 || value.schemaVersion === 0) {
     return validateCurrentState({
       ...value,
       schemaVersion: CURRENT_SCHEMA_VERSION,
       sections: isRecord(value.sections) ? value.sections : {},
       filters: isRecord(value.filters) ? value.filters : {},
+      notes: isRecord(value.notes) ? value.notes : {},
+      diaryEntries: isRecord(value.diaryEntries) ? value.diaryEntries : {},
       preferences: isRecord(value.preferences)
         ? {
             ...value.preferences,
@@ -83,6 +103,8 @@ function validateCurrentState(value: Record<string, unknown>): AppState {
     !isRecord(value.sections) ||
     !isRecord(value.labels) ||
     !isRecord(value.filters) ||
+    !isRecord(value.notes) ||
+    !isRecord(value.diaryEntries) ||
     !isRecord(value.tasks) ||
     !isRecord(value.preferences) ||
     !Array.isArray(value.undoStack)
@@ -90,6 +112,14 @@ function validateCurrentState(value: Record<string, unknown>): AppState {
     throw new Error("Stored state is incomplete.");
   }
   return value as unknown as AppState;
+}
+
+function getBrowserStorage(): Storage | undefined {
+  try {
+    return typeof window === "undefined" ? undefined : window.localStorage;
+  } catch {
+    return undefined;
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -1,4 +1,4 @@
-export const CURRENT_SCHEMA_VERSION = 2 as const;
+export const CURRENT_SCHEMA_VERSION = 3 as const;
 
 export type EntityId = string;
 export type Priority = 1 | 2 | 3 | 4;
@@ -49,6 +49,20 @@ export interface SavedFilter {
   updatedAt: string;
 }
 
+export interface Note {
+  id: EntityId;
+  title: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DiaryEntry {
+  date: string;
+  body: string;
+  updatedAt: string;
+}
+
 export interface TaskDue {
   date: string;
   time: string | null;
@@ -96,6 +110,8 @@ export interface AppState {
   sections: Record<EntityId, Section>;
   labels: Record<EntityId, Label>;
   filters: Record<EntityId, SavedFilter>;
+  notes: Record<EntityId, Note>;
+  diaryEntries: Record<string, DiaryEntry>;
   tasks: Record<EntityId, Task>;
   preferences: AppPreferences;
   undoStack: UndoEntry[];
@@ -166,6 +182,14 @@ export type FilterInput = {
   isFavorite?: boolean;
 };
 
+export type NoteInput = {
+  id?: EntityId;
+  title?: string;
+  body?: string;
+};
+
+export type NotePatch = Partial<Pick<Note, "title" | "body">>;
+
 export type UserAction =
   | { type: "task.add"; input: TaskInput }
   | { type: "task.update"; taskId: EntityId; patch: TaskPatch }
@@ -181,6 +205,10 @@ export type UserAction =
   | { type: "label.update"; labelId: EntityId; patch: Partial<Pick<Label, "name" | "color" | "order" | "isFavorite">> }
   | { type: "filter.add"; input: FilterInput }
   | { type: "filter.update"; filterId: EntityId; patch: Partial<Pick<SavedFilter, "name" | "color" | "query" | "order" | "isFavorite">> }
+  | { type: "note.add"; input: NoteInput }
+  | { type: "note.update"; noteId: EntityId; patch: NotePatch }
+  | { type: "note.delete"; noteId: EntityId }
+  | { type: "diary.upsert"; date: string; body: string }
   | { type: "preferences.update"; patch: Partial<AppPreferences> }
   | { type: "undo" };
 
@@ -200,6 +228,11 @@ export type UndoAction =
   | { type: "filter.restore"; filter: SavedFilter }
   | { type: "filter.remove"; filterId: EntityId }
   | { type: "filter.update"; filterId: EntityId; patch: Partial<Pick<SavedFilter, "name" | "color" | "query" | "order" | "isFavorite">> }
+  | { type: "note.restore"; note: Note }
+  | { type: "note.remove"; noteId: EntityId }
+  | { type: "note.update"; noteId: EntityId; patch: NotePatch }
+  | { type: "diary.restore"; entry: DiaryEntry }
+  | { type: "diary.remove"; date: string }
   | { type: "preferences.update"; patch: Partial<AppPreferences> };
 
 export type StoreAction = UserAction | UndoAction;

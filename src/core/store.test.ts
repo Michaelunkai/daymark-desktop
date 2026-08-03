@@ -18,6 +18,23 @@ const reopened = createAppStore(storage);
 const undone = reopened.dispatch({ type: "undo" });
 assert(undone.ok && undone.state.tasks["task-welcome"].completedAt === null, "Undo should survive a reload.");
 
+const note = reopened.dispatch({
+  type: "note.add",
+  input: { id: "note-release", title: "Release notes", body: "Keep the browser evidence." },
+});
+assert(note.ok && note.state.notes["note-release"].body === "Keep the browser evidence.", "Notes should persist in the shared state.");
+
+const diary = reopened.dispatch({
+  type: "diary.upsert",
+  date: "2026-08-03",
+  body: "A focused workday.",
+});
+assert(diary.ok && diary.state.diaryEntries["2026-08-03"].body === "A focused workday.", "Diary entries should persist in the shared state.");
+
+const reopenedJournal = createAppStore(storage).getState();
+assert(reopenedJournal.notes["note-release"].title === "Release notes", "Notes should survive a reload.");
+assert(reopenedJournal.diaryEntries["2026-08-03"].body === "A focused workday.", "Diary entries should survive a reload.");
+
 const base = createSampleState(timestamp, "conflict-client");
 const left = reduce(base, { type: "task.add", input: { id: "task-left", content: "Left" } }, timestamp);
 const right = reduce(base, { type: "task.add", input: { id: "task-right", content: "Right" } }, timestamp);
@@ -27,7 +44,8 @@ assert(saveState(storage, left.state, base.revision).ok, "First writer should sa
 assert(!saveState(storage, right.state, base.revision).ok, "Stale writer must be rejected.");
 
 const migrated = migrate({ ...base, schemaVersion: 1, sections: undefined, filters: undefined });
-assert(migrated.schemaVersion === 2 && Object.keys(migrated.sections).length === 0, "Legacy state should migrate.");
+assert(migrated.schemaVersion === 3 && Object.keys(migrated.sections).length === 0, "Legacy state should migrate.");
+assert(Object.keys(migrated.notes).length === 0 && Object.keys(migrated.diaryEntries).length === 0, "Legacy state should receive empty journal collections.");
 
 const invalidMove = reduce(base, { type: "task.update", taskId: "task-welcome", patch: { sectionId: "missing" } });
 assert(!invalidMove.ok, "Cross-project or missing section assignment must be rejected.");

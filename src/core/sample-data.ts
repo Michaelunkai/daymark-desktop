@@ -65,6 +65,8 @@ export function createSampleState(
         updatedAt: now,
       },
     },
+    notes: {},
+    diaryEntries: {},
     tasks: {
       "task-welcome": {
         id: "task-welcome",

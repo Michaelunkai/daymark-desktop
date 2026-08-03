@@ -4,6 +4,7 @@ import type {
   AppState,
   DispatchResult,
   Label,
+  Note,
   Project,
   SavedFilter,
   Section,
@@ -83,7 +84,7 @@ function apply(state: AppState, action: StoreAction, now: string, recordUndo = t
 
   const result = mutate(state, action, now);
   if (!result.ok) return result;
-  if (recordUndo && isUserAction(action) && action.type !== "task.delete") {
+  if (recordUndo && isUserAction(action) && isUndoableAction(action)) {
     state.undoStack.push(createUndoEntry(result.inverse, now));
     state.undoStack = state.undoStack.slice(-MAX_UNDO_ENTRIES);
   }
@@ -149,6 +150,63 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       task.updatedAt = now;
       return { ok: true, inverse: { type: "task.update", taskId: task.id, patch: { completedAt: before } } };
     }
+    case "note.add": {
+      const id = action.input.id ?? createId("note");
+      if (state.notes[id]) return invalid("That note already exists.");
+      const note: Note = {
+        id,
+        title: action.input.title?.trim() || "Untitled note",
+        body: action.input.body ?? "",
+        createdAt: now,
+        updatedAt: now,
+      };
+      state.notes[id] = note;
+      return { ok: true, inverse: { type: "note.remove", noteId: id } };
+    }
+    case "note.restore":
+      state.notes[action.note.id] = structuredClone(action.note);
+      return { ok: true, inverse: { type: "note.remove", noteId: action.note.id } };
+    case "note.remove":
+    case "note.delete": {
+      const note = state.notes[action.noteId];
+      if (!note) return invalid("The note no longer exists.");
+      delete state.notes[action.noteId];
+      return { ok: true, inverse: { type: "note.restore", note: structuredClone(note) } };
+    }
+    case "note.update": {
+      const note = state.notes[action.noteId];
+      if (!note) return invalid("The note no longer exists.");
+      const before = pick(note, action.patch);
+      Object.assign(note, action.patch, { updatedAt: now });
+      return { ok: true, inverse: { type: "note.update", noteId: note.id, patch: before } };
+    }
+    case "diary.upsert": {
+      const date = action.date.trim();
+      if (!isLocalDateKey(date)) return invalid("A diary entry needs a valid date.");
+      const before = state.diaryEntries[date];
+      if (!action.body.trim()) {
+        delete state.diaryEntries[date];
+        return {
+          ok: true,
+          inverse: before
+            ? { type: "diary.restore", entry: structuredClone(before) }
+            : { type: "diary.remove", date },
+        };
+      }
+      state.diaryEntries[date] = { date, body: action.body, updatedAt: now };
+      return {
+        ok: true,
+        inverse: before
+          ? { type: "diary.restore", entry: structuredClone(before) }
+          : { type: "diary.remove", date },
+      };
+    }
+    case "diary.restore":
+      state.diaryEntries[action.entry.date] = structuredClone(action.entry);
+      return { ok: true, inverse: { type: "diary.remove", date: action.entry.date } };
+    case "diary.remove":
+      delete state.diaryEntries[action.date];
+      return { ok: true, inverse: { type: "diary.remove", date: action.date } };
     case "project.add": {
       if (!action.input.name.trim()) return invalid("A project needs a name.");
       const id = action.input.id ?? createId("project");
@@ -281,6 +339,10 @@ function isUserAction(action: StoreAction): action is UserAction {
   return !action.type.endsWith(".restore") && !action.type.endsWith(".remove");
 }
 
+function isUndoableAction(action: UserAction): boolean {
+  return !action.type.startsWith("note.") && !action.type.startsWith("diary.") && action.type !== "task.delete";
+}
+
 function createUndoEntry(inverse: UndoAction, createdAt: string): UndoEntry {
   return { id: createId("undo"), label: inverse.type, inverse, createdAt };
 }
@@ -299,6 +361,10 @@ function unique(values: string[]): string[] {
 
 function nextOrder(collection: Record<string, { order: number }>): number {
   return Object.values(collection).reduce((largest, value) => Math.max(largest, value.order), -1) + 1;
+}
+
+function isLocalDateKey(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
 function pick<T extends object>(source: T, patch: Partial<T>): Partial<T> {

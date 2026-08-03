@@ -1,4 +1,4 @@
-export const JOURNAL_STORAGE_KEY = 'daymark.journal.v1'
+export const LEGACY_JOURNAL_STORAGE_KEY = 'daymark.journal.v1'
 export const JOURNAL_STORAGE_VERSION = 1
 
 export type Note = {
@@ -25,24 +25,26 @@ export function emptyJournal(): JournalSnapshot {
   return { version: JOURNAL_STORAGE_VERSION, notes: [], diary: {} }
 }
 
-export function readJournal(storage: Pick<Storage, 'getItem'> | null | undefined, key = JOURNAL_STORAGE_KEY): JournalSnapshot {
+export function readLegacyJournal(
+  storage: Pick<Storage, 'getItem'> | null | undefined,
+  key = LEGACY_JOURNAL_STORAGE_KEY,
+): JournalSnapshot | null {
   try {
     const raw = storage?.getItem(key)
-    return raw ? parseJournal(JSON.parse(raw)) : emptyJournal()
+    return raw ? parseJournal(JSON.parse(raw)) : null
   } catch {
-    return emptyJournal()
+    return null
   }
 }
 
-export function writeJournal(
-  storage: Pick<Storage, 'setItem'> | null | undefined,
-  snapshot: JournalSnapshot,
-  key = JOURNAL_STORAGE_KEY,
+export function clearLegacyJournal(
+  storage: Pick<Storage, 'removeItem'> | null | undefined,
+  key = LEGACY_JOURNAL_STORAGE_KEY,
 ): void {
   try {
-    storage?.setItem(key, JSON.stringify(snapshot))
+    storage?.removeItem(key)
   } catch {
-    // The UI remains usable with the in-memory snapshot when storage is blocked.
+    // Legacy cleanup is best effort.
   }
 }
 

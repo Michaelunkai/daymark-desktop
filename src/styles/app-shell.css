@@ -251,6 +251,10 @@ kbd {
   background: var(--sidebar);
 }
 
+.sidebar-backdrop {
+  display: none;
+}
+
 .sidebar__scroll {
   flex: 1;
   overflow: auto;
@@ -1726,6 +1730,17 @@ kbd {
     left: 0;
     width: min(280px, 85vw);
     box-shadow: 14px 0 30px rgba(31, 41, 43, 0.12);
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    z-index: 4;
+    inset: 112px 0 0;
+    display: block;
+    padding: 0;
+    border: 0;
+    background: rgba(31, 41, 43, 0.16);
+    cursor: pointer;
   }
 
   .sidebar-is-collapsed .sidebar {
