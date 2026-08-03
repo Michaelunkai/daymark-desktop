@@ -10,11 +10,24 @@ Import `NotesWorkspace` and its stylesheet through `src/features/notes/index.ts`
 <NotesWorkspace
   notes={Object.values(state.notes)}
   diaryEntries={Object.values(state.diaryEntries)}
+  projects={Object.values(state.projects).map(({ id, name }) => ({ id, name }))}
+  defaultNotesProjectId={state.preferences.activeProjectId}
   onDispatch={appStore.dispatch}
 />
 ```
 
 The host owns routing and navigation. Use `initialMode="diary"` when opening the journal route directly.
+
+## Capture and triage behavior
+
+- Notes are split into two feature-level destinations without changing the shared state shape:
+  - `linkedProjectId === null` is the Inbox, optimized for fast capture and later triage.
+  - a non-null `linkedProjectId` is an organized Note associated with that project.
+- Inbox items sort by `createdAt` first, so the newest thought is immediately visible even after edits.
+- The Inbox composer focuses the body field and accepts `Ctrl+Enter` or `Cmd+Enter` to save without leaving capture.
+- Moving an Inbox thought to Notes is an existing `note.update` with `linkedProjectId`; the project selector is required before save.
+- Diary remains a separate date-addressed destination. Diary entries use their existing local `date` and `createdAt` fields.
+- The component does not write to storage directly and does not require shell or reducer changes.
 
 ## State contract
 

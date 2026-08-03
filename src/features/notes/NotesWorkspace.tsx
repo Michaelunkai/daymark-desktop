@@ -22,14 +22,17 @@ import type {
 } from "../../core/types";
 import {
   countWords,
+  formatCapturedTimestamp,
   formatDiaryDate,
   getDiaryDates,
+  getNoteDestination,
   parseTags,
   relativeDiaryDate,
   searchWriting,
+  sortCapturedNotes,
   sortDiaryEntries,
-  sortNotes,
   todayLocalDate,
+  type NoteDestination,
   type WritingMode,
 } from "./model";
 import "./notes.css";
@@ -53,6 +56,8 @@ export interface NotesWorkspaceProps {
   notes: readonly Note[];
   diaryEntries: readonly DiaryEntry[];
   onDispatch: NotesDispatch;
+  projects?: readonly { id: string; name: string }[];
+  defaultNotesProjectId?: string | null;
   initialMode?: WritingMode;
   className?: string;
 }
@@ -62,6 +67,7 @@ type NoteDraft = {
   content: string;
   tags: string;
   isPinned: boolean;
+  linkedProjectId: string | null;
 };
 
 type DiaryDraft = {
@@ -90,6 +96,7 @@ const EMPTY_NOTE: NoteDraft = {
   content: "",
   tags: "",
   isPinned: false,
+  linkedProjectId: null,
 };
 
 function makeDiaryDraft(date = todayLocalDate()): DiaryDraft {
@@ -109,6 +116,7 @@ function noteToDraft(note: Note): NoteDraft {
     content: note.content,
     tags: note.tags.join(", "),
     isPinned: note.isPinned,
+    linkedProjectId: note.linkedProjectId,
   };
 }
 
@@ -127,6 +135,8 @@ export function NotesWorkspace({
   notes,
   diaryEntries,
   onDispatch,
+  projects = [],
+  defaultNotesProjectId = null,
   initialMode = "notes",
   className = "",
 }: NotesWorkspaceProps) {
@@ -134,6 +144,7 @@ export function NotesWorkspace({
   const [mode, setMode] = useState<WritingMode>(initialMode);
   const [query, setQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState(todayLocalDate());
+  const [noteDestination, setNoteDestination] = useState<NoteDestination>("inbox");
   const [editor, setEditor] = useState<EditorState>({ kind: initialMode, id: null });
   const [noteDraft, setNoteDraft] = useState<NoteDraft>(EMPTY_NOTE);
   const [diaryDraft, setDiaryDraft] = useState<DiaryDraft>(() => makeDiaryDraft());
@@ -141,11 +152,14 @@ export function NotesWorkspace({
   const [deletePending, setDeletePending] = useState(false);
   const [keyboardResultIndex, setKeyboardResultIndex] = useState(0);
 
-  const sortedNotes = useMemo(() => sortNotes(notes.filter((note) => !note.isArchived)), [notes]);
+  const capturedNotes = useMemo(
+    () => sortCapturedNotes(notes, noteDestination),
+    [noteDestination, notes],
+  );
   const diaryDates = useMemo(() => getDiaryDates(diaryEntries), [diaryEntries]);
   const searchableItems = useMemo(
-    () => searchWriting(mode, query, sortedNotes, diaryEntries),
-    [diaryEntries, mode, query, sortedNotes],
+    () => searchWriting(mode, query, capturedNotes, diaryEntries),
+    [capturedNotes, diaryEntries, mode, query],
   );
   const diaryItems = useMemo(
     () => (query.trim() ? searchableItems.map((result) => result.item as DiaryEntry) : sortDiaryEntries(diaryEntries, selectedDate)),
@@ -164,7 +178,7 @@ export function NotesWorkspace({
     setDeletePending(false);
     setError("");
     if (mode === "notes") {
-      const first = sortedNotes[0];
+      const first = capturedNotes[0];
       if (editor.kind !== "note" || (editor.id && !notes.some((note) => note.id === editor.id))) {
         if (first) {
           setEditor({ kind: "note", id: first.id });
@@ -188,7 +202,7 @@ export function NotesWorkspace({
         setDiaryDraft(makeDiaryDraft(selectedDate));
       }
     }
-  }, [diaryEntries, diaryItems, editor.id, editor.kind, mode, notes, selectedDate, sortedNotes]);
+  }, [capturedNotes, diaryEntries, diaryItems, editor.id, editor.kind, mode, notes, selectedDate]);
 
   useEffect(() => {
     setKeyboardResultIndex((current) => Math.min(current, Math.max(0, resultItems.length - 1)));
@@ -228,12 +242,28 @@ export function NotesWorkspace({
     setError("");
   }
 
+  function selectNoteDestination(nextDestination: NoteDestination) {
+    setNoteDestination(nextDestination);
+    setQuery("");
+    setKeyboardResultIndex(0);
+    setDeletePending(false);
+    setError("");
+    setEditor({ kind: "note", id: null });
+    setNoteDraft({
+      ...EMPTY_NOTE,
+      linkedProjectId: nextDestination === "notes" ? defaultNotesProjectId : null,
+    });
+  }
+
   function startNew(kind = mode, diaryDate = selectedDate) {
     setDeletePending(false);
     setError("");
     if (kind === "notes") {
       setEditor({ kind: "note", id: null });
-      setNoteDraft(EMPTY_NOTE);
+      setNoteDraft({
+        ...EMPTY_NOTE,
+        linkedProjectId: noteDestination === "notes" ? defaultNotesProjectId : null,
+      });
     } else {
       setEditor({ kind: "diary", id: null });
       setDiaryDraft(makeDiaryDraft(diaryDate));
@@ -244,6 +274,7 @@ export function NotesWorkspace({
     setDeletePending(false);
     setError("");
     setEditor({ kind: "note", id: note.id });
+    setNoteDestination(getNoteDestination(note));
     setNoteDraft(noteToDraft(note));
   }
 
@@ -258,6 +289,10 @@ export function NotesWorkspace({
   function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    if (mode === "notes" && noteDestination === "notes" && !noteDraft.linkedProjectId) {
+      setError("Choose a project before moving this thought out of Inbox.");
+      return;
+    }
     const result = mode === "notes" ? saveNote() : saveDiaryEntry();
     if (!result.ok) {
       setError(result.message);
@@ -272,6 +307,7 @@ export function NotesWorkspace({
       content: noteDraft.content,
       tags: parseTags(noteDraft.tags),
       isPinned: noteDraft.isPinned,
+      linkedProjectId: noteDraft.linkedProjectId,
     };
     if (editor.id) {
       const patch: NotePatch = input;
@@ -368,12 +404,38 @@ export function NotesWorkspace({
           </div>
           <button className="notes-workspace__primary-button" type="button" onClick={() => startNew()}>
             <PlusIcon />
-            New {mode === "notes" ? "note" : "entry"}
+            {mode === "notes"
+              ? noteDestination === "inbox"
+                ? "Capture thought"
+                : "New note"
+              : "New entry"}
           </button>
         </div>
       </header>
 
       <div className="notes-workspace__toolbar">
+        {mode === "notes" ? (
+          <div className="notes-workspace__destination-switch" role="tablist" aria-label="Thought destination">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={noteDestination === "inbox"}
+              className={noteDestination === "inbox" ? "is-selected" : ""}
+              onClick={() => selectNoteDestination("inbox")}
+            >
+              Inbox
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={noteDestination === "notes"}
+              className={noteDestination === "notes" ? "is-selected" : ""}
+              onClick={() => selectNoteDestination("notes")}
+            >
+              Notes
+            </button>
+          </div>
+        ) : null}
         <label className="notes-workspace__search">
           <SearchIcon />
           <span className="visually-hidden">Search {mode}</span>
@@ -447,7 +509,7 @@ export function NotesWorkspace({
       <div className="notes-workspace__body">
         <aside className="notes-workspace__index" aria-label={`${mode} list`}>
           <div className="notes-workspace__index-heading">
-            <span>{query ? "Search results" : mode === "notes" ? "Your notes" : selectedDate === todayLocalDate() ? "Today" : formatDiaryDate(selectedDate, { month: "long", day: "numeric", year: "numeric" })}</span>
+            <span>{query ? "Search results" : mode === "notes" ? noteDestination === "inbox" ? "Capture inbox" : "Your notes" : selectedDate === todayLocalDate() ? "Today" : formatDiaryDate(selectedDate, { month: "long", day: "numeric", year: "numeric" })}</span>
             <span>{mode === "notes" ? searchableItems.length : diaryItems.length}</span>
           </div>
           <div className="notes-workspace__index-list" id={`${titleId}-results`} role="listbox">
@@ -471,7 +533,7 @@ export function NotesWorkspace({
                         {note.isPinned ? <PinIcon /> : null}
                         {note.title || "Untitled note"}
                       </span>
-                      <span>{note.content || "No content yet"} · {relativeTime(note.updatedAt)}</span>
+                      <span>{note.content || "No content yet"} · {relativeTime(note.createdAt)}</span>
                     </button>
                   );
                 })
@@ -507,9 +569,9 @@ export function NotesWorkspace({
 
         <form className="notes-workspace__editor" onSubmit={save}>
           <div className="notes-workspace__editor-topline">
-            <span>{editor.id ? "Editing" : "New draft"}</span>
+            <span>{editor.id ? "Editing" : mode === "notes" && noteDestination === "inbox" ? "Quick capture" : "New draft"}</span>
             {mode === "diary" && activeDiaryEntry ? <span>{formatDiaryDate(activeDiaryEntry.date)}</span> : null}
-            {mode === "notes" && activeNote ? <span>Updated {relativeTime(activeNote.updatedAt)}</span> : null}
+            {mode === "notes" && activeNote ? <span>{formatCapturedTimestamp(activeNote.createdAt)}</span> : null}
           </div>
 
           {mode === "notes" ? (
@@ -533,8 +595,49 @@ export function NotesWorkspace({
                   setNoteDraft((draft) => ({ ...draft, content: value }));
                 }}
                 placeholder="Write down an idea, reference, or anything worth keeping..."
+                autoFocus={mode === "notes" && !editor.id && noteDestination === "inbox"}
+                onKeyDown={(event) => {
+                  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                    event.preventDefault();
+                    event.currentTarget.form?.requestSubmit();
+                  }
+                }}
               />
               <MetadataRow>
+                <label className="notes-workspace__meta-field">
+                  <span>Destination</span>
+                  <select
+                    aria-label="Thought destination"
+                    value={noteDestination}
+                    onChange={(event) => {
+                      const nextDestination = event.currentTarget.value as NoteDestination;
+                      setNoteDestination(nextDestination);
+                      setNoteDraft((draft) => ({
+                        ...draft,
+                        linkedProjectId: nextDestination === "notes" ? draft.linkedProjectId ?? defaultNotesProjectId : null,
+                      }));
+                    }}
+                  >
+                    <option value="inbox">Inbox · triage later</option>
+                    <option value="notes">Notes · keep organized</option>
+                  </select>
+                </label>
+                {noteDestination === "notes" ? (
+                  <label className="notes-workspace__meta-field">
+                    <span>Project</span>
+                    <select
+                      aria-label="Notes project"
+                      value={noteDraft.linkedProjectId ?? ""}
+                      onChange={(event) => {
+                        const value = event.currentTarget.value || null;
+                        setNoteDraft((draft) => ({ ...draft, linkedProjectId: value }));
+                      }}
+                    >
+                      <option value="">Choose a project</option>
+                      {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+                    </select>
+                  </label>
+                ) : null}
                 <label className="notes-workspace__meta-field">
                   <span>Tags</span>
                   <input
@@ -662,7 +765,7 @@ export function NotesWorkspace({
                 Clear
               </button>
               <button className="notes-workspace__save-button" type="submit">
-                Save {mode === "notes" ? "note" : "entry"}
+                {mode === "notes" && noteDestination === "inbox" ? "Capture thought" : `Save ${mode === "notes" ? "note" : "entry"}`}
               </button>
             </div>
           </footer>

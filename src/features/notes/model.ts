@@ -2,6 +2,7 @@ import { fromLocalDate, toLocalDate } from "../../core/dates";
 import type { DiaryEntry, Note } from "../../core/types";
 
 export type WritingMode = "notes" | "diary";
+export type NoteDestination = "inbox" | "notes";
 export type WritingSearchResult =
   | { kind: "note"; item: Note; score: number }
   | { kind: "diary"; item: DiaryEntry; score: number };
@@ -15,6 +16,39 @@ export function sortNotes(notes: readonly Note[]): Note[] {
     if (left.isPinned !== right.isPinned) return Number(right.isPinned) - Number(left.isPinned);
     return right.updatedAt.localeCompare(left.updatedAt) || left.title.localeCompare(right.title);
   });
+}
+
+export function getNoteDestination(note: Note): NoteDestination {
+  return note.linkedProjectId ? "notes" : "inbox";
+}
+
+export function sortCapturedNotes(
+  notes: readonly Note[],
+  destination: NoteDestination = "inbox",
+): Note[] {
+  return [...notes]
+    .filter((note) => !note.isArchived && getNoteDestination(note) === destination)
+    .sort((left, right) => {
+      if (destination === "notes" && left.isPinned !== right.isPinned) {
+        return Number(right.isPinned) - Number(left.isPinned);
+      }
+      return (
+        right.createdAt.localeCompare(left.createdAt) ||
+        right.updatedAt.localeCompare(left.updatedAt) ||
+        left.id.localeCompare(right.id)
+      );
+    });
+}
+
+export function formatCapturedTimestamp(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Captured recently";
+  return `Captured ${new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date)}`;
 }
 
 export function getDiaryDates(entries: readonly DiaryEntry[]): string[] {
