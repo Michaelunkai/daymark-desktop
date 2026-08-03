@@ -9,6 +9,8 @@ import './features/calendar/upcoming-calendar.css'
 import './features/calendar/calendar-task-chips.css'
 import { ProjectCreateDialog } from './features/projects/ProjectCreateDialog'
 import './features/projects/project-create-dialog.css'
+import { OrganizerNavigation, getOrganizerEmptyState } from './features/organizer'
+import './features/organizer/organizer.css'
 import {
   TaskEditor,
   createTaskEditorDraft,
@@ -23,7 +25,7 @@ import {
 const NAV_ITEMS = [
   { id: 'today', label: 'Today', icon: 'sun', count: 5 },
   { id: 'inbox', label: 'Inbox', icon: 'inbox', count: 4 },
-  { id: 'upcoming', label: 'Upcoming', icon: 'calendar', count: 7 },
+  { id: 'upcoming', label: 'Calendar', icon: 'calendar', count: 7 },
 ]
 
 const PROJECT_COLORS = {
@@ -263,6 +265,13 @@ const ICONS = {
       <path d="M14.5 3.5V7H18M8 11h8M8 15h6" />
     </>
   ),
+  diary: (
+    <>
+      <path d="M6 4.5h10a2 2 0 0 1 2 2v13H8a2 2 0 0 1-2-2v-13Z" />
+      <path d="M6 17.5h12M10 8h5M10 11.5h5M10 15h3" />
+      <path d="M6 4.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2" />
+    </>
+  ),
   close: (
     <>
       <path d="m6 6 12 12M18 6 6 18" />
@@ -387,6 +396,32 @@ function TaskComposer({ inputRef, value, onChange, onSubmit, onCancel }) {
   )
 }
 
+function OrganizerEmptyState({ section, onNavigate }) {
+  const copy = getOrganizerEmptyState(section)
+  const icon = section === 'notes' ? 'note' : 'diary'
+
+  return (
+    <section aria-labelledby={`${section}-empty-title`} className="organizer-empty-state">
+      <span className="organizer-empty-state__icon">
+        <Icon name={icon} size={24} />
+      </span>
+      <span className="section-kicker">PART OF YOUR WORKSPACE</span>
+      <h2 id={`${section}-empty-title`}>{copy.title}</h2>
+      <p>{copy.description}</p>
+      <div className="organizer-empty-state__actions">
+        <button className="primary-button" onClick={() => onNavigate('today')} type="button">
+          <Icon name="focus" size={16} />
+          {copy.primaryLabel}
+        </button>
+        <button className="secondary-button" onClick={() => onNavigate('upcoming')} type="button">
+          <Icon name="calendar" size={16} />
+          {copy.secondaryLabel}
+        </button>
+      </div>
+    </section>
+  )
+}
+
 function UtilityPanel({ onAction }) {
   const upcoming = [
     ['Team sync', 'Tomorrow, 9:00 AM'],
@@ -425,6 +460,31 @@ function UtilityPanel({ onAction }) {
 
       <div className="utility-panel__heading">
         <div>
+          <span className="section-kicker">KEEP TOGETHER</span>
+          <h2>Organizer spaces</h2>
+        </div>
+      </div>
+      <div className="organizer-links">
+        <button onClick={() => onAction('notes')} type="button">
+          <span className="organizer-links__icon"><Icon name="note" size={16} /></span>
+          <span>
+            <strong>Notes</strong>
+            <small>Keep context close</small>
+          </span>
+        </button>
+        <button onClick={() => onAction('diary')} type="button">
+          <span className="organizer-links__icon"><Icon name="diary" size={16} /></span>
+          <span>
+            <strong>Diary</strong>
+            <small>Reflect on the day</small>
+          </span>
+        </button>
+      </div>
+
+      <div className="utility-divider" />
+
+      <div className="utility-panel__heading">
+        <div>
           <span className="section-kicker">ORGANIZE</span>
           <h2>Tags</h2>
         </div>
@@ -457,9 +517,13 @@ function UtilityPanel({ onAction }) {
           Add task
           <kbd>Ctrl N</kbd>
         </button>
-        <button onClick={() => onAction('inbox')} type="button">
+        <button onClick={() => onAction('notes')} type="button">
           <Icon name="note" size={17} />
-          Capture a note
+          Open notes
+        </button>
+        <button onClick={() => onAction('diary')} type="button">
+          <Icon name="diary" size={17} />
+          Open diary
         </button>
         <button onClick={() => onAction('today')} type="button">
           <Icon name="focus" size={17} />
@@ -530,12 +594,18 @@ function CommandPalette({ query, onQueryChange, onClose, onNavigate, onCompose }
   )
 }
 
-function getRouteInfo(route, state) {
+function getRouteInfo(route, state, today) {
   if (route === 'inbox') {
     return { title: 'Inbox', kicker: 'CAPTURED WORK', subtitle: 'A quiet place to sort what just arrived.' }
   }
   if (route === 'upcoming') {
-    return { title: 'Upcoming', kicker: 'NEXT HORIZON', subtitle: 'A clear runway for the days ahead.' }
+    return { title: 'Calendar', kicker: 'PLAN AHEAD', subtitle: 'A clear runway for the days ahead.' }
+  }
+  if (route === 'notes') {
+    return { title: 'Notes', kicker: 'WORKSPACE MEMORY', subtitle: 'Keep context close to the work it supports.' }
+  }
+  if (route === 'diary') {
+    return { title: 'Diary', kicker: 'PERSONAL REFLECTION', subtitle: 'Make space for the day as it unfolds.' }
   }
   if (route.startsWith('project:')) {
     const project = state.projects[route.slice('project:'.length)]
@@ -545,7 +615,12 @@ function getRouteInfo(route, state) {
     const tag = state.labels[route.slice('label:'.length)]
     return { title: tag?.name ?? 'Tag', kicker: 'SAVED VIEW', subtitle: 'A focused lens across your work.' }
   }
-  return { title: 'Today', kicker: 'SUNDAY, AUGUST 2', subtitle: 'A clear view of what matters now.' }
+  const todayLabel = new Intl.DateTimeFormat(undefined, {
+    day: 'numeric',
+    month: 'long',
+    weekday: 'long',
+  }).format(fromLocalDate(today)).toUpperCase()
+  return { title: 'Today', kicker: todayLabel, subtitle: 'A clear view of what matters now.' }
 }
 
 const CALENDAR_WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -785,7 +860,7 @@ function CalendarIntegrationStyle() {
     <style>{`
       .upcoming-calendar__day:has(.upcoming-calendar__task)::before{background:var(--teal,var(--color-success));border-radius:999px;content:"";height:6px;position:absolute;right:var(--space-2,8px);top:var(--space-2,8px);width:6px}
       .upcoming-plan-tray{margin-top:14px;border:1px solid var(--line);border-radius:7px;background:var(--surface)}.upcoming-plan-tray summary{display:flex;align-items:center;justify-content:space-between;min-height:42px;padding:0 13px;color:var(--ink);cursor:pointer;font-size:12px;font-weight:750}.upcoming-plan-tray summary span{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:10px;background:var(--surface-tint);color:var(--ink-muted);font-size:10px}.upcoming-plan-tray>div{display:grid;gap:2px;padding:0 7px 8px}.upcoming-plan-tray button{display:grid;grid-template-columns:12px minmax(0,1fr) auto;align-items:center;gap:7px;min-height:33px;padding:0 7px;border-radius:5px;background:transparent;color:var(--ink);cursor:pointer;text-align:left}.upcoming-plan-tray button:hover{background:var(--surface-soft)}.upcoming-plan-tray button span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}.upcoming-plan-tray button small{color:var(--ink-muted);font-size:10px}.upcoming-plan-tray p{margin:0;padding:8px;color:var(--ink-muted);font-size:12px}
-      @media (max-width:900px){.app-shell.sidebar-is-collapsed .shell-grid{grid-template-columns:0 minmax(0,1fr)}}
+      @media (min-width:721px) and (max-width:900px){.app-shell.sidebar-is-collapsed .shell-grid{grid-template-columns:0 minmax(0,1fr)}}
     `}</style>
   )
 }
@@ -799,7 +874,9 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('')
   const [commandOpen, setCommandOpen] = useState(false)
   const [commandQuery, setCommandQuery] = useState('')
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(() => (
+    typeof window === 'undefined' || window.innerWidth > 720
+  ))
   const [selectedTask, setSelectedTask] = useState(null)
   const [notice, setNotice] = useState('')
   const [undoAvailable, setUndoAvailable] = useState(false)
@@ -829,12 +906,13 @@ function App() {
     () => Object.values(state.labels).sort((left, right) => left.order - right.order),
     [state],
   )
-  const routeInfo = getRouteInfo(route, state)
+  const routeInfo = getRouteInfo(route, state, today)
   const visibleTasks = useMemo(() => {
     if (searchTerm.trim()) {
       const query = searchTerm.trim().toLowerCase()
       return tasks.filter((task) => `${task.title} ${task.note} ${task.priority} ${task.projectName} ${task.tagName}`.toLowerCase().includes(query))
     }
+    if (route === 'notes' || route === 'diary') return []
     let scoped = tasks
     if (route === 'inbox') scoped = tasks.filter((task) => task.project === state.preferences.inboxProjectId)
     if (route === 'upcoming') scoped = tasks.filter((task) => state.tasks[task.id]?.due?.date >= today)
@@ -897,6 +975,9 @@ function App() {
   const navigate = (nextRoute) => {
     setRoute(nextRoute)
     setSelectedTask(null)
+    if (window.matchMedia('(max-width: 720px)').matches) {
+      setSidebarOpen(false)
+    }
   }
 
   const toggleTask = (taskId) => {
@@ -1083,6 +1164,7 @@ function App() {
 
       <div className="shell-grid">
         <aside className="sidebar" aria-label="Primary navigation">
+          <OrganizerNavigation onNavigate={navigate} route={route} />
           <div className="sidebar__scroll">
             <SidebarSection title="WORKSPACE">
               {NAV_ITEMS.map((item) => (
@@ -1153,7 +1235,7 @@ function App() {
                 <p>{routeInfo.subtitle}</p>
               </div>
               <div className="view-header__actions">
-                {route !== 'upcoming' ? (
+                {route !== 'upcoming' && route !== 'notes' && route !== 'diary' ? (
                   <div aria-label="View mode" className="segmented-control" role="group">
                     <button className={viewMode === 'list' ? 'is-selected' : ''} onClick={() => setViewMode('list')} title="List view" type="button">
                       <Icon name="list" size={16} />
@@ -1165,10 +1247,17 @@ function App() {
                     </button>
                   </div>
                 ) : null}
-                <button className="primary-button" onClick={() => openTaskEditor('create', null, route === 'upcoming' ? selectedCalendarDate : null)} type="button">
-                  <Icon name="plus" size={17} />
-                  Add task
-                </button>
+                {route === 'notes' || route === 'diary' ? (
+                  <button className="secondary-button" onClick={() => navigate('today')} type="button">
+                    <Icon name="focus" size={16} />
+                    Open tasks
+                  </button>
+                ) : (
+                  <button className="primary-button" onClick={() => openTaskEditor('create', null, route === 'upcoming' ? selectedCalendarDate : null)} type="button">
+                    <Icon name="plus" size={17} />
+                    Add task
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1195,7 +1284,9 @@ function App() {
               </div>
             ) : null}
 
-            {route === 'upcoming' ? (
+            {route === 'notes' || route === 'diary' ? (
+              <OrganizerEmptyState onNavigate={navigate} section={route} />
+            ) : route === 'upcoming' ? (
               <>
               <IntegratedUpcomingCalendar
                 initialMode="month"
