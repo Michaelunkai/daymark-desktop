@@ -10,6 +10,15 @@ import './features/calendar/calendar-task-chips.css'
 import { ProjectCreateDialog } from './features/projects/ProjectCreateDialog'
 import './features/projects/project-create-dialog.css'
 import {
+  createLocalThoughtCaptureStore,
+  discardCapture,
+  dismissCapture,
+  getCaptureInteractionAction,
+  openCapture,
+  submitCapture,
+  updateCaptureDraft,
+} from './features/capture'
+import {
   TaskEditor,
   createTaskEditorDraft,
   taskEditorDraftToTaskInput,
@@ -46,6 +55,15 @@ const TAGS = [
 ]
 
 const appStore = createAppStore(createBrowserStorage())
+const thoughtCaptureStore = createLocalThoughtCaptureStore(getBrowserStorage())
+
+function getBrowserStorage() {
+  try {
+    return typeof window === 'undefined' ? undefined : window.localStorage
+  } catch {
+    return undefined
+  }
+}
 
 function useAppState() {
   return useSyncExternalStore(appStore.subscribe, appStore.getState, appStore.getState)
@@ -457,9 +475,9 @@ function UtilityPanel({ onAction }) {
           Add task
           <kbd>Ctrl N</kbd>
         </button>
-        <button onClick={() => onAction('inbox')} type="button">
+        <button onClick={() => onAction('capture')} type="button">
           <Icon name="note" size={17} />
-          Capture a note
+          Capture a thought
         </button>
         <button onClick={() => onAction('today')} type="button">
           <Icon name="focus" size={17} />
@@ -470,12 +488,13 @@ function UtilityPanel({ onAction }) {
   )
 }
 
-function CommandPalette({ query, onQueryChange, onClose, onNavigate, onCompose }) {
+function CommandPalette({ query, onQueryChange, onClose, onNavigate, onCompose, onCapture }) {
   const commands = [
     { id: 'today', label: 'Open Today', detail: 'See your current focus lane', shortcut: 'Ctrl 2' },
     { id: 'inbox', label: 'Open Inbox', detail: 'Review uncategorized tasks', shortcut: 'Ctrl 1' },
     { id: 'upcoming', label: 'Open Upcoming', detail: 'Plan the next few days', shortcut: 'Ctrl 3' },
     { id: 'compose', label: 'Add a task', detail: 'Capture something new', shortcut: 'Ctrl N' },
+    { id: 'capture', label: 'Capture a thought', detail: 'Save a local thought without leaving your flow', shortcut: 'Ctrl Shift Space' },
   ]
   const filtered = commands.filter((command) => `${command.label} ${command.detail}`.toLowerCase().includes(query.toLowerCase()))
 
@@ -508,6 +527,7 @@ function CommandPalette({ query, onQueryChange, onClose, onNavigate, onCompose }
                 key={command.id}
                 onClick={() => {
                   if (command.id === 'compose') onCompose()
+                  else if (command.id === 'capture') onCapture()
                   else onNavigate(command.id)
                   onClose()
                 }}
@@ -527,6 +547,79 @@ function CommandPalette({ query, onQueryChange, onClose, onNavigate, onCompose }
         </div>
       </section>
     </div>
+  )
+}
+
+function ThoughtCaptureTray({ session, onChange, onSave, onDismiss, onDiscard }) {
+  const inputRef = useRef(null)
+  const draftText = session?.draft?.text ?? ''
+
+  useEffect(() => {
+    if (!session?.isOpen) return
+    const focusTimer = window.setTimeout(() => {
+      inputRef.current?.focus()
+      inputRef.current?.setSelectionRange(draftText.length, draftText.length)
+    }, 0)
+    return () => window.clearTimeout(focusTimer)
+  }, [draftText.length, session?.isOpen])
+
+  if (!session?.isOpen) return null
+
+  return (
+    <aside
+      aria-describedby="thought-capture-status"
+      aria-labelledby="thought-capture-title"
+      aria-modal="false"
+      className="thought-capture"
+      role="dialog"
+    >
+      <div className="thought-capture__header">
+        <div className="thought-capture__identity">
+          <span aria-hidden="true" className="thought-capture__mark">
+            <Icon name="note" size={16} />
+          </span>
+          <div>
+            <strong id="thought-capture-title">Capture a thought</strong>
+            <span>Saved locally</span>
+          </div>
+        </div>
+        <button
+          aria-label="Close thought capture"
+          className="icon-button"
+          onClick={onDismiss}
+          title="Close and keep draft"
+          type="button"
+        >
+          <Icon name="close" size={16} />
+        </button>
+      </div>
+
+      <textarea
+        aria-label="Thought"
+        autoComplete="off"
+        className="thought-capture__input"
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="What do you want to remember?"
+        ref={inputRef}
+        rows={4}
+        value={draftText}
+      />
+
+      <div className="thought-capture__footer">
+        <p id="thought-capture-status" role="status">
+          {session.status === 'empty' ? 'Write something before saving.' : ''}
+        </p>
+        <div className="thought-capture__actions">
+          <button className="text-button thought-capture__discard" onClick={onDiscard} type="button">
+            Discard
+          </button>
+          <button className="primary-button" disabled={!draftText.trim()} onClick={onSave} type="button">
+            <Icon name="plus" size={15} />
+            Save thought
+          </button>
+        </div>
+      </div>
+    </aside>
   )
 }
 
@@ -806,7 +899,10 @@ function App() {
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(() => toLocalDate(new Date()))
   const [taskEditor, setTaskEditor] = useState(null)
   const [projectDialogOpen, setProjectDialogOpen] = useState(false)
+  const [captureSession, setCaptureSession] = useState(null)
+  const [captureNotice, setCaptureNotice] = useState('')
   const composerRef = useRef(null)
+  const captureReturnFocusRef = useRef(null)
 
   useEffect(() => {
     seedDemoWorkspace()
@@ -855,11 +951,103 @@ function App() {
     }
   }, [composerOpen])
 
+  const openThoughtCapture = () => {
+    if (commandOpen || taskEditor || projectDialogOpen) return
+    captureReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setCaptureNotice('')
+    setCaptureSession(openCapture(thoughtCaptureStore.read(), null))
+  }
+
+  const restoreCaptureFocus = () => {
+    const element = captureReturnFocusRef.current
+    captureReturnFocusRef.current = null
+    if (!element) return
+    window.requestAnimationFrame(() => {
+      if (document.contains(element)) element.focus()
+    })
+  }
+
+  const updateThoughtCapture = (text) => {
+    if (!captureSession?.isOpen) return
+    const result = updateCaptureDraft(
+      thoughtCaptureStore.read(),
+      captureSession,
+      text,
+      new Date().toISOString(),
+    )
+    thoughtCaptureStore.write(result.snapshot)
+    setCaptureSession(result.session)
+  }
+
+  const saveThoughtCapture = () => {
+    if (!captureSession?.isOpen) return
+    const result = submitCapture(
+      thoughtCaptureStore.read(),
+      captureSession,
+      createId('thought'),
+      new Date().toISOString(),
+    )
+    if (!result.ok) {
+      setCaptureSession(result.session)
+      return
+    }
+    thoughtCaptureStore.write(result.snapshot)
+    setCaptureSession(result.session)
+    setCaptureNotice('Thought saved locally.')
+    restoreCaptureFocus()
+  }
+
+  const dismissThoughtCapture = () => {
+    if (!captureSession?.isOpen) return
+    setCaptureSession(dismissCapture(captureSession))
+    restoreCaptureFocus()
+  }
+
+  const discardThoughtCapture = () => {
+    if (!captureSession?.isOpen) return
+    const result = discardCapture(thoughtCaptureStore.read(), captureSession)
+    thoughtCaptureStore.write(result.snapshot)
+    setCaptureSession(result.session)
+    setCaptureNotice('Draft discarded.')
+    restoreCaptureFocus()
+  }
+
   useEffect(() => {
     const onKeyDown = (event) => {
       const target = event.target
       const isTyping = target instanceof HTMLElement && Boolean(target.closest('input, textarea, [contenteditable="true"]'))
       const modifier = event.ctrlKey || event.metaKey
+      const captureAction = getCaptureInteractionAction(
+        {
+          altKey: event.altKey,
+          ctrlKey: event.ctrlKey,
+          defaultPrevented: event.defaultPrevented,
+          isComposing: event.isComposing,
+          key: event.key,
+          metaKey: event.metaKey,
+          shiftKey: event.shiftKey,
+        },
+        captureSession?.isOpen ? 'open' : 'closed',
+      )
+
+      if (captureAction === 'open') {
+        if (commandOpen || taskEditor || projectDialogOpen) return
+        event.preventDefault()
+        openThoughtCapture()
+        return
+      }
+      if (captureAction === 'dismiss') {
+        event.preventDefault()
+        dismissThoughtCapture()
+        return
+      }
+      if (captureAction === 'submit' && captureSession?.isOpen) {
+        if (!(target instanceof HTMLElement) || !target.closest('.thought-capture')) return
+        event.preventDefault()
+        saveThoughtCapture()
+        return
+      }
+      if (captureAction === 'newline') return
 
       if (event.key === 'Escape') {
         if (commandOpen) setCommandOpen(false)
@@ -892,7 +1080,13 @@ function App() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [commandOpen, composerOpen])
+  }, [captureSession, commandOpen, composerOpen, projectDialogOpen, taskEditor])
+
+  useEffect(() => {
+    if (!captureNotice) return
+    const clearTimer = window.setTimeout(() => setCaptureNotice(''), 2600)
+    return () => window.clearTimeout(clearTimer)
+  }, [captureNotice])
 
   const navigate = (nextRoute) => {
     setRoute(nextRoute)
@@ -1048,6 +1242,10 @@ function App() {
   const utilityAction = (action) => {
     if (action === 'compose') {
       openTaskEditor('create')
+      return
+    }
+    if (action === 'capture') {
+      openThoughtCapture()
       return
     }
     navigate(action)
@@ -1350,12 +1548,27 @@ function App() {
 
       {commandOpen ? (
         <CommandPalette
+          onCapture={openThoughtCapture}
           onClose={() => setCommandOpen(false)}
           onCompose={() => openTaskEditor('create')}
           onNavigate={navigate}
           onQueryChange={setCommandQuery}
           query={commandQuery}
         />
+      ) : null}
+
+      <ThoughtCaptureTray
+        onChange={updateThoughtCapture}
+        onDiscard={discardThoughtCapture}
+        onDismiss={dismissThoughtCapture}
+        onSave={saveThoughtCapture}
+        session={captureSession}
+      />
+      {captureNotice ? (
+        <div aria-live="polite" className="thought-capture-toast" role="status">
+          <Icon name="note" size={15} />
+          <span>{captureNotice}</span>
+        </div>
       ) : null}
 
       <TaskEditor
