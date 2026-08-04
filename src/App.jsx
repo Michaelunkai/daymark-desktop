@@ -11,6 +11,7 @@ import './features/calendar/calendar-task-chips.css'
 import { ProjectCreateDialog } from './features/projects/ProjectCreateDialog'
 import './features/projects/project-create-dialog.css'
 import { OrderWorkspace } from './features/order/OrderWorkspace'
+import { createLongPressReorderController } from './features/reorder/long-press.js'
 import {
   createLocalThoughtCaptureStore,
   discardCapture,
@@ -409,17 +410,59 @@ function ProjectSidebarItem({
   active,
   canMoveEarlier,
   canMoveLater,
+  isReordering,
   count,
   onClick,
+  onCancelReorder,
   onDelete,
   onEdit,
+  onLongPressReorder,
   onMoveEarlier,
   onMoveLater,
   project,
 }) {
+  const callbacksRef = useRef({ onLongPressReorder, projectId: project.id })
+  callbacksRef.current = { onLongPressReorder, projectId: project.id }
+  const reorderControllerRef = useRef(null)
+  if (!reorderControllerRef.current) {
+    reorderControllerRef.current = createLongPressReorderController({
+      onLongPress: () => callbacksRef.current.onLongPressReorder?.(callbacksRef.current.projectId),
+    })
+  }
+
+  const handleProjectClick = (event) => {
+    if (reorderControllerRef.current.consumeSuppressedClick()) {
+      event.preventDefault()
+      return
+    }
+    if (isReordering) {
+      event.preventDefault()
+      onCancelReorder?.()
+      return
+    }
+    onClick()
+  }
+
   return (
-    <div className={`project-sidebar-item ${active ? 'is-active' : ''}`}>
-      <button aria-current={active ? 'page' : undefined} className="project-sidebar-item__main" onClick={onClick} type="button">
+    <div className={`project-sidebar-item ${active ? 'is-active' : ''} ${isReordering ? 'is-reordering' : ''}`}>
+      <button
+        aria-current={active ? 'page' : undefined}
+        aria-describedby={isReordering ? 'reorder-mode-help' : undefined}
+        aria-label={isReordering ? `${project.name}, selected for reordering` : undefined}
+        className="project-sidebar-item__main"
+        data-reorder-mode={isReordering ? 'active' : undefined}
+        onClick={handleProjectClick}
+        onLostPointerCapture={(event) => reorderControllerRef.current.pointerCancel(event)}
+        onPointerCancel={(event) => reorderControllerRef.current.pointerCancel(event)}
+        onPointerDown={(event) => {
+          if (!onLongPressReorder) return
+          event.currentTarget.setPointerCapture?.(event.pointerId)
+          reorderControllerRef.current.pointerDown(event)
+        }}
+        onPointerMove={(event) => reorderControllerRef.current.pointerMove(event)}
+        onPointerUp={(event) => reorderControllerRef.current.pointerUp(event)}
+        type="button"
+      >
         <span className={`project-dot project-dot--${PROJECT_COLORS[project.color] ?? 'teal'}`} />
         <span className="sidebar-row__label">{project.name}</span>
         <span className="sidebar-row__count">{count}</span>
@@ -438,9 +481,42 @@ function ProjectSidebarItem({
   )
 }
 
-function TaskRow({ canMoveEarlier, canMoveLater, onMoveEarlier, onMoveLater, task, onToggle, onOpen }) {
+function TaskRow({
+  canMoveEarlier,
+  canMoveLater,
+  isReordering,
+  onCancelReorder,
+  onLongPressReorder,
+  onMoveEarlier,
+  onMoveLater,
+  task,
+  onToggle,
+  onOpen,
+}) {
+  const callbacksRef = useRef({ onLongPressReorder, taskId: task.id })
+  callbacksRef.current = { onLongPressReorder, taskId: task.id }
+  const reorderControllerRef = useRef(null)
+  if (!reorderControllerRef.current) {
+    reorderControllerRef.current = createLongPressReorderController({
+      onLongPress: () => callbacksRef.current.onLongPressReorder?.(callbacksRef.current.taskId),
+    })
+  }
+
+  const handleTaskOpen = (event) => {
+    if (reorderControllerRef.current.consumeSuppressedClick()) {
+      event.preventDefault()
+      return
+    }
+    if (isReordering) {
+      event.preventDefault()
+      onCancelReorder?.()
+      return
+    }
+    onOpen(task)
+  }
+
   return (
-    <article className={`task-row ${task.completed ? 'is-completed' : ''}`}>
+    <article className={`task-row ${task.completed ? 'is-completed' : ''} ${isReordering ? 'is-reordering' : ''}`}>
       <button
         aria-label={task.completed ? `Restore ${task.title}` : `Complete ${task.title}`}
         className="task-check"
@@ -450,7 +526,22 @@ function TaskRow({ canMoveEarlier, canMoveLater, onMoveEarlier, onMoveLater, tas
       >
         {task.completed ? <span>✓</span> : null}
       </button>
-      <button className="task-row__body" onClick={() => onOpen(task)} type="button">
+      <button
+        aria-describedby={isReordering ? 'reorder-mode-help' : undefined}
+        aria-label={isReordering ? `${task.title}, selected for reordering` : undefined}
+        className="task-row__body"
+        data-reorder-mode={isReordering ? 'active' : undefined}
+        onClick={handleTaskOpen}
+        onLostPointerCapture={(event) => reorderControllerRef.current.pointerCancel(event)}
+        onPointerCancel={(event) => reorderControllerRef.current.pointerCancel(event)}
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture?.(event.pointerId)
+          reorderControllerRef.current.pointerDown(event)
+        }}
+        onPointerMove={(event) => reorderControllerRef.current.pointerMove(event)}
+        onPointerUp={(event) => reorderControllerRef.current.pointerUp(event)}
+        type="button"
+      >
         <span className="task-row__title">{task.title}</span>
         <span className="task-row__meta">
           <span className="task-context">
@@ -1288,6 +1379,7 @@ function App() {
   const [taskEditor, setTaskEditor] = useState(null)
   const [projectDialogOpen, setProjectDialogOpen] = useState(false)
   const [projectToEdit, setProjectToEdit] = useState(null)
+  const [reorderMode, setReorderMode] = useState(null)
   const [captureSession, setCaptureSession] = useState(null)
   const [captureNotice, setCaptureNotice] = useState('')
   const [uiSettings, setUiSettings] = useState(() => readUiSettings())
@@ -1491,7 +1583,10 @@ function App() {
       if (captureAction === 'newline') return
 
       if (event.key === 'Escape') {
-        if (commandOpen) setCommandOpen(false)
+        if (reorderMode) {
+          setReorderMode(null)
+          setNotice('Reorder mode cancelled.')
+        } else if (commandOpen) setCommandOpen(false)
         else if (composerOpen) setComposerOpen(false)
         return
       }
@@ -1521,7 +1616,7 @@ function App() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [captureSession, commandOpen, composerOpen, projectDialogOpen, taskEditor])
+  }, [captureSession, commandOpen, composerOpen, projectDialogOpen, reorderMode, taskEditor])
 
   useEffect(() => {
     if (!captureNotice) return
@@ -1530,8 +1625,21 @@ function App() {
   }, [captureNotice])
 
   const navigate = (nextRoute) => {
+    setReorderMode(null)
     setRoute(nextRoute)
     setSelectedTask(null)
+  }
+
+  const enterReorderMode = (kind, id) => {
+    if (kind === 'project' && !state.projects[id]) return
+    if (kind === 'task' && (!state.tasks[id] || state.tasks[id].completedAt)) return
+    setReorderMode({ kind, id })
+    setNotice('')
+  }
+
+  const cancelReorderMode = (message = '') => {
+    setReorderMode(null)
+    if (message) setNotice(message)
   }
 
   const editProject = (project) => {
@@ -1586,6 +1694,9 @@ function App() {
       patch: { order: current.order },
     })
     if (!second.ok) setNotice(second.message)
+    else if (reorderMode?.kind === 'project' && reorderMode.id === projectId) {
+      setNotice(`${current.name} moved ${direction < 0 ? 'earlier' : 'later'}. Use Escape or Done to leave reorder mode.`)
+    }
   }
 
   const deleteProject = (project) => {
@@ -1637,6 +1748,7 @@ function App() {
     })
     if (!result.ok) setNotice(result.message)
     else {
+      if (reorderMode?.kind === 'task' && reorderMode.id === taskId) setReorderMode(null)
       setNotice('')
       setUndoAvailable(false)
     }
@@ -1665,6 +1777,9 @@ function App() {
       input: { taskId, sectionId: task.sectionId, order: index + direction },
     })
     if (!result.ok) setNotice(result.message)
+    else if (reorderMode?.kind === 'task' && reorderMode.id === taskId) {
+      setNotice(`${task.content} moved ${direction < 0 ? 'earlier' : 'later'}. Use Escape or Done to leave reorder mode.`)
+    }
   }
 
   const submitTask = (event) => {
@@ -1850,6 +1965,7 @@ function App() {
       if (!confirmed) return
       createBrowserStorage().write(JSON.stringify(imported))
       appStore.reload()
+      setReorderMode(null)
       setRoute('today')
       setNotice('Backup imported.')
     } catch {
@@ -1861,6 +1977,7 @@ function App() {
     if (!window.confirm('Reset this local workspace? Export a backup first if you may need this data.')) return
     createBrowserStorage().remove?.()
     appStore.reset()
+    setReorderMode(null)
     setRoute('today')
     setNotice('Local workspace reset.')
   }
@@ -1937,10 +2054,13 @@ function App() {
                   canMoveEarlier={index > 0}
                   canMoveLater={index < projectItems.length - 1}
                   count={tasks.filter((task) => task.project === project.id && !task.completed).length}
+                  isReordering={reorderMode?.kind === 'project' && reorderMode.id === project.id}
                   key={project.id}
                   onClick={() => navigate(`project:${project.id}`)}
+                  onCancelReorder={() => cancelReorderMode()}
                   onDelete={() => deleteProject(project)}
                   onEdit={() => editProject(project)}
+                  onLongPressReorder={() => enterReorderMode('project', project.id)}
                   onMoveEarlier={() => moveProjectBy(project.id, -1)}
                   onMoveLater={() => moveProjectBy(project.id, 1)}
                   project={project}
@@ -2026,6 +2146,20 @@ function App() {
                     Dismiss
                   </button>
                 </span>
+              </div>
+            ) : null}
+
+            {reorderMode ? (
+              <div aria-live="polite" className="reorder-mode-banner" id="reorder-mode-help" role="status">
+                <span>
+                  <strong>Reorder mode</strong>
+                  {' '}
+                  {reorderMode.kind === 'project'
+                    ? state.projects[reorderMode.id]?.name
+                    : state.tasks[reorderMode.id]?.content}
+                  {' '}selected. Use the Move earlier or Move later controls.
+                </span>
+                <button className="text-button" onClick={() => cancelReorderMode()} type="button">Done</button>
               </div>
             ) : null}
 
@@ -2129,7 +2263,10 @@ function App() {
                             <TaskRow
                               canMoveEarlier={siblingIndex > 0}
                               canMoveLater={siblingIndex >= 0 && siblingIndex < siblings.length - 1}
+                              isReordering={reorderMode?.kind === 'task' && reorderMode.id === task.id}
                               key={task.id}
+                              onCancelReorder={() => cancelReorderMode()}
+                              onLongPressReorder={task.completed ? undefined : () => enterReorderMode('task', task.id)}
                               onMoveEarlier={() => moveTaskBy(task.id, -1)}
                               onMoveLater={() => moveTaskBy(task.id, 1)}
                               onOpen={(viewTask) => openTaskEditor('edit', state.tasks[viewTask.id])}

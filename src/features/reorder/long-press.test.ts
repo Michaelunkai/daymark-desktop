@@ -1,0 +1,71 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { createLongPressReorderController, moveInOrder } from "./long-press.js";
+
+function createScheduler() {
+  let nextId = 1;
+  const timers = new Map<number, () => void>();
+  return {
+    setTimeout(callback: () => void) {
+      const id = nextId++;
+      timers.set(id, callback);
+      return id;
+    },
+    clearTimeout(id: number) {
+      timers.delete(id);
+    },
+    runAll() {
+      for (const [id, callback] of timers) {
+        timers.delete(id);
+        callback();
+      }
+    },
+  };
+}
+
+test("long press enters reorder mode and suppresses the follow-up activation", () => {
+  const scheduler = createScheduler();
+  const events: string[] = [];
+  const controller = createLongPressReorderController({
+    onCancel: () => events.push("cancel"),
+    onLongPress: () => events.push("enter"),
+    scheduler,
+  });
+
+  controller.pointerDown({ button: 0, clientX: 10, clientY: 20, isPrimary: true, pointerId: 4 });
+  scheduler.runAll();
+  controller.pointerUp({ pointerId: 4 });
+
+  assert.deepEqual(events, ["enter"]);
+  assert.equal(controller.consumeSuppressedClick(), true);
+  assert.equal(controller.consumeSuppressedClick(), false);
+});
+
+test("moving or releasing before the threshold cancels without entering reorder mode", () => {
+  const scheduler = createScheduler();
+  const events: string[] = [];
+  const controller = createLongPressReorderController({
+    onCancel: () => events.push("cancel"),
+    onLongPress: () => events.push("enter"),
+    scheduler,
+  });
+
+  controller.pointerDown({ button: 0, clientX: 10, clientY: 20, isPrimary: true, pointerId: 4 });
+  controller.pointerMove({ clientX: 25, clientY: 20, pointerId: 4 });
+  controller.pointerUp({ pointerId: 4 });
+  assert.deepEqual(events, ["cancel"]);
+
+  controller.pointerDown({ button: 0, clientX: 10, clientY: 20, isPrimary: true, pointerId: 5 });
+  controller.pointerUp({ pointerId: 5 });
+  scheduler.runAll();
+  assert.deepEqual(events, ["cancel"]);
+  assert.equal(controller.consumeSuppressedClick(), false);
+});
+
+test("reorder selection moves earlier and later without changing item identity", () => {
+  const original = ["first", "selected", "last"];
+  assert.deepEqual(moveInOrder(original, "selected", -1), ["selected", "first", "last"]);
+  assert.deepEqual(moveInOrder(original, "selected", 1), ["first", "last", "selected"]);
+  assert.deepEqual(moveInOrder(original, "missing", -1), original);
+});

@@ -179,6 +179,33 @@ assert(
     reordered.state.tasks["task-welcome"].order === 1,
   "Task reorder should durably preserve sibling ordering.",
 );
+const projectReorderStorage = {
+  raw: JSON.stringify(ordered),
+  read() {
+    return this.raw;
+  },
+  write(value: string) {
+    this.raw = value;
+  },
+};
+const projectReorderApp = createAppStore(projectReorderStorage);
+const projectReorderAdded = projectReorderApp.dispatch({
+  type: "project.add",
+  input: { id: "project-third", name: "Third project", order: 2 },
+});
+assert(projectReorderAdded.ok, "Project reorder setup should add a project.");
+const projectMove = projectReorderApp.dispatch({
+  type: "project.update",
+  projectId: "project-third",
+  patch: { order: 0 },
+});
+assert(projectMove.ok, "Project reorder should persist its order mutation.");
+const projectReorderReload = createAppStore(projectReorderStorage).getState();
+assert(
+  projectReorderReload.projects["project-third"].order === 0 &&
+    projectReorderReload.projects["project-personal"].order === 1,
+  "Project ordering should survive a store reload.",
+);
 assert(Object.keys(migrated.orderItems).length === 0, "Legacy state should migrate with an empty Order collection.");
 
 const invalidMove = reduce(base, { type: "task.update", taskId: "task-welcome", patch: { sectionId: "missing" } });
