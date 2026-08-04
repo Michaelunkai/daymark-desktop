@@ -7,17 +7,19 @@
  */
 const worker = {
   async fetch(request, env) {
-    const assetResponse = await env.ASSETS.fetch(request)
-    if (assetResponse.status !== 404) return assetResponse
-
     const pathname = new URL(request.url).pathname
     const isStaticAsset = pathname.startsWith('/assets/') || /\.[^/]+$/.test(pathname)
-    if (isStaticAsset || !['GET', 'HEAD'].includes(request.method)) {
-      return assetResponse
+    if (!isStaticAsset && ['GET', 'HEAD'].includes(request.method)) {
+      const headers = new Headers(request.headers)
+      headers.set('Accept', 'text/html')
+      const fallbackRequest = new Request(new URL('/index.html', request.url), {
+        method: request.method,
+        headers,
+      })
+      return env.ASSETS.fetch(fallbackRequest)
     }
 
-    const fallbackUrl = new URL('/index.html', request.url)
-    return env.ASSETS.fetch(new Request(fallbackUrl, request))
+    return env.ASSETS.fetch(request)
   },
 }
 

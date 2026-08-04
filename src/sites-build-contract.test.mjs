@@ -26,10 +26,7 @@ test('Sites worker behavior preserves assets, serves SPA routes, and keeps missi
     },
   }
 
-  const assetResponse = await worker.fetch(
-    new Request('https://daymark.test/assets/app.js'),
-    env,
-  )
+  const assetResponse = await worker.fetch(new Request('https://daymark.test/assets/app.js'), env)
   assert.equal(assetResponse.status, 200)
   assert.equal(await assetResponse.text(), 'asset')
 
@@ -66,9 +63,7 @@ test('Sites worker behavior preserves assets, serves SPA routes, and keeps missi
   assert.equal(postResponse.status, 404)
   assert.deepEqual(requestedPaths, [
     '/assets/app.js',
-    '/workspace/order',
     '/index.html',
-    '/workspace/order',
     '/index.html',
     '/assets/missing.js',
     '/workspace/order',
