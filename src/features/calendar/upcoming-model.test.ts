@@ -5,6 +5,7 @@ import {
   bucketTasksByDate,
   buildUpcomingRange,
   countTasksByDate,
+  groupUpcomingTasks,
   moveTaskToDate,
   navigateUpcomingRange,
   selectUpcomingDate,
@@ -93,4 +94,16 @@ test("selects valid dates and moves tasks immutably while preserving due metadat
     timezone: null,
     recurrence: null,
   })
+})
+
+test("groups future tasks for a scan-friendly agenda and keeps completed tasks last", () => {
+  const groups = groupUpcomingTasks([
+    { id: "done", title: "Already done", dueDate: "2026-08-05", completed: true },
+    { id: "active", title: "Plan release", dueDate: "2026-08-05", completed: false },
+    { id: "past", title: "Past task", dueDate: "2026-08-03" },
+    { id: "tomorrow", title: "Tomorrow task", dueDate: "2026-08-06" },
+  ], "2026-08-05")
+
+  assert.deepEqual(groups.map((group) => group.label), ["Today", "Tomorrow"])
+  assert.deepEqual(groups[0].tasks.map((task) => task.id), ["active", "done"])
 })

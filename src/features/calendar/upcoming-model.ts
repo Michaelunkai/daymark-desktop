@@ -23,6 +23,46 @@ export type UpcomingTask = {
   order?: number
 }
 
+export type UpcomingAgendaTask = {
+  id: string
+  title: string
+  dueDate: LocalDate
+  completed?: boolean
+  projectName?: string
+  projectColor?: string
+}
+
+export type UpcomingTaskGroup = {
+  date: LocalDate
+  label: string
+  tasks: UpcomingAgendaTask[]
+}
+
+export function groupUpcomingTasks(
+  tasks: readonly UpcomingAgendaTask[],
+  today: LocalDate,
+): UpcomingTaskGroup[] {
+  const grouped = new Map<LocalDate, UpcomingAgendaTask[]>()
+  tasks.forEach((task) => {
+    const bucket = grouped.get(task.dueDate) ?? []
+    bucket.push(task)
+    grouped.set(task.dueDate, bucket)
+  })
+
+  return [...grouped.entries()]
+    .filter(([date]) => date >= today)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([date, bucket]) => ({
+      date,
+      label: date === today
+        ? "Today"
+        : date === addDays(today, 1)
+          ? "Tomorrow"
+          : fromLocalDate(date).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" }),
+      tasks: [...bucket].sort((left, right) => Number(left.completed) - Number(right.completed) || left.title.localeCompare(right.title)),
+    }))
+}
+
 export type UpcomingRange = {
   view: UpcomingCalendarView
   focus: LocalDate
