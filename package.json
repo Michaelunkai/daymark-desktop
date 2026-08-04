@@ -10,7 +10,7 @@
     "test:core": "tsx --test src/core/store.test.ts src/core/dates/dates.test.ts",
     "test:features": "tsx --test src/features/calendar/upcoming-model.test.ts src/features/calendar/task-movement.test.ts src/features/capture/capture.test.ts src/features/order/order.test.ts src/features/projects/projects.test.ts src/features/task-editor/task-editor.test.ts src/features/reminders/scheduler.test.ts src/features/reorder/long-press.test.ts",
     "test:shell": "node --test src/shell-contract.test.mjs",
-    "test:sites": "node --test src/sites-build-contract.test.mjs",
+    "test:sites": "node --test src/sites-build-contract.test.mjs src/sync-contract.test.mjs",
     "test:sites-artifact": "node --test src/sites-build-artifact.test.mjs",
     "test": "npm run test:core && npm run test:features && npm run test:shell && npm run test:sites",
     "verify": "npm test && npm run build && npm run test:sites-artifact"

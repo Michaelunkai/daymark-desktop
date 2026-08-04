@@ -14,7 +14,7 @@ https://daymark-desktop.michaelovsky55555.chatgpt.site
 
 Download the installable Android package from the repository:
 
-[Daymark Android 1.0.0 APK](android/releases/daymark-android-1.0.0.apk)
+[Daymark Android 1.1.0 APK](android/releases/daymark-android-1.1.0.apk)
 
 The Android shell targets Android 6.0+ and opens the same responsive Daymark
 application used by Windows and mobile browsers.

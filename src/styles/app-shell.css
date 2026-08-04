@@ -2197,6 +2197,20 @@ kbd {
   margin-bottom: 10px;
 }
 
+.sync-code {
+  color: var(--accent-strong);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.settings-help {
+  color: var(--ink-muted);
+  font-size: 10px;
+  line-height: 1.45;
+  margin: 12px 0 0;
+}
+
 .settings-section h3 {
   margin: 0 0 4px;
   color: var(--ink);

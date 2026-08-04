@@ -2,7 +2,9 @@ package com.michaelunkai.daymark;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.webkit.WebChromeClient;
@@ -44,10 +46,17 @@ public final class MainActivity extends Activity {
 
         setContentView(webView);
         if (savedInstanceState == null) {
-            webView.loadUrl(START_URL);
+            webView.loadUrl(urlForIntent(getIntent()));
         } else {
             webView.restoreState(savedInstanceState);
         }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (webView != null) webView.loadUrl(urlForIntent(intent));
     }
 
     @Override
@@ -98,5 +107,15 @@ public final class MainActivity extends Activity {
                         null);
             }
         }
+    }
+
+    private static String urlForIntent(Intent intent) {
+        Uri data = intent == null ? null : intent.getData();
+        if (data == null || !"daymark".equals(data.getScheme()) || !"sync".equals(data.getHost())) {
+            return START_URL;
+        }
+        String key = data.getLastPathSegment();
+        if (key == null || !key.matches("[A-Za-z0-9_-]{22}")) return START_URL;
+        return START_URL + "?sync=" + Uri.encode(key);
     }
 }

@@ -3,6 +3,7 @@ import { addDays, addMonths, addYears, fromLocalDate, startOfMonth, startOfWeek,
 import { createId } from './core/sample-data'
 import { createAppStore } from './core/store'
 import { createBrowserStorage, loadState } from './core/storage'
+import { getAndroidSyncLink, getSyncKey, getSyncLink, pullSyncState, pushSyncState } from './core/sync'
 import { clearLegacyJournal, readLegacyJournal } from './features/journal/model'
 import { UpcomingCalendar as IntegratedUpcomingCalendar } from './features/calendar/UpcomingCalendar'
 import { moveTaskToDate as buildMovedTask } from './features/calendar/task-movement'
@@ -1096,10 +1097,15 @@ function SettingsPanel({
   onExport,
   onImport,
   onReset,
+  onCopySyncLink,
   onThemeChange,
   onUiSettingsChange,
   settings,
   state,
+  syncAndroidLink,
+  syncKey,
+  syncLink,
+  syncStatus,
 }) {
   const fileInputRef = useRef(null)
   const storageAvailable = canUseBrowserStorage()
@@ -1229,6 +1235,37 @@ function SettingsPanel({
               <small>Daymark keeps your workspace in this browser. Backups are plain JSON and never uploaded.</small>
             </span>
           </div>
+        </section>
+
+        <section className="settings-section settings-section--wide">
+          <div className="settings-section__heading">
+            <div>
+              <h3>Sync across devices</h3>
+              <p>Open the pairing link on Android or another browser to share this workspace immediately.</p>
+            </div>
+            <span className={`storage-badge ${syncStatus === 'synced' ? 'is-ready' : 'is-warning'}`} role="status">
+              <span className="storage-badge__dot" />
+              {syncStatus === 'starting' ? 'Connecting' : syncStatus === 'syncing' ? 'Syncing' : syncStatus === 'synced' ? 'Synced' : syncStatus === 'conflict' ? 'Conflict' : 'Offline'}
+            </span>
+          </div>
+          <div className="settings-recovery">
+            <span className="settings-recovery__icon"><Icon name="command" size={16} /></span>
+            <span>
+              <strong>Pairing code</strong>
+              <small className="sync-code">{syncKey}</small>
+            </span>
+          </div>
+          <div className="settings-actions">
+            <button className="secondary-button" onClick={onCopySyncLink} type="button">
+              <Icon name="github" size={16} />
+              Copy sync link
+            </button>
+            <a className="secondary-button" href={syncAndroidLink} rel="noreferrer">
+              <Icon name="command" size={16} />
+              Open in Android
+            </a>
+          </div>
+          <p className="settings-help">The link contains a private, randomly generated workspace code. Keep it private.</p>
         </section>
 
         <section className="settings-section settings-section--wide settings-section--danger">
@@ -1387,12 +1424,120 @@ function App() {
   const [captureSession, setCaptureSession] = useState(null)
   const [captureNotice, setCaptureNotice] = useState('')
   const [uiSettings, setUiSettings] = useState(() => readUiSettings())
+  const [syncKey] = useState(() => getSyncKey(getBrowserStorage()))
+  const [syncStatus, setSyncStatus] = useState('starting')
+  const syncReadyRef = useRef(false)
+  const syncRemoteRevisionRef = useRef(0)
+  const syncPushTimerRef = useRef(null)
   const composerRef = useRef(null)
   const captureReturnFocusRef = useRef(null)
 
   useEffect(() => {
     seedDemoWorkspace()
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const initializeSync = async () => {
+      try {
+        const remote = await pullSyncState(syncKey)
+        if (cancelled) return
+        const local = appStore.getState()
+        if (
+          remote.state &&
+          (remote.revision > local.revision ||
+            (remote.revision === local.revision && remote.state.updatedAt > local.updatedAt))
+        ) {
+          appStore.replace(remote.state)
+          syncRemoteRevisionRef.current = remote.revision
+        } else if (
+          !remote.state ||
+          local.revision > remote.revision ||
+          (local.revision === remote.revision && local.updatedAt > remote.state.updatedAt)
+        ) {
+          const pushed = await pushSyncState(syncKey, local, remote.revision)
+          if (cancelled) return
+          syncRemoteRevisionRef.current = pushed.revision
+        } else {
+          syncRemoteRevisionRef.current = remote.revision
+        }
+        syncReadyRef.current = true
+        setSyncStatus('synced')
+      } catch {
+        if (cancelled) return
+        syncReadyRef.current = true
+        setSyncStatus('offline')
+      }
+    }
+    initializeSync()
+    return () => {
+      cancelled = true
+      if (syncPushTimerRef.current) window.clearTimeout(syncPushTimerRef.current)
+    }
+  }, [syncKey])
+
+  useEffect(() => {
+    if (!syncReadyRef.current || state.revision === 0) return
+    if (syncPushTimerRef.current) window.clearTimeout(syncPushTimerRef.current)
+    syncPushTimerRef.current = window.setTimeout(async () => {
+      setSyncStatus('syncing')
+      try {
+        const pushed = await pushSyncState(syncKey, state, syncRemoteRevisionRef.current)
+        syncRemoteRevisionRef.current = pushed.revision
+        setSyncStatus('synced')
+      } catch (error) {
+        if (error?.code === 'conflict' && error.state) {
+          syncRemoteRevisionRef.current = Number(error.revision ?? error.state.revision)
+          appStore.replace(error.state)
+          setNotice('Another device changed Daymark. The latest synced workspace is now open.')
+          setSyncStatus('conflict')
+        } else {
+          setSyncStatus('offline')
+        }
+      }
+    }, 120)
+    return () => {
+      if (syncPushTimerRef.current) window.clearTimeout(syncPushTimerRef.current)
+    }
+  }, [state, state.revision, syncKey])
+
+  useEffect(() => {
+    if (!syncReadyRef.current) return undefined
+    let cancelled = false
+    const refreshRemote = async () => {
+      try {
+        const remote = await pullSyncState(syncKey)
+        if (cancelled || !remote.state) return
+        const local = appStore.getState()
+        if (
+          remote.revision > syncRemoteRevisionRef.current &&
+          (remote.revision > local.revision ||
+            (remote.revision === local.revision && remote.state.updatedAt >= local.updatedAt))
+        ) {
+          syncRemoteRevisionRef.current = remote.revision
+          appStore.replace(remote.state)
+          setSyncStatus('synced')
+        }
+      } catch {
+        if (!cancelled) setSyncStatus('offline')
+      }
+    }
+    const interval = window.setInterval(refreshRemote, 1500)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [syncKey, syncStatus])
+
+  const copySyncLink = async () => {
+    const link = getSyncLink(syncKey)
+    try {
+      await navigator.clipboard.writeText(link)
+      setNotice('Sync link copied. Open it on Android to pair this workspace.')
+    } catch {
+      setNotice(link)
+    }
+  }
 
   useEffect(() => {
     const legacy = readLegacyJournal(getBrowserStorage())
@@ -2203,10 +2348,15 @@ function App() {
                 onExport={exportBackup}
                 onImport={importBackup}
                 onReset={resetWorkspace}
+                onCopySyncLink={copySyncLink}
                 onThemeChange={updateThemePreference}
                 onUiSettingsChange={updateUiSettings}
                 settings={uiSettings}
                 state={state}
+                syncAndroidLink={getAndroidSyncLink(syncKey)}
+                syncKey={syncKey}
+                syncLink={getSyncLink(syncKey)}
+                syncStatus={syncStatus}
               />
             ) : route === 'order' ? (
               <OrderWorkspace items={orderItems} onAdd={addOrderItem} onDelete={deleteOrderItem} onMove={moveOrderItem} onUpdate={updateOrderItem} />

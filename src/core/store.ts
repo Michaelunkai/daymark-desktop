@@ -25,6 +25,7 @@ type MutationResult = { ok: true; inverse: UndoAction; changed?: boolean } | Inv
 export interface AppStore {
   getState(): AppState;
   dispatch(action: UserAction): DispatchResult;
+  replace(next: AppState): AppState;
   reload(): AppState;
   reset(): AppState;
   subscribe(listener: (state: AppState) => void): () => void;
@@ -37,6 +38,16 @@ export function createAppStore(storage: StateStorage, fallback?: () => AppState)
 
   return {
     getState: () => state,
+    replace: (next) => {
+      state = structuredClone(next);
+      try {
+        storage.write(JSON.stringify(state));
+      } catch {
+        // Keep the remote state usable in memory when durable storage is unavailable.
+      }
+      notify();
+      return state;
+    },
     reload: () => {
       const loaded = loadState(storage, fallback);
       if (loaded.available) state = loaded.state;
