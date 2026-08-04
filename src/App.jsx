@@ -429,6 +429,7 @@ function ProjectSidebarItem({
       onLongPress: () => callbacksRef.current.onLongPressReorder?.(callbacksRef.current.projectId),
     })
   }
+  useEffect(() => () => reorderControllerRef.current?.dispose(), [])
 
   const handleProjectClick = (event) => {
     if (reorderControllerRef.current.consumeSuppressedClick()) {
@@ -501,6 +502,7 @@ function TaskRow({
       onLongPress: () => callbacksRef.current.onLongPressReorder?.(callbacksRef.current.taskId),
     })
   }
+  useEffect(() => () => reorderControllerRef.current?.dispose(), [])
 
   const handleTaskOpen = (event) => {
     if (reorderControllerRef.current.consumeSuppressedClick()) {
