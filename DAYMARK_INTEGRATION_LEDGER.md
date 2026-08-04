@@ -98,4 +98,5 @@ Baseline: `edc1f5e` (`main`, `origin/codex/daymark-capture-edc1f5e`)
 
 - Sites acceptance still observed `404` for `/acceptance-spa-route` after the previous fallback revision, despite `/` and emitted assets returning `200`.
 - The Worker now routes extensionless GET/HEAD requests directly to a fresh `/index.html` request with an explicit HTML `Accept` header before consulting the asset path; asset-like requests remain unchanged.
-- Final release remains gated on direct HTTP `200` for root, emitted asset, and `/acceptance-spa-route`.
+- Sites version `6` from commit `65a8bc2d026cddca69a97b3343d9b3790d886cfd` is terminal `succeeded`; its version record preserves that exact source SHA.
+- Final independent HTTP acceptance passed: `/` returned `200 text/html`, `/acceptance-spa-route` returned `200 text/html`, and `/assets/index-CDFecL_g.js` returned `200 text/javascript` with non-empty content.
