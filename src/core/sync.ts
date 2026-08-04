@@ -90,7 +90,7 @@ export function mergeSyncStates(local: AppState, remote: AppState): AppState {
     return merged;
   };
 
-  return {
+  const merged: AppState = {
     ...structuredClone(remote),
     revision: Math.max(local.revision, remote.revision),
     updatedAt: local.updatedAt >= remote.updatedAt ? local.updatedAt : remote.updatedAt,
@@ -112,7 +112,43 @@ export function mergeSyncStates(local: AppState, remote: AppState): AppState {
     ),
     preferences: local.updatedAt >= remote.updatedAt ? structuredClone(local.preferences) : structuredClone(remote.preferences),
     undoStack: local.updatedAt >= remote.updatedAt ? structuredClone(local.undoStack) : structuredClone(remote.undoStack),
+    syncTombstones: mergeTombstones(local.syncTombstones, remote.syncTombstones),
   };
+  applyTombstones(merged);
+  return merged;
+}
+
+function mergeTombstones(
+  local: AppState["syncTombstones"],
+  remote: AppState["syncTombstones"],
+): AppState["syncTombstones"] {
+  const merged = { ...(remote ?? {}) };
+  Object.entries(local ?? {}).forEach(([key, tombstone]) => {
+    const other = merged[key];
+    if (!other || tombstone.deletedAt >= other.deletedAt) merged[key] = structuredClone(tombstone);
+  });
+  return merged;
+}
+
+function applyTombstones(state: AppState): void {
+  const collections: Record<string, Record<string, { updatedAt: string }>> = {
+    projects: state.projects,
+    sections: state.sections,
+    labels: state.labels,
+    filters: state.filters,
+    tasks: state.tasks,
+    orderItems: state.orderItems,
+    notes: state.notes,
+    diaryEntries: state.diaryEntries,
+  };
+  Object.entries(state.syncTombstones ?? {}).forEach(([key, tombstone]) => {
+    const separator = key.indexOf(":");
+    if (separator < 1) return;
+    const collection = key.slice(0, separator);
+    const id = key.slice(separator + 1);
+    const record = collections[collection]?.[id];
+    if (record && tombstone.deletedAt >= record.updatedAt) delete collections[collection][id];
+  });
 }
 
 export function createSyncChannel(

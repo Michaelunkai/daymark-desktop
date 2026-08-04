@@ -40,3 +40,21 @@ assert(merged.clientId === "local-client", "Merged state should retain the local
 assert(merged.tasks["task-local"].content === "Created on Android", "Local-only changes should survive a merge.");
 assert(merged.tasks["task-remote"].content === "Created on Windows", "Remote-only changes should survive a merge.");
 assert(merged.tasks["task-welcome"].content === "Local edit", "The newer entity edit should win a merge.");
+
+const deletedLocal = createSampleState(newer, "delete-client");
+delete deletedLocal.tasks["task-welcome"];
+deletedLocal.syncTombstones = {
+  "tasks:task-welcome": { deletedAt: newer },
+};
+const staleRemote = createSampleState(older, "stale-client");
+const deletionMerged = mergeSyncStates(deletedLocal, staleRemote);
+assert(!deletionMerged.tasks["task-welcome"], "A newer deletion must not resurrect an older remote entity.");
+
+const newerRemote = createSampleState(newer, "restore-client");
+newerRemote.tasks["task-welcome"].updatedAt = newer;
+const staleTombstoneLocal = createSampleState(older, "stale-delete-client");
+staleTombstoneLocal.syncTombstones = {
+  "tasks:task-welcome": { deletedAt: older },
+};
+const updateWins = mergeSyncStates(staleTombstoneLocal, newerRemote);
+assert(updateWins.tasks["task-welcome"], "A newer entity update must survive an older deletion marker.");

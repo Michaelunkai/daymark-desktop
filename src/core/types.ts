@@ -123,6 +123,10 @@ export interface UndoEntry {
   createdAt: string;
 }
 
+export interface SyncTombstone {
+  deletedAt: string;
+}
+
 export interface AppState {
   schemaVersion: typeof CURRENT_SCHEMA_VERSION;
   revision: number;
@@ -138,6 +142,7 @@ export interface AppState {
   diaryEntries: Record<string, DiaryEntry>;
   preferences: AppPreferences;
   undoStack: UndoEntry[];
+  syncTombstones?: Record<string, SyncTombstone>;
 }
 
 export type TaskInput = {

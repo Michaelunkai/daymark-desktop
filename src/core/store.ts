@@ -137,16 +137,19 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       if (!isValidTaskLocation(state, task.projectId, task.sectionId)) return invalid("The task section does not belong to its project.");
       if (!hasKnownLabels(state, task.labelIds)) return invalid("One or more task labels do not exist.");
       state.tasks[id] = task;
+      clearTombstone(state, "tasks", id);
       return { ok: true, inverse: { type: "task.remove", taskId: id } };
     }
     case "task.restore":
       state.tasks[action.task.id] = structuredClone(action.task);
+      clearTombstone(state, "tasks", action.task.id);
       return { ok: true, inverse: { type: "task.remove", taskId: action.task.id } };
     case "task.remove":
     case "task.delete": {
       const task = state.tasks[action.taskId];
       if (!task) return invalid("The task no longer exists.");
       delete state.tasks[action.taskId];
+      markTombstone(state, "tasks", action.taskId, now);
       return { ok: true, inverse: { type: "task.restore", task: structuredClone(task) } };
     }
     case "task.update": {
@@ -261,15 +264,18 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
         isFavorite: action.input.isFavorite ?? false, isArchived: false, createdAt: now, updatedAt: now,
       };
       state.projects[id] = project;
+      clearTombstone(state, "projects", id);
       return { ok: true, inverse: { type: "project.remove", projectId: id } };
     }
     case "project.restore":
       state.projects[action.project.id] = structuredClone(action.project);
+      clearTombstone(state, "projects", action.project.id);
       return { ok: true, inverse: { type: "project.remove", projectId: action.project.id } };
     case "project.remove": {
       const project = state.projects[action.projectId];
       if (!project) return invalid("The project no longer exists.");
       delete state.projects[action.projectId];
+      markTombstone(state, "projects", action.projectId, now);
       return { ok: true, inverse: { type: "project.restore", project: structuredClone(project) } };
     }
     case "project.delete": {
@@ -287,8 +293,12 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
         task.sectionId = null;
         task.updatedAt = now;
       }
-      for (const section of sections) delete state.sections[section.id];
+      for (const section of sections) {
+        delete state.sections[section.id];
+        markTombstone(state, "sections", section.id, now);
+      }
       delete state.projects[project.id];
+      markTombstone(state, "projects", project.id, now);
       if (state.preferences.activeProjectId === project.id) {
         state.preferences.activeProjectId = state.preferences.inboxProjectId;
       }
@@ -304,7 +314,11 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
     }
     case "project.restoreBundle": {
       state.projects[action.project.id] = structuredClone(action.project);
-      for (const section of action.sections) state.sections[section.id] = structuredClone(section);
+      clearTombstone(state, "projects", action.project.id);
+      for (const section of action.sections) {
+        state.sections[section.id] = structuredClone(section);
+        clearTombstone(state, "sections", section.id);
+      }
       for (const task of action.tasks) state.tasks[task.id] = structuredClone(task);
       return { ok: true, inverse: { type: "project.delete", projectId: action.project.id } };
     }
@@ -343,6 +357,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
         updatedAt: now,
       };
       state.orderItems[id] = item;
+      clearTombstone(state, "orderItems", id);
       return { ok: true, inverse: { type: "order.delete", itemId: id } };
     }
     case "order.update": {
@@ -363,6 +378,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       const item = state.orderItems[action.itemId];
       if (!item) return invalid("The Order item no longer exists.");
       delete state.orderItems[action.itemId];
+      markTombstone(state, "orderItems", action.itemId, now);
       Object.values(state.orderItems).forEach((candidate) => {
         if (candidate.relationId === item.id) candidate.relationId = null;
       });
@@ -382,16 +398,19 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
         updatedAt: now,
       };
       state.notes[id] = note;
+      clearTombstone(state, "notes", id);
       return { ok: true, inverse: { type: "note.remove", noteId: id } };
     }
     case "note.restore":
       state.notes[action.note.id] = structuredClone(action.note);
+      clearTombstone(state, "notes", action.note.id);
       return { ok: true, inverse: { type: "note.remove", noteId: action.note.id } };
     case "note.remove":
     case "note.delete": {
       const note = state.notes[action.noteId];
       if (!note) return invalid("The note no longer exists.");
       delete state.notes[action.noteId];
+      markTombstone(state, "notes", action.noteId, now);
       return { ok: true, inverse: { type: "note.restore", note: structuredClone(note) } };
     }
     case "note.update": {
@@ -414,6 +433,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       if (!action.body.trim()) {
         if (!before) return { ok: true, changed: false, inverse: { type: "diary.remove", date: action.date } };
         delete state.diaryEntries[action.date];
+        markTombstone(state, "diaryEntries", action.date, now);
         return { ok: true, inverse: { type: "diary.restore", entry: structuredClone(before) } };
       }
       const entry: DiaryEntry = {
@@ -422,6 +442,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
         updatedAt: now,
       };
       state.diaryEntries[action.date] = entry;
+      clearTombstone(state, "diaryEntries", action.date);
       return {
         ok: true,
         inverse: before
@@ -431,11 +452,13 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
     }
     case "diary.restore":
       state.diaryEntries[action.entry.date] = structuredClone(action.entry);
+      clearTombstone(state, "diaryEntries", action.entry.date);
       return { ok: true, inverse: { type: "diary.remove", date: action.entry.date } };
     case "diary.remove": {
       const entry = state.diaryEntries[action.date];
       if (!entry) return invalid("The diary entry no longer exists.");
       delete state.diaryEntries[action.date];
+      markTombstone(state, "diaryEntries", action.date, now);
       return { ok: true, inverse: { type: "diary.restore", entry: structuredClone(entry) } };
     }
     case "section.add": {
@@ -447,15 +470,18 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
         isCollapsed: action.input.isCollapsed ?? false, createdAt: now, updatedAt: now,
       };
       state.sections[id] = section;
+      clearTombstone(state, "sections", id);
       return { ok: true, inverse: { type: "section.remove", sectionId: id } };
     }
     case "section.restore":
       state.sections[action.section.id] = structuredClone(action.section);
+      clearTombstone(state, "sections", action.section.id);
       return { ok: true, inverse: { type: "section.remove", sectionId: action.section.id } };
     case "section.remove": {
       const section = state.sections[action.sectionId];
       if (!section) return invalid("The section no longer exists.");
       delete state.sections[action.sectionId];
+      markTombstone(state, "sections", action.sectionId, now);
       return { ok: true, inverse: { type: "section.restore", section: structuredClone(section) } };
     }
     case "section.update": {
@@ -474,15 +500,18 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
         isFavorite: action.input.isFavorite ?? false, createdAt: now, updatedAt: now,
       };
       state.labels[id] = label;
+      clearTombstone(state, "labels", id);
       return { ok: true, inverse: { type: "label.remove", labelId: id } };
     }
     case "label.restore":
       state.labels[action.label.id] = structuredClone(action.label);
+      clearTombstone(state, "labels", action.label.id);
       return { ok: true, inverse: { type: "label.remove", labelId: action.label.id } };
     case "label.remove": {
       const label = state.labels[action.labelId];
       if (!label) return invalid("The label no longer exists.");
       delete state.labels[action.labelId];
+      markTombstone(state, "labels", action.labelId, now);
       return { ok: true, inverse: { type: "label.restore", label: structuredClone(label) } };
     }
     case "label.update": {
@@ -501,15 +530,18 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
         order: action.input.order ?? nextOrder(state.filters), isFavorite: action.input.isFavorite ?? false, createdAt: now, updatedAt: now,
       };
       state.filters[id] = filter;
+      clearTombstone(state, "filters", id);
       return { ok: true, inverse: { type: "filter.remove", filterId: id } };
     }
     case "filter.restore":
       state.filters[action.filter.id] = structuredClone(action.filter);
+      clearTombstone(state, "filters", action.filter.id);
       return { ok: true, inverse: { type: "filter.remove", filterId: action.filter.id } };
     case "filter.remove": {
       const filter = state.filters[action.filterId];
       if (!filter) return invalid("The filter no longer exists.");
       delete state.filters[action.filterId];
+      markTombstone(state, "filters", action.filterId, now);
       return { ok: true, inverse: { type: "filter.restore", filter: structuredClone(filter) } };
     }
     case "filter.update": {
@@ -533,6 +565,18 @@ function isUserAction(action: StoreAction): action is UserAction {
 
 function createUndoEntry(inverse: UndoAction, createdAt: string): UndoEntry {
   return { id: createId("undo"), label: inverse.type, inverse, createdAt };
+}
+
+function markTombstone(state: AppState, collection: string, id: string, deletedAt: string): void {
+  state.syncTombstones ??= {};
+  const key = `${collection}:${id}`;
+  const current = state.syncTombstones[key];
+  if (!current || deletedAt >= current.deletedAt) state.syncTombstones[key] = { deletedAt };
+}
+
+function clearTombstone(state: AppState, collection: string, id: string): void {
+  if (!state.syncTombstones) return;
+  delete state.syncTombstones[`${collection}:${id}`];
 }
 
 function isValidTaskLocation(state: AppState, projectId: string, sectionId: string | null): boolean {

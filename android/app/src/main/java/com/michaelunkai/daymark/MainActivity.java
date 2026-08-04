@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.webkit.JavascriptInterface;
 import android.view.View;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -29,6 +30,7 @@ public final class MainActivity extends Activity {
 
         webView = new WebView(this);
         webView.setBackgroundColor(Color.rgb(247, 249, 247));
+        webView.addJavascriptInterface(new ThemeBridge(), "DaymarkAndroid");
         webView.setWebViewClient(new DaymarkWebViewClient());
         webView.setWebChromeClient(new WebChromeClient());
 
@@ -117,5 +119,21 @@ public final class MainActivity extends Activity {
         String key = data.getLastPathSegment();
         if (key == null || !key.matches("[A-Za-z0-9_-]{22}")) return START_URL;
         return START_URL + "?sync=" + Uri.encode(key);
+    }
+
+    private final class ThemeBridge {
+        @JavascriptInterface
+        public void setTheme(String theme) {
+            final boolean dark = "dark".equals(theme);
+            runOnUiThread(() -> {
+                getWindow().setStatusBarColor(dark ? Color.rgb(25, 34, 30) : Color.rgb(247, 249, 247));
+                getWindow().setNavigationBarColor(dark ? Color.rgb(25, 34, 30) : Color.rgb(247, 249, 247));
+                int flags = dark ? 0 : View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && !dark) {
+                    flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                }
+                getWindow().getDecorView().setSystemUiVisibility(flags);
+            });
+        }
     }
 }

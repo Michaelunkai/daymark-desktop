@@ -8,6 +8,14 @@ import {
   type PropsWithChildren,
 } from "react";
 
+declare global {
+  interface Window {
+    DaymarkAndroid?: {
+      setTheme?: (theme: "light" | "dark") => void;
+    };
+  }
+}
+
 export type ThemePreference = "light" | "dark" | "system";
 
 type ThemeContextValue = {
@@ -52,6 +60,17 @@ export function ThemeProvider({
 
   useEffect(() => {
     document.documentElement.dataset.theme = preference;
+    const media = window.matchMedia?.("(prefers-color-scheme: dark)");
+    const applyResolvedTheme = () => {
+      const resolved = preference === "dark" || (preference === "system" && Boolean(media?.matches))
+        ? "dark"
+        : "light";
+      document.documentElement.dataset.themeEffective = resolved;
+      window.DaymarkAndroid?.setTheme?.(resolved);
+    };
+    applyResolvedTheme();
+    media?.addEventListener?.("change", applyResolvedTheme);
+    return () => media?.removeEventListener?.("change", applyResolvedTheme);
   }, [preference]);
 
   const setPreference = useCallback(

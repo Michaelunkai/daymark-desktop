@@ -107,6 +107,7 @@ export function createSampleState(
       showCompleted: false,
     },
     undoStack: [],
+    syncTombstones: {},
   };
 }
 
