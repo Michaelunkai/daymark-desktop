@@ -225,13 +225,17 @@ kbd {
 }
 
 .app-shell.sidebar-is-collapsed .topbar {
-  grid-template-columns: 0 minmax(0, 1fr);
+  grid-template-columns: 56px minmax(0, 1fr);
 }
 
 .app-shell.sidebar-is-collapsed .topbar__brand {
-  overflow: hidden;
-  padding: 0;
+  overflow: visible;
+  padding: 0 11px;
   border-right: 0;
+}
+
+.app-shell.sidebar-is-collapsed .topbar__brand > :not(.topbar__menu) {
+  display: none;
 }
 
 .app-shell.sidebar-is-collapsed .shell-grid {
@@ -1962,6 +1966,8 @@ kbd {
   }
 
   .sidebar {
+    grid-column: 1 / -1;
+    grid-row: 1;
     position: fixed;
     z-index: 5;
     top: 112px;
@@ -1973,6 +1979,12 @@ kbd {
 
   .sidebar-is-collapsed .sidebar {
     transform: translateX(-105%);
+  }
+
+  .main-content {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    width: 100%;
   }
 
   .sidebar-backdrop {

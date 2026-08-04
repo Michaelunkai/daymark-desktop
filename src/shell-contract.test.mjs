@@ -29,4 +29,7 @@ test('shell styles include keyboard focus, mobile layout, and dark theme coverag
   assert.match(styles, /\.journal-view/)
   assert.match(styles, /\.task-order-button/)
   assert.match(styles, /\.is-reordering/)
+  assert.match(styles, /\.app-shell\.sidebar-is-collapsed \.topbar/)
+  assert.match(styles, /\.app-shell\.sidebar-is-collapsed \.topbar__brand > :not\(\.topbar__menu\)/)
+  assert.match(styles, /\.main-content \{\s*grid-column: 1 \/ -1;/)
 })
