@@ -1373,7 +1373,9 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('')
   const [commandOpen, setCommandOpen] = useState(false)
   const [commandQuery, setCommandQuery] = useState('')
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(() => (
+    typeof window === 'undefined' ? true : window.matchMedia('(min-width: 721px)').matches
+  ))
   const [selectedTask, setSelectedTask] = useState(null)
   const [notice, setNotice] = useState('')
   const [undoAvailable, setUndoAvailable] = useState(false)
@@ -1590,6 +1592,7 @@ function App() {
           setNotice('Reorder mode cancelled.')
         } else if (commandOpen) setCommandOpen(false)
         else if (composerOpen) setComposerOpen(false)
+        else if (sidebarOpen) setSidebarOpen(false)
         return
       }
       if (isTyping) return
@@ -1618,7 +1621,20 @@ function App() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [captureSession, commandOpen, composerOpen, projectDialogOpen, reorderMode, taskEditor])
+  }, [captureSession, commandOpen, composerOpen, projectDialogOpen, reorderMode, sidebarOpen, taskEditor])
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 720px)')
+    const syncBodyScroll = () => {
+      document.body.classList.toggle('navigation-drawer-open', mediaQuery.matches && sidebarOpen)
+    }
+    syncBodyScroll()
+    mediaQuery.addEventListener?.('change', syncBodyScroll)
+    return () => {
+      document.body.classList.remove('navigation-drawer-open')
+      mediaQuery.removeEventListener?.('change', syncBodyScroll)
+    }
+  }, [sidebarOpen])
 
   useEffect(() => {
     if (!captureNotice) return
@@ -1630,6 +1646,7 @@ function App() {
     setReorderMode(null)
     setRoute(nextRoute)
     setSelectedTask(null)
+    if (window.matchMedia('(max-width: 720px)').matches) setSidebarOpen(false)
   }
 
   const enterReorderMode = (kind, id) => {
@@ -1989,7 +2006,15 @@ function App() {
       <CalendarIntegrationStyle />
       <header className="topbar">
         <div className="topbar__brand">
-          <button aria-label={sidebarOpen ? 'Collapse navigation' : 'Expand navigation'} className="icon-button topbar__menu" onClick={() => setSidebarOpen((open) => !open)} title="Toggle navigation" type="button">
+          <button
+            aria-controls="primary-navigation"
+            aria-expanded={sidebarOpen}
+            aria-label={sidebarOpen ? 'Collapse navigation' : 'Expand navigation'}
+            className="icon-button topbar__menu"
+            onClick={() => setSidebarOpen((open) => !open)}
+            title={sidebarOpen ? 'Collapse navigation' : 'Expand navigation'}
+            type="button"
+          >
             <Icon name="menu" size={18} />
           </button>
           <button className="brand-lockup" onClick={() => navigate('today')} type="button">
@@ -2016,7 +2041,7 @@ function App() {
       </header>
 
       <div className="shell-grid">
-        <aside className="sidebar" aria-label="Primary navigation">
+        <aside className="sidebar" id="primary-navigation" aria-label="Primary navigation">
           <div className="sidebar__scroll">
             <SidebarSection title="WORKSPACE">
               {NAV_ITEMS.map((item) => (
@@ -2099,6 +2124,14 @@ function App() {
             <span className="sidebar__version">LOCAL SHELL 0.1</span>
           </div>
         </aside>
+        {sidebarOpen ? (
+          <button
+            aria-label="Close navigation"
+            className="sidebar-backdrop"
+            onClick={() => setSidebarOpen(false)}
+            type="button"
+          />
+        ) : null}
 
         <main className="main-content">
           <div className="content-frame">
