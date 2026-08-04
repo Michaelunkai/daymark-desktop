@@ -89,4 +89,6 @@ Baseline: `edc1f5e` (`main`, `origin/codex/daymark-capture-edc1f5e`)
 - External acceptance found HTTP 404 at the public root even though the first two deployments reported `succeeded`; status alone is therefore not release proof.
 - Root cause was confirmed at the runtime boundary: Sites expects static client output under `dist/client`, while the initial Vite build placed it at `dist/index.html` and `dist/assets`. The Worker received `env.ASSETS` but the binding had no matching root asset.
 - The build now emits `dist/client/index.html` and `dist/client/assets/**`, retains `dist/server/index.js`, removes the legacy root-level client layout, and tests the archive-facing paths before republishing.
-- Final release status remains pending direct HTTP `200` verification for `/` and a built asset after the corrected deployment.
+- Corrected Sites version `3` deployed from commit `062d8788f23bc6cca4c3957877328ea04fdec9b9` with terminal status `succeeded`.
+- Independent HTTP acceptance passed: `GET /` returned `200 text/html` containing HTML, and `GET /assets/index-CDFecL_g.js` returned `200 text/javascript` with non-empty content.
+- The public URL is live and serving the corrected `dist/client` archive layout; no browser-control proof is claimed.
