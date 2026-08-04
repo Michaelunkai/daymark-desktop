@@ -25,6 +25,8 @@ export function sites() {
     },
     async closeBundle() {
       const outputDirectory = resolve(root, 'dist', '.openai')
+      const legacyIndex = resolve(root, 'dist', 'index.html')
+      const legacyAssets = resolve(root, 'dist', 'assets')
       const hostingConfig = resolve(root, '.openai', 'hosting.json')
       const drizzleSource = resolve(root, 'drizzle')
       const workerSource = resolve(root, 'worker', 'index.js')
@@ -34,6 +36,10 @@ export function sites() {
         throw new Error(`Missing Sites Worker source: ${workerSource}`)
       }
 
+      // Remove the previous plain-Vite layout so archives cannot contain
+      // ambiguous root-level client files alongside dist/client.
+      await rm(legacyIndex, { force: true })
+      await rm(legacyAssets, { recursive: true, force: true })
       await mkdir(resolve(root, 'dist', 'server'), { recursive: true })
       await cp(workerSource, workerOutput)
 

@@ -83,3 +83,10 @@ Baseline: `edc1f5e` (`main`, `origin/codex/daymark-capture-edc1f5e`)
 - Deployment ID: `appgdep_6a7247f39f8c8191943972af73144f71`.
 - Independent provider polling returned terminal `succeeded`; production URL: `https://daymark-desktop.michaelovsky55555.chatgpt.site`.
 - Public access is confirmed by the Sites project record. Browser/Codex opening remains deferred because browser control is disabled.
+
+## Runtime Routing Correction
+
+- External acceptance found HTTP 404 at the public root even though the first two deployments reported `succeeded`; status alone is therefore not release proof.
+- Root cause was confirmed at the runtime boundary: Sites expects static client output under `dist/client`, while the initial Vite build placed it at `dist/index.html` and `dist/assets`. The Worker received `env.ASSETS` but the binding had no matching root asset.
+- The build now emits `dist/client/index.html` and `dist/client/assets/**`, retains `dist/server/index.js`, removes the legacy root-level client layout, and tests the archive-facing paths before republishing.
+- Final release status remains pending direct HTTP `200` verification for `/` and a built asset after the corrected deployment.
