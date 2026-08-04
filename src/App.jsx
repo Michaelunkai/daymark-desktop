@@ -9,6 +9,7 @@ import './features/calendar/upcoming-calendar.css'
 import './features/calendar/calendar-task-chips.css'
 import { ProjectCreateDialog } from './features/projects/ProjectCreateDialog'
 import './features/projects/project-create-dialog.css'
+import { OrderWorkspace } from './features/order/OrderWorkspace'
 import {
   createLocalThoughtCaptureStore,
   discardCapture,
@@ -388,6 +389,22 @@ function SidebarRow({ active, count, icon, label, onClick, color, shortcut }) {
   )
 }
 
+function ProjectSidebarItem({ active, count, project, onClick, onEdit, onDelete }) {
+  return (
+    <div className={`project-sidebar-item ${active ? 'is-active' : ''}`}>
+      <button aria-current={active ? 'page' : undefined} className="project-sidebar-item__main" onClick={onClick} type="button">
+        <span className={`project-dot project-dot--${PROJECT_COLORS[project.color] ?? 'teal'}`} />
+        <span className="sidebar-row__label">{project.name}</span>
+        <span className="sidebar-row__count">{count}</span>
+      </button>
+      <span className="project-sidebar-item__actions">
+        <button aria-label={`Edit ${project.name}`} onClick={onEdit} title={`Edit ${project.name}`} type="button">Edit</button>
+        <button aria-label={`Delete ${project.name}`} onClick={onDelete} title={`Delete ${project.name}`} type="button">Delete</button>
+      </span>
+    </div>
+  )
+}
+
 function TaskRow({ task, onToggle, onOpen }) {
   return (
     <article className={`task-row ${task.completed ? 'is-completed' : ''}`}>
@@ -677,6 +694,9 @@ function getRouteInfo(route, state) {
   }
   if (route === 'completed') {
     return { title: 'Completed', kicker: 'WORKSPACE HISTORY', subtitle: 'Completed work stays here until you restore it.' }
+  }
+  if (route === 'order') {
+    return { title: 'Order', kicker: 'WORKSPACE ORGANIZER', subtitle: 'Decide what comes next, and what follows it.' }
   }
   if (route.startsWith('project:')) {
     const project = state.projects[route.slice('project:'.length)]
@@ -1104,6 +1124,7 @@ function App() {
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(() => toLocalDate(new Date()))
   const [taskEditor, setTaskEditor] = useState(null)
   const [projectDialogOpen, setProjectDialogOpen] = useState(false)
+  const [projectToEdit, setProjectToEdit] = useState(null)
   const [captureSession, setCaptureSession] = useState(null)
   const [captureNotice, setCaptureNotice] = useState('')
   const [uiSettings, setUiSettings] = useState(() => readUiSettings())
@@ -1135,6 +1156,10 @@ function App() {
         .filter((project) => project.id !== state.preferences.inboxProjectId && !project.isArchived)
         .sort((left, right) => left.order - right.order),
     [state],
+  )
+  const orderItems = useMemo(
+    () => Object.values(state.orderItems ?? {}).sort((left, right) => left.order - right.order),
+    [state.orderItems],
   )
   const labelItems = useMemo(
     () => Object.values(state.labels).sort((left, right) => left.order - right.order),
@@ -1316,6 +1341,58 @@ function App() {
   const navigate = (nextRoute) => {
     setRoute(nextRoute)
     setSelectedTask(null)
+  }
+
+  const editProject = (project) => {
+    setProjectToEdit(project)
+    setProjectDialogOpen(true)
+  }
+
+  const saveProject = (projectId, project) => {
+    const result = appStore.dispatch({ type: 'project.update', projectId, patch: project })
+    if (!result.ok) setNotice(result.message)
+    setProjectDialogOpen(false)
+    setProjectToEdit(null)
+  }
+
+  const deleteProject = (project) => {
+    const taskCount = Object.values(state.tasks).filter((task) => task.projectId === project.id).length
+    const confirmed = window.confirm(
+      `Delete "${project.name}"?\n\n${taskCount ? `${taskCount} associated task${taskCount === 1 ? '' : 's'} will be moved to Inbox and kept. Project sections will be removed.` : 'Any project sections will be removed.'}\n\nThis can be restored with Undo.`,
+    )
+    if (!confirmed) return
+    const result = appStore.dispatch({ type: 'project.delete', projectId: project.id })
+    if (!result.ok) {
+      setNotice(result.message)
+      return
+    }
+    setUndoAvailable(true)
+    setNotice(`Deleted ${project.name}. Tasks were kept in Inbox.`)
+    if (route === `project:${project.id}`) navigate('inbox')
+  }
+
+  const addOrderItem = (input) => {
+    const result = appStore.dispatch({ type: 'order.add', input })
+    if (!result.ok) setNotice(result.message)
+  }
+
+  const updateOrderItem = (itemId, patch) => {
+    const result = appStore.dispatch({ type: 'order.update', itemId, patch })
+    if (!result.ok) setNotice(result.message)
+  }
+
+  const deleteOrderItem = (item) => {
+    if (!window.confirm(`Delete "${item.title}" from Order? Related items will lose only this relationship.`)) return
+    const result = appStore.dispatch({ type: 'order.delete', itemId: item.id })
+    if (!result.ok) setNotice(result.message)
+  }
+
+  const moveOrderItem = (itemId, swapId) => {
+    const item = state.orderItems[itemId]
+    const swap = state.orderItems[swapId]
+    if (!item || !swap) return
+    appStore.dispatch({ type: 'order.update', itemId, patch: { order: swap.order } })
+    appStore.dispatch({ type: 'order.update', itemId: swap.id, patch: { order: item.order } })
   }
 
   const toggleTask = (taskId) => {
@@ -1588,15 +1665,20 @@ function App() {
               }
             >
               {projectItems.map((project) => (
-                <SidebarRow
+                <ProjectSidebarItem
                   active={route === `project:${project.id}`}
-                  color={PROJECT_COLORS[project.color] ?? 'teal'}
                   count={tasks.filter((task) => task.project === project.id && !task.completed).length}
                   key={project.id}
-                  label={project.name}
                   onClick={() => navigate(`project:${project.id}`)}
+                  onDelete={() => deleteProject(project)}
+                  onEdit={() => editProject(project)}
+                  project={project}
                 />
               ))}
+            </SidebarSection>
+
+            <SidebarSection title="ORGANIZE">
+              <SidebarRow active={route === 'order'} icon="arrowUp" label="Order" onClick={() => navigate('order')} />
             </SidebarSection>
 
             <SidebarSection
@@ -1634,7 +1716,7 @@ function App() {
                 <p>{routeInfo.subtitle}</p>
               </div>
               <div className="view-header__actions">
-                {route !== 'upcoming' ? (
+                {route !== 'upcoming' && route !== 'order' ? (
                   <div aria-label="View mode" className="segmented-control" role="group">
                     <button className={viewMode === 'list' ? 'is-selected' : ''} onClick={() => setViewMode('list')} title="List view" type="button">
                       <Icon name="list" size={16} />
@@ -1646,10 +1728,10 @@ function App() {
                     </button>
                   </div>
                 ) : null}
-                <button className="primary-button" onClick={() => openTaskEditor('create', null, route === 'upcoming' ? selectedCalendarDate : null)} type="button">
+                {route !== 'order' ? <button className="primary-button" onClick={() => openTaskEditor('create', null, route === 'upcoming' ? selectedCalendarDate : null)} type="button">
                   <Icon name="plus" size={17} />
                   Add task
-                </button>
+                </button> : null}
               </div>
             </div>
 
@@ -1686,6 +1768,8 @@ function App() {
                 settings={uiSettings}
                 state={state}
               />
+            ) : route === 'order' ? (
+              <OrderWorkspace items={orderItems} onAdd={addOrderItem} onDelete={deleteOrderItem} onMove={moveOrderItem} onUpdate={updateOrderItem} />
             ) : route === 'upcoming' ? (
               <>
               <IntegratedUpcomingCalendar
@@ -1881,8 +1965,13 @@ function App() {
 
       <ProjectCreateDialog
         isOpen={projectDialogOpen}
-        onCancel={() => setProjectDialogOpen(false)}
+        onCancel={() => {
+          setProjectDialogOpen(false)
+          setProjectToEdit(null)
+        }}
         onCreate={createProject}
+        onSave={saveProject}
+        project={projectToEdit}
       />
     </div>
   )

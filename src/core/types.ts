@@ -3,6 +3,8 @@ export const CURRENT_SCHEMA_VERSION = 3 as const;
 export type EntityId = string;
 export type Priority = 1 | 2 | 3 | 4;
 export type ViewLayout = "list" | "board";
+export type OrderLane = "now" | "later" | "after" | "before";
+export type OrderStatus = "open" | "done" | "blocked";
 
 export interface Project {
   id: EntityId;
@@ -79,6 +81,19 @@ export interface Task {
   updatedAt: string;
 }
 
+export interface OrderItem {
+  id: EntityId;
+  title: string;
+  details: string;
+  lane: OrderLane;
+  relationId: EntityId | null;
+  priority: Priority;
+  status: OrderStatus;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AppPreferences {
   inboxProjectId: EntityId;
   activeProjectId: EntityId | null;
@@ -104,6 +119,7 @@ export interface AppState {
   labels: Record<EntityId, Label>;
   filters: Record<EntityId, SavedFilter>;
   tasks: Record<EntityId, Task>;
+  orderItems: Record<EntityId, OrderItem>;
   preferences: AppPreferences;
   undoStack: UndoEntry[];
 }
@@ -155,6 +171,21 @@ export type ProjectInput = {
   isFavorite?: boolean;
 };
 
+export type OrderItemInput = {
+  id?: EntityId;
+  title: string;
+  details?: string;
+  lane?: OrderLane;
+  relationId?: EntityId | null;
+  priority?: Priority;
+  status?: OrderStatus;
+  order?: number;
+};
+
+export type OrderItemPatch = Partial<
+  Pick<OrderItem, "title" | "details" | "lane" | "relationId" | "priority" | "status" | "order">
+>;
+
 export type SectionInput = {
   id?: EntityId;
   projectId: EntityId;
@@ -190,6 +221,10 @@ export type UserAction =
   | { type: "project.add"; input: ProjectInput }
   | { type: "project.update"; projectId: EntityId; patch: Partial<Omit<Project, "id" | "createdAt" | "updatedAt">> }
   | { type: "project.archive"; projectId: EntityId; archived: boolean }
+  | { type: "project.delete"; projectId: EntityId }
+  | { type: "order.add"; input: OrderItemInput }
+  | { type: "order.update"; itemId: EntityId; patch: OrderItemPatch }
+  | { type: "order.delete"; itemId: EntityId }
   | { type: "section.add"; input: SectionInput }
   | { type: "section.update"; sectionId: EntityId; patch: Partial<Pick<Section, "name" | "order" | "isCollapsed">> }
   | { type: "label.add"; input: LabelInput }
@@ -206,6 +241,16 @@ export type UndoAction =
   | { type: "project.restore"; project: Project }
   | { type: "project.remove"; projectId: EntityId }
   | { type: "project.update"; projectId: EntityId; patch: Partial<Omit<Project, "id" | "createdAt" | "updatedAt">> }
+  | {
+      type: "project.restoreBundle";
+      project: Project;
+      sections: Section[];
+      tasks: Task[];
+    }
+  | { type: "project.delete"; projectId: EntityId }
+  | { type: "order.add"; input: OrderItemInput }
+  | { type: "order.update"; itemId: EntityId; patch: OrderItemPatch }
+  | { type: "order.delete"; itemId: EntityId }
   | { type: "section.restore"; section: Section }
   | { type: "section.remove"; sectionId: EntityId }
   | { type: "section.update"; sectionId: EntityId; patch: Partial<Pick<Section, "name" | "order" | "isCollapsed">> }

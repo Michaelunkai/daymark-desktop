@@ -344,6 +344,61 @@ kbd {
   font-weight: 600;
 }
 
+.project-sidebar-item {
+  align-items: center;
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 38px;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.project-sidebar-item:hover,
+.project-sidebar-item.is-active {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.project-sidebar-item__main {
+  align-items: center;
+  background: transparent;
+  color: #53635f;
+  cursor: pointer;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 4px 0 9px;
+  text-align: left;
+}
+
+.project-sidebar-item__main:hover,
+.project-sidebar-item.is-active .project-sidebar-item__main {
+  color: var(--ink);
+}
+
+.project-sidebar-item__actions {
+  align-items: center;
+  display: flex;
+  gap: 1px;
+  padding-right: 5px;
+}
+
+.project-sidebar-item__actions button {
+  background: transparent;
+  border-radius: 5px;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-size: 9px;
+  min-height: 26px;
+  padding: 0 4px;
+}
+
+.project-sidebar-item__actions button:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+
 .sidebar-row__shortcut {
   display: none;
   font-size: 10px;
