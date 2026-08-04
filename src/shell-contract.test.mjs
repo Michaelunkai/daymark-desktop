@@ -11,6 +11,10 @@ test('global shell exposes the required settings and repository affordances', ()
   assert.match(app, /https:\/\/github\.com\/Michaelunkai\/daymark-desktop/)
   assert.match(app, /onImport={importBackup}/)
   assert.match(app, /onReset={resetWorkspace}/)
+  assert.match(app, /route === 'notes' \|\| route === 'diary'/)
+  assert.match(app, /onTaskToggle={toggleTask}/)
+  assert.match(app, /Nothing was changed\./)
+  assert.doesNotMatch(app, /maxLength\s*=/)
 })
 
 test('shell styles include keyboard focus, mobile layout, and dark theme coverage', () => {
@@ -19,4 +23,6 @@ test('shell styles include keyboard focus, mobile layout, and dark theme coverag
   assert.match(styles, /@media \(max-width: 720px\)/)
   assert.match(styles, /\.settings-grid/)
   assert.match(styles, /\.visually-hidden/)
+  assert.match(styles, /\.journal-view/)
+  assert.match(styles, /\.task-order-button/)
 })

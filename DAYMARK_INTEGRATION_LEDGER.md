@@ -41,3 +41,35 @@ Baseline: `edc1f5e` (`main`, `origin/codex/daymark-capture-edc1f5e`)
 - Current integration source was not served in Chrome: Vite could not bind `127.0.0.1:4173` because Windows returned `EACCES`.
 - The deployed tab is not provenance-linked to `a7b2e5d`; it is not current-branch acceptance evidence.
 - GitHub push is intentionally held until the current integration revision can be served and accepted in the approved browser at desktop and 390px mobile.
+
+## Release Path Retraction (Superseded)
+
+- Codex Sites provisioning was explicitly retracted on 2026-08-04 after project creation.
+- The remote Sites project is preserved untouched, but no Sites archive, version, deployment, public URL, or source push is authorized or claimed.
+- `.openai/hosting.json` was created before the retraction and is preserved unchanged; it is not an active release target.
+- Vercel is restored as the sole intended production provider. Future releases require a clean tested commit, normal non-force GitHub push, exact Vercel deployment, and immutable SHA/content provenance.
+- Browser verification remains deferred because Chrome control is disabled for this task.
+
+## Current Release Path Correction
+
+- The later correction on 2026-08-04 restored Codex Sites as the authoritative release provider.
+- Existing Sites project: `appgprj_6a72433e80108191b2c3936efd51e00a`, persisted in `.openai/hosting.json`.
+- Vercel project `prj_Z7LqWj02YmINmaYJ2VtVJIRPNrUu` remains an isolated secondary record and is not the active deployment target.
+- Release handshake: the main agent supplies an exact clean tested SHA and immutable build path; the release sub-agent verifies normal Git push, saves one Sites version with that exact `commit_sha`, deploys only the saved version, polls terminal status, and returns URL/version/deployment/SHA evidence.
+- No Sites version or deployment is claimed until the sub-agent returns provider receipts.
+
+## Schema-v4 Gap Work
+
+- Durable notes and diary entries are now part of the state schema, with migration from current v3 state and legacy `daymark.journal.v1`.
+- Malformed imports now report a visible failure and leave the current workspace unchanged.
+- Storage and theme preference access are guarded; blocked storage preserves live memory and safe reset still clears the live workspace.
+- Calendar includes completed scheduled tasks and passes an accessible restore action through to the Upcoming agenda.
+- Saved content inputs have no arbitrary UI character limits; large task, note, diary, project, and Order payloads are covered by core tests.
+
+## Sites Build Contract
+
+- The first Sites baseline package was correctly rejected because plain Vite emitted no `dist/server/index.js`; no version or deployment was created from that invalid archive.
+- The source now includes a checked-in Cloudflare-compatible Worker at `worker/index.js`. It serves the Sites `ASSETS` binding, preserves missing-asset 404s, and falls back to `/index.html` only for HTML GET/HEAD SPA navigations.
+- `build/sites-vite-plugin.js` copies that real Worker into `dist/server/index.js` after every production build and preserves `.openai/hosting.json` in `dist/.openai/hosting.json`.
+- Worker source behavior and post-build artifact identity are covered by `src/sites-build-contract.test.mjs`; `npm run verify` passed after the change.
+- Release remains gated on the Sites-only agent saving a version from the exact clean pushed commit and polling its deployment to terminal `succeeded`.

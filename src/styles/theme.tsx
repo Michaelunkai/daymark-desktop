@@ -30,7 +30,12 @@ function readStoredPreference(
     return fallback;
   }
 
-  const stored = window.localStorage.getItem(storageKey);
+  let stored: string | null = null;
+  try {
+    stored = window.localStorage.getItem(storageKey);
+  } catch {
+    stored = null;
+  }
   return stored === "light" || stored === "dark" || stored === "system"
     ? stored
     : fallback;
@@ -52,7 +57,11 @@ export function ThemeProvider({
   const setPreference = useCallback(
     (nextPreference: ThemePreference) => {
       setPreferenceState(nextPreference);
-      window.localStorage.setItem(storageKey, nextPreference);
+      try {
+        window.localStorage.setItem(storageKey, nextPreference);
+      } catch {
+        // Theme remains active for the current session when storage is blocked.
+      }
     },
     [storageKey],
   );

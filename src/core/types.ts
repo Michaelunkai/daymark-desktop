@@ -1,4 +1,4 @@
-export const CURRENT_SCHEMA_VERSION = 3 as const;
+export const CURRENT_SCHEMA_VERSION = 4 as const;
 
 export type EntityId = string;
 export type Priority = 1 | 2 | 3 | 4;
@@ -94,6 +94,20 @@ export interface OrderItem {
   updatedAt: string;
 }
 
+export interface Note {
+  id: EntityId;
+  title: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DiaryEntry {
+  date: string;
+  body: string;
+  updatedAt: string;
+}
+
 export interface AppPreferences {
   inboxProjectId: EntityId;
   activeProjectId: EntityId | null;
@@ -120,6 +134,8 @@ export interface AppState {
   filters: Record<EntityId, SavedFilter>;
   tasks: Record<EntityId, Task>;
   orderItems: Record<EntityId, OrderItem>;
+  notes: Record<EntityId, Note>;
+  diaryEntries: Record<string, DiaryEntry>;
   preferences: AppPreferences;
   undoStack: UndoEntry[];
 }
@@ -186,6 +202,14 @@ export type OrderItemPatch = Partial<
   Pick<OrderItem, "title" | "details" | "lane" | "relationId" | "priority" | "status" | "order">
 >;
 
+export type NoteInput = {
+  id?: EntityId;
+  title?: string;
+  body?: string;
+};
+
+export type NotePatch = Partial<Pick<Note, "title" | "body">>;
+
 export type SectionInput = {
   id?: EntityId;
   projectId: EntityId;
@@ -225,6 +249,10 @@ export type UserAction =
   | { type: "order.add"; input: OrderItemInput }
   | { type: "order.update"; itemId: EntityId; patch: OrderItemPatch }
   | { type: "order.delete"; itemId: EntityId }
+  | { type: "note.add"; input: NoteInput }
+  | { type: "note.update"; noteId: EntityId; patch: NotePatch }
+  | { type: "note.delete"; noteId: EntityId }
+  | { type: "diary.upsert"; date: string; body: string }
   | { type: "section.add"; input: SectionInput }
   | { type: "section.update"; sectionId: EntityId; patch: Partial<Pick<Section, "name" | "order" | "isCollapsed">> }
   | { type: "label.add"; input: LabelInput }
@@ -251,6 +279,11 @@ export type UndoAction =
   | { type: "order.add"; input: OrderItemInput }
   | { type: "order.update"; itemId: EntityId; patch: OrderItemPatch }
   | { type: "order.delete"; itemId: EntityId }
+  | { type: "note.restore"; note: Note }
+  | { type: "note.remove"; noteId: EntityId }
+  | { type: "note.update"; noteId: EntityId; patch: NotePatch }
+  | { type: "diary.restore"; entry: DiaryEntry }
+  | { type: "diary.remove"; date: string }
   | { type: "section.restore"; section: Section }
   | { type: "section.remove"; sectionId: EntityId }
   | { type: "section.update"; sectionId: EntityId; patch: Partial<Pick<Section, "name" | "order" | "isCollapsed">> }
@@ -272,4 +305,5 @@ export interface StateStorage {
   read(): string | null;
   write(value: string): void;
   remove?(): void;
+  isAvailable?(): boolean;
 }

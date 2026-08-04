@@ -1,9 +1,11 @@
-import { createId } from "./sample-data";
+import { createId, createSampleState } from "./sample-data";
 import { loadState, saveState } from "./storage";
 import type {
   AppState,
   DispatchResult,
+  DiaryEntry,
   Label,
+  Note,
   OrderItem,
   Project,
   SavedFilter,
@@ -24,6 +26,7 @@ export interface AppStore {
   getState(): AppState;
   dispatch(action: UserAction): DispatchResult;
   reload(): AppState;
+  reset(): AppState;
   subscribe(listener: (state: AppState) => void): () => void;
 }
 
@@ -35,7 +38,13 @@ export function createAppStore(storage: StateStorage, fallback?: () => AppState)
   return {
     getState: () => state,
     reload: () => {
-      state = loadState(storage, fallback).state;
+      const loaded = loadState(storage, fallback);
+      if (loaded.available) state = loaded.state;
+      notify();
+      return state;
+    },
+    reset: () => {
+      state = (fallback ?? createSampleState)();
       notify();
       return state;
     },
@@ -44,7 +53,8 @@ export function createAppStore(storage: StateStorage, fallback?: () => AppState)
       return () => listeners.delete(listener);
     },
     dispatch: (action) => {
-      const durable = loadState(storage, fallback).state;
+      const loaded = loadState(storage, fallback);
+      const durable = loaded.available ? loaded.state : state;
       const result = reduce(durable, action);
       if (!result.ok) return result;
 
@@ -346,6 +356,76 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
         if (candidate.relationId === item.id) candidate.relationId = null;
       });
       return { ok: true, inverse: { type: "order.add", input: structuredClone(item) } };
+    }
+    case "note.add": {
+      const id = action.input.id ?? createId("note");
+      if (state.notes[id]) return invalid("That note already exists.");
+      const title = action.input.title?.trim() ?? "";
+      const body = action.input.body ?? "";
+      if (!title && !body.trim()) return invalid("A note needs a title or body.");
+      const note: Note = {
+        id,
+        title: title || "Untitled note",
+        body,
+        createdAt: now,
+        updatedAt: now,
+      };
+      state.notes[id] = note;
+      return { ok: true, inverse: { type: "note.remove", noteId: id } };
+    }
+    case "note.restore":
+      state.notes[action.note.id] = structuredClone(action.note);
+      return { ok: true, inverse: { type: "note.remove", noteId: action.note.id } };
+    case "note.remove":
+    case "note.delete": {
+      const note = state.notes[action.noteId];
+      if (!note) return invalid("The note no longer exists.");
+      delete state.notes[action.noteId];
+      return { ok: true, inverse: { type: "note.restore", note: structuredClone(note) } };
+    }
+    case "note.update": {
+      const note = state.notes[action.noteId];
+      if (!note) return invalid("The note no longer exists.");
+      const before = pick(note, action.patch);
+      const nextTitle = action.patch.title === undefined ? note.title : action.patch.title.trim();
+      const nextBody = action.patch.body === undefined ? note.body : action.patch.body;
+      if (!nextTitle && !nextBody.trim()) return invalid("A note needs a title or body.");
+      Object.assign(note, action.patch, {
+        title: nextTitle || "Untitled note",
+        body: nextBody,
+        updatedAt: now,
+      });
+      return { ok: true, inverse: { type: "note.update", noteId: note.id, patch: before } };
+    }
+    case "diary.upsert": {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(action.date)) return invalid("Diary entries need a valid date.");
+      const before = state.diaryEntries[action.date];
+      if (!action.body.trim()) {
+        if (!before) return { ok: true, changed: false, inverse: { type: "diary.remove", date: action.date } };
+        delete state.diaryEntries[action.date];
+        return { ok: true, inverse: { type: "diary.restore", entry: structuredClone(before) } };
+      }
+      const entry: DiaryEntry = {
+        date: action.date,
+        body: action.body,
+        updatedAt: now,
+      };
+      state.diaryEntries[action.date] = entry;
+      return {
+        ok: true,
+        inverse: before
+          ? { type: "diary.restore", entry: structuredClone(before) }
+          : { type: "diary.remove", date: action.date },
+      };
+    }
+    case "diary.restore":
+      state.diaryEntries[action.entry.date] = structuredClone(action.entry);
+      return { ok: true, inverse: { type: "diary.remove", date: action.entry.date } };
+    case "diary.remove": {
+      const entry = state.diaryEntries[action.date];
+      if (!entry) return invalid("The diary entry no longer exists.");
+      delete state.diaryEntries[action.date];
+      return { ok: true, inverse: { type: "diary.restore", entry: structuredClone(entry) } };
     }
     case "section.add": {
       if (!action.input.name.trim() || !state.projects[action.input.projectId]) return invalid("A section needs a valid project and name.");

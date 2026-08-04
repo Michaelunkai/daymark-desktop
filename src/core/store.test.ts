@@ -1,6 +1,6 @@
 import { createSampleState } from "./sample-data";
 import { createAppStore, reduce } from "./store";
-import { migrate, saveState } from "./storage";
+import { loadState, migrate, saveState } from "./storage";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -63,10 +63,12 @@ assert(!saveState(storage, right.state, base.revision).ok, "Stale writer must be
 
 const migrated = migrate({ ...base, schemaVersion: 1, sections: undefined, filters: undefined, orderItems: undefined });
 assert(
-  migrated.schemaVersion === 3 &&
+  migrated.schemaVersion === 4 &&
     Object.keys(migrated.sections).length === 0 &&
+    Object.keys(migrated.notes).length === 0 &&
+    Object.keys(migrated.diaryEntries).length === 0 &&
     migrated.tasks["task-welcome"].completionContext === null,
-  "Legacy state should migrate to schema v3.",
+  "Legacy state should migrate to schema v4.",
 );
 
 const legacyCompleted = migrate({
@@ -104,6 +106,60 @@ assert(
     large.state.tasks["task-large"].description.length === longText.length,
   "Large task content and descriptions must persist without arbitrary limits.",
 );
+
+const longNote = reduce(
+  base,
+  {
+    type: "note.add",
+    input: { id: "note-large", title: longText, body: longText },
+  },
+  timestamp,
+);
+assert(
+  longNote.ok &&
+    longNote.state.notes["note-large"].title.length === longText.length &&
+    longNote.state.notes["note-large"].body.length === longText.length,
+  "Large note content must persist without arbitrary limits.",
+);
+
+const longDiary = reduce(base, { type: "diary.upsert", date: "2026-08-04", body: longText }, timestamp);
+assert(
+  longDiary.ok && longDiary.state.diaryEntries["2026-08-04"].body.length === longText.length,
+  "Large diary content must persist without arbitrary limits.",
+);
+
+const longProject = reduce(
+  base,
+  { type: "project.add", input: { id: "project-large", name: longText, description: longText } },
+  timestamp,
+);
+assert(
+  longProject.ok &&
+    longProject.state.projects["project-large"].name.length === longText.length &&
+    longProject.state.projects["project-large"].description.length === longText.length,
+  "Large project content must persist without arbitrary limits.",
+);
+
+const longOrder = reduce(
+  base,
+  { type: "order.add", input: { id: "order-large", title: longText, details: longText } },
+  timestamp,
+);
+assert(
+  longOrder.ok &&
+    longOrder.state.orderItems["order-large"].title.length === longText.length &&
+    longOrder.state.orderItems["order-large"].details.length === longText.length,
+  "Large Order content must persist without arbitrary limits.",
+);
+
+let journalRaw = JSON.stringify(createSampleState(timestamp, "journal-client"));
+const journalStorage = { read: () => journalRaw, write: (value: string) => { journalRaw = value; } };
+const journalApp = createAppStore(journalStorage);
+assert(journalApp.dispatch({ type: "note.add", input: { id: "note-reload", title: "Reload me", body: "Durable note" } }).ok, "Note should save.");
+assert(journalApp.dispatch({ type: "diary.upsert", date: "2026-08-04", body: "Durable diary" }).ok, "Diary should save.");
+const journalReload = createAppStore(journalStorage).getState();
+assert(journalReload.notes["note-reload"].body === "Durable note", "Notes should survive reload.");
+assert(journalReload.diaryEntries["2026-08-04"].body === "Durable diary", "Diary should survive reload.");
 
 const ordered = createSampleState(timestamp, "order-client");
 ordered.tasks["task-second"] = {
@@ -158,5 +214,28 @@ raw = "{bad-json";
 const recovered = createAppStore(storage);
 const recoveredWrite = recovered.dispatch({ type: "task.add", input: { content: "Recovered task" } });
 assert(recoveredWrite.ok, "A recovered state should accept its first durable mutation.");
+
+const malformedImport = loadState({ read: () => "{bad-json", write: () => undefined });
+assert(malformedImport.recovered, "Malformed imports must be reported as recovered failures.");
+
+const blockedStorage = {
+  read: () => { throw new Error("storage blocked"); },
+  write: () => { throw new Error("storage blocked"); },
+};
+const blockedApp = createAppStore(blockedStorage);
+const blockedFirst = blockedApp.dispatch({ type: "task.add", input: { id: "blocked-one", content: "Keep in memory" } });
+const blockedSecond = blockedApp.dispatch({ type: "task.add", input: { id: "blocked-two", content: "Keep this too" } });
+assert(
+  blockedFirst.ok &&
+    blockedSecond.ok &&
+    blockedSecond.state.tasks["blocked-one"] &&
+    blockedSecond.state.tasks["blocked-two"],
+  "Storage failures must preserve the live in-memory workspace across mutations.",
+);
+const resetBlocked = blockedApp.reset();
+assert(
+  !resetBlocked.tasks["blocked-one"] && resetBlocked.tasks["task-welcome"],
+  "Reset should clear the live workspace even when storage is unavailable.",
+);
 
 console.log("CORE_STATE_TESTS_OK");

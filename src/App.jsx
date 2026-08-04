@@ -3,6 +3,7 @@ import { addDays, addMonths, addYears, fromLocalDate, startOfMonth, startOfWeek,
 import { createId } from './core/sample-data'
 import { createAppStore } from './core/store'
 import { createBrowserStorage, loadState } from './core/storage'
+import { clearLegacyJournal, readLegacyJournal } from './features/journal/model'
 import { UpcomingCalendar as IntegratedUpcomingCalendar } from './features/calendar/UpcomingCalendar'
 import { moveTaskToDate as buildMovedTask } from './features/calendar/task-movement'
 import './features/calendar/upcoming-calendar.css'
@@ -36,6 +37,8 @@ const NAV_ITEMS = [
   { id: 'inbox', label: 'Inbox', icon: 'inbox', count: 4 },
   { id: 'upcoming', label: 'Upcoming', icon: 'calendar', count: 7 },
   { id: 'completed', label: 'Completed', icon: 'check', count: 0 },
+  { id: 'notes', label: 'Notes', icon: 'note', count: 0 },
+  { id: 'diary', label: 'Diary', icon: 'note', count: 0 },
 ]
 
 const PROJECT_COLORS = {
@@ -73,6 +76,19 @@ function getBrowserStorage() {
     return typeof window === 'undefined' ? undefined : window.localStorage
   } catch {
     return undefined
+  }
+}
+
+function canUseBrowserStorage() {
+  const storage = getBrowserStorage()
+  if (!storage) return false
+  const probeKey = 'daymark.storage-probe'
+  try {
+    storage.setItem(probeKey, 'ok')
+    storage.removeItem(probeKey)
+    return true
+  } catch {
+    return false
   }
 }
 
@@ -389,7 +405,18 @@ function SidebarRow({ active, count, icon, label, onClick, color, shortcut }) {
   )
 }
 
-function ProjectSidebarItem({ active, count, project, onClick, onEdit, onDelete }) {
+function ProjectSidebarItem({
+  active,
+  canMoveEarlier,
+  canMoveLater,
+  count,
+  onClick,
+  onDelete,
+  onEdit,
+  onMoveEarlier,
+  onMoveLater,
+  project,
+}) {
   return (
     <div className={`project-sidebar-item ${active ? 'is-active' : ''}`}>
       <button aria-current={active ? 'page' : undefined} className="project-sidebar-item__main" onClick={onClick} type="button">
@@ -400,12 +427,18 @@ function ProjectSidebarItem({ active, count, project, onClick, onEdit, onDelete 
       <span className="project-sidebar-item__actions">
         <button aria-label={`Edit ${project.name}`} onClick={onEdit} title={`Edit ${project.name}`} type="button">Edit</button>
         <button aria-label={`Delete ${project.name}`} onClick={onDelete} title={`Delete ${project.name}`} type="button">Delete</button>
+        <button aria-label={`Move ${project.name} earlier`} disabled={!canMoveEarlier} onClick={onMoveEarlier} title="Move project earlier" type="button">
+          <Icon name="chevronUp" size={14} />
+        </button>
+        <button aria-label={`Move ${project.name} later`} disabled={!canMoveLater} onClick={onMoveLater} title="Move project later" type="button">
+          <Icon name="chevronDown" size={14} />
+        </button>
       </span>
     </div>
   )
 }
 
-function TaskRow({ task, onToggle, onOpen }) {
+function TaskRow({ canMoveEarlier, canMoveLater, onMoveEarlier, onMoveLater, task, onToggle, onOpen }) {
   return (
     <article className={`task-row ${task.completed ? 'is-completed' : ''}`}>
       <button
@@ -433,6 +466,12 @@ function TaskRow({ task, onToggle, onOpen }) {
           <Icon name={task.due.includes(':') ? 'clock' : 'calendar'} size={15} />
           {task.due}
         </span>
+        <button aria-label={`Move ${task.title} earlier`} className="icon-button task-order-button" disabled={!canMoveEarlier} onClick={onMoveEarlier} title="Move task earlier" type="button">
+          <Icon name="chevronUp" size={15} />
+        </button>
+        <button aria-label={`Move ${task.title} later`} className="icon-button task-order-button" disabled={!canMoveLater} onClick={onMoveLater} title="Move task later" type="button">
+          <Icon name="chevronDown" size={15} />
+        </button>
         <button aria-label={`More actions for ${task.title}`} className="icon-button task-more" title="More actions" type="button">
           <Icon name="more" size={16} />
         </button>
@@ -552,6 +591,8 @@ function CommandPalette({ query, onQueryChange, onClose, onNavigate, onCompose, 
     { id: 'today', label: 'Open Today', detail: 'See your current focus lane', shortcut: 'Ctrl 2' },
     { id: 'inbox', label: 'Open Inbox', detail: 'Review uncategorized tasks', shortcut: 'Ctrl 1' },
     { id: 'upcoming', label: 'Open Upcoming', detail: 'Plan the next few days', shortcut: 'Ctrl 3' },
+    { id: 'notes', label: 'Open Notes', detail: 'Keep durable references and ideas', shortcut: '' },
+    { id: 'diary', label: 'Open Diary', detail: 'Write a private daily entry', shortcut: '' },
     { id: 'compose', label: 'Add a task', detail: 'Capture something new', shortcut: 'Ctrl N' },
     { id: 'capture', label: 'Capture a thought', detail: 'Save a local thought without leaving your flow', shortcut: 'Ctrl Shift Space' },
   ]
@@ -698,6 +739,12 @@ function getRouteInfo(route, state) {
   if (route === 'order') {
     return { title: 'Order', kicker: 'WORKSPACE ORGANIZER', subtitle: 'Decide what comes next, and what follows it.' }
   }
+  if (route === 'notes') {
+    return { title: 'Notes', kicker: 'PERSONAL REFERENCE', subtitle: 'Keep durable ideas close to the work they support.' }
+  }
+  if (route === 'diary') {
+    return { title: 'Diary', kicker: 'DAILY REFLECTION', subtitle: 'Write a private, durable record of the day.' }
+  }
   if (route.startsWith('project:')) {
     const project = state.projects[route.slice('project:'.length)]
     return { title: project?.name ?? 'Project', kicker: 'PROJECT VIEW', subtitle: 'Keep the next useful step visible.' }
@@ -706,7 +753,8 @@ function getRouteInfo(route, state) {
     const tag = state.labels[route.slice('label:'.length)]
     return { title: tag?.name ?? 'Tag', kicker: 'SAVED VIEW', subtitle: 'A focused lens across your work.' }
   }
-  return { title: 'Today', kicker: 'SUNDAY, AUGUST 2', subtitle: 'A clear view of what matters now.' }
+  const today = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date()).toUpperCase()
+  return { title: 'Today', kicker: today, subtitle: 'A clear view of what matters now.' }
 }
 
 const CALENDAR_WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -961,7 +1009,7 @@ function SettingsPanel({
   state,
 }) {
   const fileInputRef = useRef(null)
-  const storageAvailable = Boolean(getBrowserStorage())
+  const storageAvailable = canUseBrowserStorage()
   const stateSize = (() => {
     try {
       return new Blob([JSON.stringify(state)]).size
@@ -1107,6 +1155,121 @@ function SettingsPanel({
   )
 }
 
+function JournalView({ journal, onDiaryUpdate, onNoteAdd, onNoteDelete, onNoteUpdate, route }) {
+  const today = toLocalDate(new Date())
+  const [selectedDate, setSelectedDate] = useState(today)
+  const [selectedNoteId, setSelectedNoteId] = useState(() => journal.notes[0]?.id ?? null)
+  const selectedNote = journal.notes.find((note) => note.id === selectedNoteId) ?? null
+  const diaryEntry = journal.diaryEntries[selectedDate]
+
+  useEffect(() => {
+    if (!selectedNoteId || journal.notes.some((note) => note.id === selectedNoteId)) return
+    setSelectedNoteId(journal.notes[0]?.id ?? null)
+  }, [journal.notes, selectedNoteId])
+
+  if (route === 'diary') {
+    return (
+      <section aria-label="Diary" className="journal-view">
+        <div className="journal-toolbar">
+          <label>
+            <span>Date</span>
+            <input aria-label="Diary date" onChange={(event) => setSelectedDate(event.target.value)} type="date" value={selectedDate} />
+          </label>
+          <span className="journal-saved" role="status">{diaryEntry ? 'Saved locally' : 'No entry yet'}</span>
+        </div>
+        <textarea
+          aria-label={`Diary entry for ${selectedDate}`}
+          className="journal-editor"
+          onChange={(event) => onDiaryUpdate(selectedDate, event.target.value)}
+          placeholder="What happened today? What is worth carrying forward?"
+          rows={18}
+          value={diaryEntry?.body ?? ''}
+        />
+      </section>
+    )
+  }
+
+  return (
+    <section aria-label="Notes" className="journal-view notes-layout">
+      <div className="notes-list">
+        <div className="journal-toolbar">
+          <strong>{journal.notes.length} note{journal.notes.length === 1 ? '' : 's'}</strong>
+          <button
+            aria-label="Create note"
+            className="primary-button"
+            onClick={() => {
+              const id = createId('note')
+              onNoteAdd({ id, title: 'Untitled note', body: '' })
+              setSelectedNoteId(id)
+            }}
+            type="button"
+          >
+            <Icon name="plus" size={16} />
+            New note
+          </button>
+        </div>
+        {journal.notes.length ? (
+          journal.notes.map((note) => (
+            <button
+              aria-pressed={note.id === selectedNoteId}
+              className={`note-list-item ${note.id === selectedNoteId ? 'is-selected' : ''}`}
+              key={note.id}
+              onClick={() => setSelectedNoteId(note.id)}
+              type="button"
+            >
+              <strong>{note.title || 'Untitled note'}</strong>
+              <span>{note.body || 'No body yet'}</span>
+            </button>
+          ))
+        ) : (
+          <p className="journal-empty">Create a note for ideas, references, or decisions you want to keep.</p>
+        )}
+      </div>
+      <div className="note-editor">
+        {selectedNote ? (
+          <>
+            <div className="journal-toolbar">
+              <span className="journal-saved" role="status">Saved locally</span>
+              <button
+                className="danger-button"
+                onClick={() => {
+                  if (window.confirm(`Delete "${selectedNote.title || 'Untitled note'}"?`)) {
+                    onNoteDelete(selectedNote.id)
+                  }
+                }}
+                type="button"
+              >
+                Delete note
+              </button>
+            </div>
+            <input
+              aria-label="Note title"
+              className="note-title-input"
+              onChange={(event) => onNoteUpdate(selectedNote.id, { title: event.target.value })}
+              placeholder="Note title"
+              type="text"
+              value={selectedNote.title}
+            />
+            <textarea
+              aria-label="Note body"
+              className="journal-editor"
+              onChange={(event) => onNoteUpdate(selectedNote.id, { body: event.target.value })}
+              placeholder="Write the details you want to keep."
+              rows={18}
+              value={selectedNote.body}
+            />
+          </>
+        ) : (
+          <div className="journal-empty">
+            <h2>No note selected</h2>
+            <p>Create a note to keep an idea or reference available across reloads.</p>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 function App() {
   const state = useAppState()
   const { setPreference } = useTheme()
@@ -1136,6 +1299,27 @@ function App() {
   }, [])
 
   useEffect(() => {
+    const legacy = readLegacyJournal(getBrowserStorage())
+    if (!legacy) return
+    let migrated = true
+    const current = appStore.getState()
+    legacy.notes.forEach((note) => {
+      if (current.notes[note.id]) return
+      const result = appStore.dispatch({
+        type: 'note.add',
+        input: { id: note.id, title: note.title, body: note.body },
+      })
+      if (!result.ok) migrated = false
+    })
+    Object.values(legacy.diary).forEach((entry) => {
+      if (appStore.getState().diaryEntries[entry.date]) return
+      const result = appStore.dispatch({ type: 'diary.upsert', date: entry.date, body: entry.body })
+      if (!result.ok) migrated = false
+    })
+    if (migrated) clearLegacyJournal(getBrowserStorage())
+  }, [])
+
+  useEffect(() => {
     if (state.preferences.theme !== document.documentElement.dataset.theme) {
       setPreference(state.preferences.theme)
     }
@@ -1146,8 +1330,15 @@ function App() {
     [state],
   )
   const calendarTasks = useMemo(
-    () => Object.values(state.tasks).filter((task) => task.completedAt === null),
+    () => Object.values(state.tasks),
     [state.tasks],
+  )
+  const journal = useMemo(
+    () => ({
+      notes: Object.values(state.notes).sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
+      diaryEntries: state.diaryEntries,
+    }),
+    [state.diaryEntries, state.notes],
   )
   const today = toLocalDate(new Date())
   const projectItems = useMemo(
@@ -1348,11 +1539,53 @@ function App() {
     setProjectDialogOpen(true)
   }
 
+  const addNote = (input) => {
+    const result = appStore.dispatch({ type: 'note.add', input })
+    if (!result.ok) setNotice(result.message)
+  }
+
+  const updateNote = (noteId, patch) => {
+    const result = appStore.dispatch({ type: 'note.update', noteId, patch })
+    if (!result.ok) setNotice(result.message)
+  }
+
+  const deleteNote = (noteId) => {
+    const result = appStore.dispatch({ type: 'note.delete', noteId })
+    if (!result.ok) setNotice(result.message)
+  }
+
+  const updateDiary = (date, body) => {
+    const result = appStore.dispatch({ type: 'diary.upsert', date, body })
+    if (!result.ok) setNotice(result.message)
+  }
+
   const saveProject = (projectId, project) => {
     const result = appStore.dispatch({ type: 'project.update', projectId, patch: project })
     if (!result.ok) setNotice(result.message)
     setProjectDialogOpen(false)
     setProjectToEdit(null)
+  }
+
+  const moveProjectBy = (projectId, direction) => {
+    const index = projectItems.findIndex((project) => project.id === projectId)
+    const neighbor = projectItems[index + direction]
+    const current = projectItems[index]
+    if (!current || !neighbor) return
+    const first = appStore.dispatch({
+      type: 'project.update',
+      projectId: current.id,
+      patch: { order: neighbor.order },
+    })
+    if (!first.ok) {
+      setNotice(first.message)
+      return
+    }
+    const second = appStore.dispatch({
+      type: 'project.update',
+      projectId: neighbor.id,
+      patch: { order: current.order },
+    })
+    if (!second.ok) setNotice(second.message)
   }
 
   const deleteProject = (project) => {
@@ -1407,6 +1640,31 @@ function App() {
       setNotice('')
       setUndoAvailable(false)
     }
+  }
+
+  const taskSiblings = (taskId) => {
+    const task = state.tasks[taskId]
+    if (!task || task.completedAt) return []
+    return Object.values(state.tasks)
+      .filter(
+        (candidate) =>
+          candidate.completedAt === null &&
+          candidate.projectId === task.projectId &&
+          (candidate.sectionId ?? null) === (task.sectionId ?? null),
+      )
+      .sort((left, right) => left.order - right.order || left.id.localeCompare(right.id))
+  }
+
+  const moveTaskBy = (taskId, direction) => {
+    const siblings = taskSiblings(taskId)
+    const index = siblings.findIndex((task) => task.id === taskId)
+    const task = state.tasks[taskId]
+    if (!task || index < 0 || !siblings[index + direction]) return
+    const result = appStore.dispatch({
+      type: 'task.reorder',
+      input: { taskId, sectionId: task.sectionId, order: index + direction },
+    })
+    if (!result.ok) setNotice(result.message)
   }
 
   const submitTask = (event) => {
@@ -1582,7 +1840,12 @@ function App() {
   const importBackup = async (file) => {
     try {
       const text = await file.text()
-      const imported = loadState({ read: () => text, write: () => undefined }).state
+      const parsed = loadState({ read: () => text, write: () => undefined })
+      if (parsed.recovered) {
+        setNotice('That backup is malformed or from an unsupported Daymark version. Nothing was changed.')
+        return
+      }
+      const imported = parsed.state
       const confirmed = window.confirm('Replace this browser workspace with the imported backup?')
       if (!confirmed) return
       createBrowserStorage().write(JSON.stringify(imported))
@@ -1597,7 +1860,7 @@ function App() {
   const resetWorkspace = () => {
     if (!window.confirm('Reset this local workspace? Export a backup first if you may need this data.')) return
     createBrowserStorage().remove?.()
-    appStore.reload()
+    appStore.reset()
     setRoute('today')
     setNotice('Local workspace reset.')
   }
@@ -1645,8 +1908,12 @@ function App() {
                     : item.id === 'inbox'
                       ? tasks.filter((task) => task.project === state.preferences.inboxProjectId && !task.completed).length
                       : item.id === 'upcoming'
-                        ? tasks.filter((task) => state.tasks[task.id]?.due?.date >= today && !task.completed).length
-                        : tasks.filter((task) => task.completed).length}
+                      ? tasks.filter((task) => state.tasks[task.id]?.due?.date >= today && !task.completed).length
+                        : item.id === 'completed'
+                          ? tasks.filter((task) => task.completed).length
+                          : item.id === 'notes'
+                            ? journal.notes.length
+                            : Object.keys(journal.diaryEntries).length}
                   icon={item.icon}
                   key={item.id}
                   label={item.label}
@@ -1664,14 +1931,18 @@ function App() {
                 </button>
               }
             >
-              {projectItems.map((project) => (
+              {projectItems.map((project, index) => (
                 <ProjectSidebarItem
                   active={route === `project:${project.id}`}
+                  canMoveEarlier={index > 0}
+                  canMoveLater={index < projectItems.length - 1}
                   count={tasks.filter((task) => task.project === project.id && !task.completed).length}
                   key={project.id}
                   onClick={() => navigate(`project:${project.id}`)}
                   onDelete={() => deleteProject(project)}
                   onEdit={() => editProject(project)}
+                  onMoveEarlier={() => moveProjectBy(project.id, -1)}
+                  onMoveLater={() => moveProjectBy(project.id, 1)}
                   project={project}
                 />
               ))}
@@ -1716,7 +1987,7 @@ function App() {
                 <p>{routeInfo.subtitle}</p>
               </div>
               <div className="view-header__actions">
-                {route !== 'upcoming' && route !== 'order' ? (
+                {!['upcoming', 'order', 'notes', 'diary'].includes(route) ? (
                   <div aria-label="View mode" className="segmented-control" role="group">
                     <button className={viewMode === 'list' ? 'is-selected' : ''} onClick={() => setViewMode('list')} title="List view" type="button">
                       <Icon name="list" size={16} />
@@ -1728,7 +1999,7 @@ function App() {
                     </button>
                   </div>
                 ) : null}
-                {route !== 'order' ? <button className="primary-button" onClick={() => openTaskEditor('create', null, route === 'upcoming' ? selectedCalendarDate : null)} type="button">
+                {!['order', 'notes', 'diary'].includes(route) ? <button className="primary-button" onClick={() => openTaskEditor('create', null, route === 'upcoming' ? selectedCalendarDate : null)} type="button">
                   <Icon name="plus" size={17} />
                   Add task
                 </button> : null}
@@ -1770,6 +2041,15 @@ function App() {
               />
             ) : route === 'order' ? (
               <OrderWorkspace items={orderItems} onAdd={addOrderItem} onDelete={deleteOrderItem} onMove={moveOrderItem} onUpdate={updateOrderItem} />
+            ) : route === 'notes' || route === 'diary' ? (
+              <JournalView
+                journal={journal}
+                onDiaryUpdate={updateDiary}
+                onNoteAdd={addNote}
+                onNoteDelete={deleteNote}
+                onNoteUpdate={updateNote}
+                route={route}
+              />
             ) : route === 'upcoming' ? (
               <>
               <IntegratedUpcomingCalendar
@@ -1778,11 +2058,11 @@ function App() {
                 onTaskAdd={(date) => openTaskEditor('create', null, date)}
                 onTaskEdit={(taskId) => openTaskEditor('edit', state.tasks[taskId])}
                 onTaskMove={moveTaskToDate}
+                onTaskToggle={toggleTask}
                 selectedDate={selectedCalendarDate}
                 weekStartsOn={uiSettings.weekStartsOn === 'sunday' ? 0 : 1}
                   tasks={calendarTasks
                   .filter((task) => {
-                    if (!state.preferences.showCompleted && task.completedAt) return false
                     if (!task.due?.date) return false
                     if (!searchTerm.trim()) return true
                     const project = state.projects[task.projectId]
@@ -1842,9 +2122,22 @@ function App() {
                             <Icon name="chevronDown" size={16} />
                           </button>
                         </div>
-                        {section.tasks.map((task) => (
-                          <TaskRow key={task.id} onOpen={(viewTask) => openTaskEditor('edit', state.tasks[viewTask.id])} onToggle={toggleTask} task={task} />
-                        ))}
+                        {section.tasks.map((task) => {
+                          const siblings = taskSiblings(task.id)
+                          const siblingIndex = siblings.findIndex((candidate) => candidate.id === task.id)
+                          return (
+                            <TaskRow
+                              canMoveEarlier={siblingIndex > 0}
+                              canMoveLater={siblingIndex >= 0 && siblingIndex < siblings.length - 1}
+                              key={task.id}
+                              onMoveEarlier={() => moveTaskBy(task.id, -1)}
+                              onMoveLater={() => moveTaskBy(task.id, 1)}
+                              onOpen={(viewTask) => openTaskEditor('edit', state.tasks[viewTask.id])}
+                              onToggle={toggleTask}
+                              task={task}
+                            />
+                          )
+                        })}
                       </section>
                     ))
                   ) : (

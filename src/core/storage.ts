@@ -8,42 +8,84 @@ import {
 
 export const STORAGE_KEY = "todoist-replica.state";
 
-export type LoadResult = { state: AppState; recovered: boolean };
+export type LoadResult = { state: AppState; recovered: boolean; available: boolean };
 export type SaveResult =
   | { ok: true; state: AppState }
   | { ok: false; reason: "conflict"; state: AppState };
 
 export function createBrowserStorage(
-  storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null | undefined =
-    typeof window === "undefined" ? undefined : window.localStorage,
+  storage?: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null,
   key = STORAGE_KEY,
 ): StateStorage {
+  const target = storage === undefined ? getBrowserStorage() : storage;
+  let available = Boolean(target);
   return {
-    read: () => storage?.getItem(key) ?? null,
-    write: (value) => storage?.setItem(key, value),
-    remove: () => storage?.removeItem(key),
+    read: () => {
+      try {
+        return target?.getItem(key) ?? null;
+      } catch {
+        available = false;
+        return null;
+      }
+    },
+    write: (value) => {
+      try {
+        target?.setItem(key, value);
+      } catch {
+        available = false;
+      }
+    },
+    remove: () => {
+      try {
+        target?.removeItem(key);
+      } catch {
+        available = false;
+      }
+    },
+    isAvailable: () => available,
   };
 }
 
 export function loadState(storage: StateStorage, fallback = createSampleState): LoadResult {
-  const raw = storage.read();
-  if (!raw) return { state: fallback(), recovered: false };
+  let raw: string | null = null;
+  let readFailed = false;
+  try {
+    raw = storage.read();
+  } catch {
+    raw = null;
+    readFailed = true;
+  }
+  const available = !readFailed && (storage.isAvailable?.() ?? true);
+  if (!raw) return { state: fallback(), recovered: false, available };
 
   try {
-    return { state: migrate(JSON.parse(raw)), recovered: false };
+    return { state: migrate(JSON.parse(raw)), recovered: false, available };
   } catch {
-    return { state: fallback(), recovered: true };
+    return { state: fallback(), recovered: true, available };
   }
 }
 
 export function saveState(storage: StateStorage, next: AppState, expectedRevision: number): SaveResult {
-  const raw = storage.read();
+  let raw: string | null = null;
+  let readFailed = false;
+  try {
+    raw = storage.read();
+  } catch {
+    readFailed = true;
+  }
+  if (readFailed || storage.isAvailable?.() === false) {
+    return { ok: true, state: next };
+  }
   if (raw) {
     let current: AppState;
     try {
       current = migrate(JSON.parse(raw));
     } catch {
-      storage.write(JSON.stringify(next));
+      try {
+        storage.write(JSON.stringify(next));
+      } catch {
+        // Keep the in-memory state usable when durable storage is unavailable.
+      }
       return { ok: true, state: next };
     }
     if (current.revision !== expectedRevision) {
@@ -53,14 +95,23 @@ export function saveState(storage: StateStorage, next: AppState, expectedRevisio
     return { ok: false, reason: "conflict", state: createSampleState() };
   }
 
-  storage.write(JSON.stringify(next));
+  try {
+    storage.write(JSON.stringify(next));
+  } catch {
+    // Keep the in-memory state usable when durable storage is unavailable.
+  }
   return { ok: true, state: next };
 }
 
 export function migrate(value: unknown): AppState {
   if (!isRecord(value)) throw new Error("Stored state is not an object.");
   if (value.schemaVersion === CURRENT_SCHEMA_VERSION) return validateCurrentState(value);
-  if (value.schemaVersion === 2 || value.schemaVersion === 1 || value.schemaVersion === 0) {
+  if (
+    value.schemaVersion === 3 ||
+    value.schemaVersion === 2 ||
+    value.schemaVersion === 1 ||
+    value.schemaVersion === 0
+  ) {
     return validateCurrentState(migrateTasks({
       ...value,
       schemaVersion: CURRENT_SCHEMA_VERSION,
@@ -75,6 +126,8 @@ export function migrate(value: unknown): AppState {
         : value.preferences,
       undoStack: Array.isArray(value.undoStack) ? value.undoStack : [],
       orderItems: isRecord(value.orderItems) ? value.orderItems : {},
+      notes: isRecord(value.notes) ? value.notes : {},
+      diaryEntries: isRecord(value.diaryEntries) ? value.diaryEntries : {},
     }));
   }
   throw new Error("Stored state schema is unsupported.");
@@ -91,12 +144,22 @@ function validateCurrentState(value: Record<string, unknown>): AppState {
     !isRecord(value.filters) ||
     !isRecord(value.tasks) ||
     !isRecord(value.orderItems) ||
+    !isRecord(value.notes) ||
+    !isRecord(value.diaryEntries) ||
     !isRecord(value.preferences) ||
     !Array.isArray(value.undoStack)
   ) {
     throw new Error("Stored state is incomplete.");
   }
   return migrateTasks(value) as unknown as AppState;
+}
+
+function getBrowserStorage(): Pick<Storage, "getItem" | "setItem" | "removeItem"> | undefined {
+  try {
+    return typeof window === "undefined" ? undefined : window.localStorage;
+  } catch {
+    return undefined;
+  }
 }
 
 function migrateTasks(value: Record<string, unknown>): Record<string, unknown> {

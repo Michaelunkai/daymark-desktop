@@ -160,8 +160,8 @@ export function OrderWorkspace({ items, onAdd, onUpdate, onDelete, onMove }) {
               </div>
               <button aria-label="Close Order editor" className="icon-button" onClick={closeEditor} title="Close" type="button">x</button>
             </div>
-            <label>Title<input autoFocus maxLength={160} onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} /></label>
-            <label>Details<textarea maxLength={500} onChange={(event) => setDraft({ ...draft, details: event.target.value })} rows={3} value={draft.details} /></label>
+            <label>Title<input autoFocus onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} /></label>
+            <label>Details<textarea onChange={(event) => setDraft({ ...draft, details: event.target.value })} rows={3} value={draft.details} /></label>
             <div className="order-editor__grid">
               <label>Group<select onChange={(event) => setDraft({ ...draft, lane: event.target.value, relationId: event.target.value === 'now' || event.target.value === 'later' ? null : draft.relationId })} value={draft.lane}>{LANES.map((lane) => <option key={lane.id} value={lane.id}>{lane.label}</option>)}</select></label>
               <label>Priority<select onChange={(event) => setDraft({ ...draft, priority: Number(event.target.value) })} value={draft.priority}>{PRIORITIES.map((priority) => <option key={priority.value} value={priority.value}>{priority.label}</option>)}</select></label>
