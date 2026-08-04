@@ -7,7 +7,7 @@ const workerSource = readFileSync(new URL('../worker/index.js', import.meta.url)
 
 test('Sites worker serves ASSETS and falls back to index.html for HTML routes', () => {
   assert.match(workerSource, /env\.ASSETS\.fetch\(request\)/)
-  assert.match(workerSource, /Accept/)
+  assert.match(workerSource, /isStaticAsset/)
   assert.match(workerSource, /\/index\.html/)
   assert.match(workerSource, /export default worker/)
 })
@@ -42,6 +42,13 @@ test('Sites worker behavior preserves assets, serves SPA routes, and keeps missi
   assert.equal(routeResponse.status, 200)
   assert.equal(await routeResponse.text(), 'DAYMARK')
 
+  const defaultAcceptRouteResponse = await worker.fetch(
+    new Request('https://daymark.test/workspace/order'),
+    env,
+  )
+  assert.equal(defaultAcceptRouteResponse.status, 200)
+  assert.equal(await defaultAcceptRouteResponse.text(), 'DAYMARK')
+
   const missingResponse = await worker.fetch(
     new Request('https://daymark.test/assets/missing.js'),
     env,
@@ -59,6 +66,8 @@ test('Sites worker behavior preserves assets, serves SPA routes, and keeps missi
   assert.equal(postResponse.status, 404)
   assert.deepEqual(requestedPaths, [
     '/assets/app.js',
+    '/workspace/order',
+    '/index.html',
     '/workspace/order',
     '/index.html',
     '/assets/missing.js',

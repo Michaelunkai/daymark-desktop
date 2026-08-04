@@ -91,4 +91,5 @@ Baseline: `edc1f5e` (`main`, `origin/codex/daymark-capture-edc1f5e`)
 - The build now emits `dist/client/index.html` and `dist/client/assets/**`, retains `dist/server/index.js`, removes the legacy root-level client layout, and tests the archive-facing paths before republishing.
 - Corrected Sites version `3` deployed from commit `062d8788f23bc6cca4c3957877328ea04fdec9b9` with terminal status `succeeded`.
 - Independent HTTP acceptance passed: `GET /` returned `200 text/html` containing HTML, and `GET /assets/index-CDFecL_g.js` returned `200 text/javascript` with non-empty content.
-- The public URL is live and serving the corrected `dist/client` archive layout; no browser-control proof is claimed.
+- A follow-up direct GET to `/workspace/order` with the default `Accept` header exposed one remaining Worker defect: extensionless SPA routes were incorrectly gated on `Accept: text/html`.
+- The Worker now falls back for extensionless GET/HEAD routes regardless of `Accept`, while preserving 404s for `/assets/**` and other extension-bearing missing files. Final live acceptance remains pending this correction's deployment.

@@ -10,8 +10,9 @@ const worker = {
     const assetResponse = await env.ASSETS.fetch(request)
     if (assetResponse.status !== 404) return assetResponse
 
-    const acceptsHtml = request.headers.get('Accept')?.includes('text/html')
-    if (!acceptsHtml || !['GET', 'HEAD'].includes(request.method)) {
+    const pathname = new URL(request.url).pathname
+    const isStaticAsset = pathname.startsWith('/assets/') || /\.[^/]+$/.test(pathname)
+    if (isStaticAsset || !['GET', 'HEAD'].includes(request.method)) {
       return assetResponse
     }
 
