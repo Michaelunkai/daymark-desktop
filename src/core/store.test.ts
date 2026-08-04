@@ -13,10 +13,45 @@ const storage = { read: () => raw, write: (value: string) => { raw = value; } };
 const app = createAppStore(storage);
 const completed = app.dispatch({ type: "task.complete", taskId: "task-welcome" });
 assert(completed.ok && completed.state.tasks["task-welcome"].completedAt, "Completion should persist.");
+const completedAt = completed.ok ? completed.state.tasks["task-welcome"].completedAt : null;
+assert(
+  completed.ok &&
+    completed.state.tasks["task-welcome"].completionContext?.sectionId === "section-next",
+  "Completion should preserve the original active context.",
+);
+const repeatedCompletion = app.dispatch({ type: "task.complete", taskId: "task-welcome" });
+assert(
+  repeatedCompletion.ok &&
+    repeatedCompletion.state.tasks["task-welcome"].completedAt === completedAt,
+  "Repeated completion should be idempotent and retain its original timestamp.",
+);
 
 const reopened = createAppStore(storage);
 const undone = reopened.dispatch({ type: "undo" });
 assert(undone.ok && undone.state.tasks["task-welcome"].completedAt === null, "Undo should survive a reload.");
+
+const restoreState = createSampleState(timestamp, "restore-client");
+const restoredStorage = {
+  read: () => JSON.stringify(restoreState),
+  write: (value: string) => Object.assign(restoreState, JSON.parse(value)),
+};
+const restoreApp = createAppStore(restoredStorage);
+const completedRestore = restoreApp.dispatch({ type: "task.complete", taskId: "task-welcome" });
+assert(completedRestore.ok, "Task should complete before restore.");
+const restored = restoreApp.dispatch({ type: "task.uncomplete", taskId: "task-welcome" });
+assert(
+  restored.ok &&
+    restored.state.tasks["task-welcome"].completedAt === null &&
+    restored.state.tasks["task-welcome"].projectId === "project-personal" &&
+    restored.state.tasks["task-welcome"].sectionId === "section-next" &&
+    restored.state.tasks["task-welcome"].order === 0,
+  "Restore should return a task to its original active context.",
+);
+const repeatedRestore = restoreApp.dispatch({ type: "task.uncomplete", taskId: "task-welcome" });
+assert(
+  repeatedRestore.ok && repeatedRestore.state.tasks["task-welcome"].completedAt === null,
+  "Repeated restore should be idempotent.",
+);
 
 const base = createSampleState(timestamp, "conflict-client");
 const left = reduce(base, { type: "task.add", input: { id: "task-left", content: "Left" } }, timestamp);
@@ -27,7 +62,67 @@ assert(saveState(storage, left.state, base.revision).ok, "First writer should sa
 assert(!saveState(storage, right.state, base.revision).ok, "Stale writer must be rejected.");
 
 const migrated = migrate({ ...base, schemaVersion: 1, sections: undefined, filters: undefined });
-assert(migrated.schemaVersion === 2 && Object.keys(migrated.sections).length === 0, "Legacy state should migrate.");
+assert(
+  migrated.schemaVersion === 3 &&
+    Object.keys(migrated.sections).length === 0 &&
+    migrated.tasks["task-welcome"].completionContext === null,
+  "Legacy state should migrate to schema v3.",
+);
+
+const legacyCompleted = migrate({
+  ...base,
+  schemaVersion: 2,
+  tasks: {
+    ...base.tasks,
+    "task-welcome": {
+      ...base.tasks["task-welcome"],
+      completedAt: "2026-08-03T12:34:56.000Z",
+    },
+  },
+});
+assert(
+  legacyCompleted.tasks["task-welcome"].completionContext?.order === 0,
+  "Schema v2 completed tasks should gain an active-context snapshot.",
+);
+
+const longText = "x".repeat(100_000);
+const large = reduce(
+  base,
+  {
+    type: "task.add",
+    input: {
+      id: "task-large",
+      content: longText,
+      description: longText,
+    },
+  },
+  timestamp,
+);
+assert(
+  large.ok &&
+    large.state.tasks["task-large"].content.length === longText.length &&
+    large.state.tasks["task-large"].description.length === longText.length,
+  "Large task content and descriptions must persist without arbitrary limits.",
+);
+
+const ordered = createSampleState(timestamp, "order-client");
+ordered.tasks["task-second"] = {
+  ...ordered.tasks["task-welcome"],
+  id: "task-second",
+  content: "Second",
+  order: 1,
+};
+const reordered = reduce(
+  ordered,
+  { type: "task.reorder", input: { taskId: "task-second", sectionId: "section-next", order: 0 } },
+  timestamp,
+);
+assert(
+  reordered.ok &&
+    reordered.state.tasks["task-second"].order === 0 &&
+    reordered.state.tasks["task-welcome"].order === 1,
+  "Task reorder should durably preserve sibling ordering.",
+);
 
 const invalidMove = reduce(base, { type: "task.update", taskId: "task-welcome", patch: { sectionId: "missing" } });
 assert(!invalidMove.ok, "Cross-project or missing section assignment must be rejected.");

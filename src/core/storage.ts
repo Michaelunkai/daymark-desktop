@@ -1,5 +1,10 @@
 import { createSampleState } from "./sample-data";
-import { CURRENT_SCHEMA_VERSION, type AppState, type StateStorage } from "./types";
+import {
+  CURRENT_SCHEMA_VERSION,
+  type AppState,
+  type StateStorage,
+  type Task,
+} from "./types";
 
 export const STORAGE_KEY = "todoist-replica.state";
 
@@ -56,7 +61,7 @@ export function migrate(value: unknown): AppState {
   if (!isRecord(value)) throw new Error("Stored state is not an object.");
   if (value.schemaVersion === CURRENT_SCHEMA_VERSION) return validateCurrentState(value);
   if (value.schemaVersion === 1 || value.schemaVersion === 0) {
-    return validateCurrentState({
+    return validateCurrentState(migrateTasks({
       ...value,
       schemaVersion: CURRENT_SCHEMA_VERSION,
       sections: isRecord(value.sections) ? value.sections : {},
@@ -69,7 +74,13 @@ export function migrate(value: unknown): AppState {
           }
         : value.preferences,
       undoStack: Array.isArray(value.undoStack) ? value.undoStack : [],
-    });
+    }));
+  }
+  if (value.schemaVersion === 2) {
+    return validateCurrentState(migrateTasks({
+      ...value,
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+    }));
   }
   throw new Error("Stored state schema is unsupported.");
 }
@@ -89,7 +100,37 @@ function validateCurrentState(value: Record<string, unknown>): AppState {
   ) {
     throw new Error("Stored state is incomplete.");
   }
-  return value as unknown as AppState;
+  return migrateTasks(value) as unknown as AppState;
+}
+
+function migrateTasks(value: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(value.tasks)) return value;
+
+  const tasks = Object.fromEntries(
+    Object.entries(value.tasks).map(([id, rawTask]) => {
+      if (!isRecord(rawTask)) throw new Error(`Stored task ${id} is invalid.`);
+      const task = rawTask as Partial<Task>;
+      const completionContext =
+        task.completionContext ??
+        (typeof task.completedAt === "string"
+          ? {
+              projectId: typeof task.projectId === "string" ? task.projectId : "",
+              sectionId: typeof task.sectionId === "string" ? task.sectionId : null,
+              order: typeof task.order === "number" ? task.order : 0,
+            }
+          : null);
+      return [
+        id,
+        {
+          ...rawTask,
+          completionContext,
+          completedAt: typeof task.completedAt === "string" ? task.completedAt : null,
+        },
+      ];
+    }),
+  );
+
+  return { ...value, tasks };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

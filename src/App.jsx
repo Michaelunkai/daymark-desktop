@@ -33,6 +33,7 @@ const NAV_ITEMS = [
   { id: 'today', label: 'Today', icon: 'sun', count: 5 },
   { id: 'inbox', label: 'Inbox', icon: 'inbox', count: 4 },
   { id: 'upcoming', label: 'Upcoming', icon: 'calendar', count: 7 },
+  { id: 'completed', label: 'Completed', icon: 'check', count: 0 },
 ]
 
 const PROJECT_COLORS = {
@@ -281,6 +282,12 @@ const ICONS = {
       <path d="M14.5 3.5V7H18M8 11h8M8 15h6" />
     </>
   ),
+  check: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="m8 12 2.6 2.6L16.5 9" />
+    </>
+  ),
   close: (
     <>
       <path d="m6 6 12 12M18 6 6 18" />
@@ -350,10 +357,10 @@ function TaskRow({ task, onToggle, onOpen }) {
   return (
     <article className={`task-row ${task.completed ? 'is-completed' : ''}`}>
       <button
-        aria-label={task.completed ? `Mark ${task.title} active` : `Complete ${task.title}`}
+        aria-label={task.completed ? `Restore ${task.title}` : `Complete ${task.title}`}
         className="task-check"
         onClick={() => onToggle(task.id)}
-        title={task.completed ? 'Mark active' : 'Complete task'}
+        title={task.completed ? 'Restore task' : 'Complete task'}
         type="button"
       >
         {task.completed ? <span>✓</span> : null}
@@ -629,6 +636,9 @@ function getRouteInfo(route, state) {
   }
   if (route === 'upcoming') {
     return { title: 'Upcoming', kicker: 'NEXT HORIZON', subtitle: 'A clear runway for the days ahead.' }
+  }
+  if (route === 'completed') {
+    return { title: 'Completed', kicker: 'WORKSPACE HISTORY', subtitle: 'Completed work stays here until you restore it.' }
   }
   if (route.startsWith('project:')) {
     const project = state.projects[route.slice('project:'.length)]
@@ -912,7 +922,10 @@ function App() {
     () => Object.values(state.tasks).map((task) => toViewTask(task, state)),
     [state],
   )
-  const calendarTasks = useMemo(() => Object.values(state.tasks), [state.tasks])
+  const calendarTasks = useMemo(
+    () => Object.values(state.tasks).filter((task) => task.completedAt === null),
+    [state.tasks],
+  )
   const today = toLocalDate(new Date())
   const projectItems = useMemo(
     () =>
@@ -927,23 +940,30 @@ function App() {
   )
   const routeInfo = getRouteInfo(route, state)
   const visibleTasks = useMemo(() => {
-    if (searchTerm.trim()) {
-      const query = searchTerm.trim().toLowerCase()
-      return tasks.filter((task) => `${task.title} ${task.note} ${task.priority} ${task.projectName} ${task.tagName}`.toLowerCase().includes(query))
-    }
     let scoped = tasks
     if (route === 'inbox') scoped = tasks.filter((task) => task.project === state.preferences.inboxProjectId)
     if (route === 'upcoming') scoped = tasks.filter((task) => state.tasks[task.id]?.due?.date >= today)
+    if (route === 'completed') scoped = tasks.filter((task) => task.completed)
     if (route.startsWith('project:')) scoped = tasks.filter((task) => task.project === route.slice('project:'.length))
     if (route.startsWith('label:')) scoped = tasks.filter((task) => task.tag === route.slice('label:'.length))
     if (route === 'today') scoped = tasks.filter((task) => state.tasks[task.id]?.due?.date === today)
+    if (route !== 'completed') scoped = scoped.filter((task) => !task.completed)
+    if (searchTerm.trim()) {
+      const query = searchTerm.trim().toLowerCase()
+      scoped = scoped.filter((task) => `${task.title} ${task.note} ${task.priority} ${task.projectName} ${task.tagName}`.toLowerCase().includes(query))
+    }
     return scoped
   }, [route, searchTerm, state.preferences.inboxProjectId, state.tasks, tasks, today])
 
   const sections = useMemo(() => {
-    const names = [...new Set(visibleTasks.map((task) => task.section))]
-    return names.map((name) => ({ name, tasks: visibleTasks.filter((task) => task.section === name) }))
-  }, [visibleTasks])
+    const orderedTasks = [...visibleTasks].sort((left, right) => {
+      const leftTask = state.tasks[left.id]
+      const rightTask = state.tasks[right.id]
+      return (leftTask?.order ?? 0) - (rightTask?.order ?? 0) || left.id.localeCompare(right.id)
+    })
+    const names = [...new Set(orderedTasks.map((task) => task.section))]
+    return names.map((name) => ({ name, tasks: orderedTasks.filter((task) => task.section === name) }))
+  }, [state.tasks, visibleTasks])
 
   useEffect(() => {
     if (composerOpen) {
@@ -1286,7 +1306,13 @@ function App() {
               {NAV_ITEMS.map((item) => (
                 <SidebarRow
                   active={route === item.id}
-                  count={item.id === 'today' ? tasks.filter((task) => state.tasks[task.id]?.due?.date === today && !task.completed).length : item.id === 'inbox' ? tasks.filter((task) => task.project === state.preferences.inboxProjectId && !task.completed).length : tasks.filter((task) => state.tasks[task.id]?.due?.date >= today && !task.completed).length}
+                  count={item.id === 'today'
+                    ? tasks.filter((task) => state.tasks[task.id]?.due?.date === today && !task.completed).length
+                    : item.id === 'inbox'
+                      ? tasks.filter((task) => task.project === state.preferences.inboxProjectId && !task.completed).length
+                      : item.id === 'upcoming'
+                        ? tasks.filter((task) => state.tasks[task.id]?.due?.date >= today && !task.completed).length
+                        : tasks.filter((task) => task.completed).length}
                   icon={item.icon}
                   key={item.id}
                   label={item.label}
