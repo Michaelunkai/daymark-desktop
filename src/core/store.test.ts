@@ -61,7 +61,7 @@ raw = JSON.stringify(base);
 assert(saveState(storage, left.state, base.revision).ok, "First writer should save.");
 assert(!saveState(storage, right.state, base.revision).ok, "Stale writer must be rejected.");
 
-const migrated = migrate({ ...base, schemaVersion: 1, sections: undefined, filters: undefined });
+const migrated = migrate({ ...base, schemaVersion: 1, sections: undefined, filters: undefined, orderItems: undefined });
 assert(
   migrated.schemaVersion === 3 &&
     Object.keys(migrated.sections).length === 0 &&
