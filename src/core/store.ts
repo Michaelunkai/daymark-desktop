@@ -4,6 +4,7 @@ import type {
   AppState,
   DispatchResult,
   Label,
+  OrderItem,
   Project,
   SavedFilter,
   Section,
@@ -172,6 +173,42 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       delete state.projects[action.projectId];
       return { ok: true, inverse: { type: "project.restore", project: structuredClone(project) } };
     }
+    case "project.delete": {
+      const project = state.projects[action.projectId];
+      if (!project) return invalid("The project no longer exists.");
+      if (project.id === state.preferences.inboxProjectId) return invalid("Inbox cannot be deleted.");
+      if (Object.values(state.projects).some((candidate) => candidate.parentId === project.id)) {
+        return invalid("Move or delete child projects before deleting this project.");
+      }
+      const sections = Object.values(state.sections).filter((section) => section.projectId === project.id);
+      const tasks = Object.values(state.tasks).filter((task) => task.projectId === project.id);
+      const taskSnapshot = structuredClone(tasks);
+      for (const task of tasks) {
+        task.projectId = state.preferences.inboxProjectId;
+        task.sectionId = null;
+        task.updatedAt = now;
+      }
+      for (const section of sections) delete state.sections[section.id];
+      delete state.projects[project.id];
+      if (state.preferences.activeProjectId === project.id) {
+        state.preferences.activeProjectId = state.preferences.inboxProjectId;
+      }
+      return {
+        ok: true,
+        inverse: {
+          type: "project.restoreBundle",
+          project: structuredClone(project),
+          sections: structuredClone(sections),
+          tasks: taskSnapshot,
+        },
+      };
+    }
+    case "project.restoreBundle": {
+      state.projects[action.project.id] = structuredClone(action.project);
+      for (const section of action.sections) state.sections[section.id] = structuredClone(section);
+      for (const task of action.tasks) state.tasks[task.id] = structuredClone(task);
+      return { ok: true, inverse: { type: "project.delete", projectId: action.project.id } };
+    }
     case "project.update": {
       const project = state.projects[action.projectId];
       if (!project) return invalid("The project no longer exists.");
@@ -187,6 +224,50 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       project.isArchived = action.archived;
       project.updatedAt = now;
       return { ok: true, inverse: { type: "project.update", projectId: project.id, patch: { isArchived: before } } };
+    }
+    case "order.add": {
+      if (!action.input.title.trim()) return invalid("An Order item needs a title.");
+      const id = action.input.id ?? createId("order");
+      if (state.orderItems[id]) return invalid("That Order item already exists.");
+      const relationId = action.input.relationId ?? null;
+      if (relationId && !state.orderItems[relationId]) return invalid("The related Order item does not exist.");
+      const item: OrderItem = {
+        id,
+        title: action.input.title.trim(),
+        details: action.input.details?.trim() ?? "",
+        lane: action.input.lane ?? "now",
+        relationId,
+        priority: action.input.priority ?? 4,
+        status: action.input.status ?? "open",
+        order: action.input.order ?? nextOrder(state.orderItems),
+        createdAt: now,
+        updatedAt: now,
+      };
+      state.orderItems[id] = item;
+      return { ok: true, inverse: { type: "order.delete", itemId: id } };
+    }
+    case "order.update": {
+      const item = state.orderItems[action.itemId];
+      if (!item) return invalid("The Order item no longer exists.");
+      if (action.patch.title !== undefined && !action.patch.title.trim()) return invalid("An Order item needs a title.");
+      if (action.patch.relationId && !state.orderItems[action.patch.relationId]) return invalid("The related Order item does not exist.");
+      if (action.patch.relationId === item.id) return invalid("An Order item cannot relate to itself.");
+      const before = pick(item, action.patch);
+      Object.assign(item, action.patch, {
+        title: action.patch.title?.trim() ?? item.title,
+        details: action.patch.details?.trim() ?? item.details,
+        updatedAt: now,
+      });
+      return { ok: true, inverse: { type: "order.update", itemId: item.id, patch: before } };
+    }
+    case "order.delete": {
+      const item = state.orderItems[action.itemId];
+      if (!item) return invalid("The Order item no longer exists.");
+      delete state.orderItems[action.itemId];
+      Object.values(state.orderItems).forEach((candidate) => {
+        if (candidate.relationId === item.id) candidate.relationId = null;
+      });
+      return { ok: true, inverse: { type: "order.add", input: structuredClone(item) } };
     }
     case "section.add": {
       if (!action.input.name.trim() || !state.projects[action.input.projectId]) return invalid("A section needs a valid project and name.");

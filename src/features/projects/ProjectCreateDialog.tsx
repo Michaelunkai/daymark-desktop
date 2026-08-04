@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { ProjectInput } from "../../core/types";
+import type { Project, ProjectInput } from "../../core/types";
 
 const PROJECT_COLORS = [
   { value: "teal", label: "Teal", swatch: "#0f766e" },
@@ -26,12 +26,16 @@ export interface ProjectCreateDialogProps {
   isOpen: boolean;
   onCancel: () => void;
   onCreate: (values: ProjectCreateValues) => void;
+  project?: Project | null;
+  onSave?: (projectId: string, values: ProjectCreateValues["project"]) => void;
 }
 
 export function ProjectCreateDialog({
   isOpen,
   onCancel,
   onCreate,
+  project = null,
+  onSave,
 }: ProjectCreateDialogProps) {
   const dialogRef = useRef<HTMLElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -51,15 +55,15 @@ export function ProjectCreateDialog({
     }
 
     openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    setName("");
-    setDescription("");
-    setColor(PROJECT_COLORS[0].value);
+    setName(project?.name ?? "");
+    setDescription(project?.description ?? "");
+    setColor(project?.color ?? PROJECT_COLORS[0].value);
     setDefaultSectionName("To do");
     setNameError("");
 
     const frame = window.requestAnimationFrame(() => nameRef.current?.focus());
     return () => window.cancelAnimationFrame(frame);
-  }, [isOpen]);
+  }, [isOpen, project]);
 
   const close = useCallback(() => {
     onCancel();
@@ -91,12 +95,14 @@ export function ProjectCreateDialog({
       return;
     }
 
-    onCreate({
-      project: {
-        name: trimmedName,
-        description: description.trim(),
-        color,
-      },
+    const values = {
+      name: trimmedName,
+      description: description.trim(),
+      color,
+    };
+    if (project && onSave) onSave(project.id, values);
+    else onCreate({
+      project: values,
       defaultSectionName: defaultSectionName.trim(),
     });
     window.requestAnimationFrame(() => openerRef.current?.focus());
@@ -148,8 +154,8 @@ export function ProjectCreateDialog({
       >
         <header className="project-create-dialog__header">
           <div>
-            <p className="project-create-dialog__eyebrow">New project</p>
-            <h2 id={titleId}>Make space for a plan</h2>
+            <p className="project-create-dialog__eyebrow">{project ? "Edit project" : "New project"}</p>
+            <h2 id={titleId}>{project ? "Refine the plan" : "Make space for a plan"}</h2>
             <p id={descriptionId}>Projects keep related tasks and sections together.</p>
           </div>
           <button
@@ -214,22 +220,24 @@ export function ProjectCreateDialog({
             </div>
           </fieldset>
 
-          <label className="project-create-dialog__field">
-            <span>First section <em>Optional</em></span>
-            <input
-              autoComplete="off"
-              maxLength={120}
-              onChange={(event) => setDefaultSectionName(event.target.value)}
-              placeholder="To do"
-              type="text"
-              value={defaultSectionName}
-            />
-            <small>Leave blank to create the project without a section.</small>
-          </label>
+          {!project ? (
+            <label className="project-create-dialog__field">
+              <span>First section <em>Optional</em></span>
+              <input
+                autoComplete="off"
+                maxLength={120}
+                onChange={(event) => setDefaultSectionName(event.target.value)}
+                placeholder="To do"
+                type="text"
+                value={defaultSectionName}
+              />
+              <small>Leave blank to create the project without a section.</small>
+            </label>
+          ) : null}
 
           <footer className="project-create-dialog__actions">
             <button className="project-create-dialog__cancel" onClick={close} type="button">Cancel</button>
-            <button className="project-create-dialog__submit" type="submit">Create project</button>
+            <button className="project-create-dialog__submit" type="submit">{project ? "Save changes" : "Create project"}</button>
           </footer>
         </form>
       </section>

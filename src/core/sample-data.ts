@@ -82,6 +82,20 @@ export function createSampleState(
         updatedAt: now,
       },
     },
+    orderItems: {
+      "order-welcome": {
+        id: "order-welcome",
+        title: "Choose the next useful step",
+        details: "Keep this list small enough to act on.",
+        lane: "now",
+        relationId: null,
+        priority: 2,
+        status: "open",
+        order: 0,
+        createdAt: now,
+        updatedAt: now,
+      },
+    },
     preferences: {
       inboxProjectId: inbox.id,
       activeProjectId: inbox.id,

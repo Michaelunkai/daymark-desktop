@@ -55,7 +55,7 @@ export function saveState(storage: StateStorage, next: AppState, expectedRevisio
 export function migrate(value: unknown): AppState {
   if (!isRecord(value)) throw new Error("Stored state is not an object.");
   if (value.schemaVersion === CURRENT_SCHEMA_VERSION) return validateCurrentState(value);
-  if (value.schemaVersion === 1 || value.schemaVersion === 0) {
+  if (value.schemaVersion === 2 || value.schemaVersion === 1 || value.schemaVersion === 0) {
     return validateCurrentState({
       ...value,
       schemaVersion: CURRENT_SCHEMA_VERSION,
@@ -69,6 +69,7 @@ export function migrate(value: unknown): AppState {
           }
         : value.preferences,
       undoStack: Array.isArray(value.undoStack) ? value.undoStack : [],
+      orderItems: isRecord(value.orderItems) ? value.orderItems : {},
     });
   }
   throw new Error("Stored state schema is unsupported.");
@@ -84,6 +85,7 @@ function validateCurrentState(value: Record<string, unknown>): AppState {
     !isRecord(value.labels) ||
     !isRecord(value.filters) ||
     !isRecord(value.tasks) ||
+    !isRecord(value.orderItems) ||
     !isRecord(value.preferences) ||
     !Array.isArray(value.undoStack)
   ) {

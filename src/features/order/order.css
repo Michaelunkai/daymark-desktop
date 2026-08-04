@@ -1,0 +1,40 @@
+.order-workspace { min-width: 0; }
+.order-header { align-items: flex-end; display: flex; gap: 24px; justify-content: space-between; margin-bottom: 28px; }
+.order-header h1 { color: var(--ink); font-size: clamp(28px, 3vw, 38px); letter-spacing: 0; line-height: 1; margin: 0; }
+.order-header p { color: var(--ink-soft); font-size: 13px; margin: 12px 0 0; }
+.order-intro { align-items: center; border-bottom: 1px solid var(--line); display: flex; gap: 12px; justify-content: space-between; margin-bottom: 18px; padding: 0 2px 14px; }
+.order-intro strong { color: var(--ink); font-size: 12px; }
+.order-intro span { color: var(--ink-muted); font-size: 11px; }
+.order-lanes { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.order-lane { background: rgb(255 255 255 / 60%); border: 1px solid var(--line); border-radius: 8px; min-width: 0; padding: 15px; }
+.order-lane--now { border-top: 3px solid var(--teal); }
+.order-lane--later { border-top: 3px solid var(--indigo); }
+.order-lane--after { border-top: 3px solid var(--amber); }
+.order-lane--before { border-top: 3px solid var(--accent); }
+.order-lane__header { align-items: flex-start; display: flex; gap: 10px; justify-content: space-between; }
+.order-lane__header h2 { color: var(--ink); font-size: 15px; margin: 0; }
+.order-lane__header p { color: var(--ink-muted); font-size: 10px; line-height: 1.4; margin: 5px 0 0; }
+.order-lane__count { align-items: center; background: var(--surface-tint); border-radius: 10px; color: var(--ink-soft); display: inline-flex; font-size: 10px; height: 21px; justify-content: center; min-width: 21px; }
+.order-lane__items { display: grid; gap: 8px; margin-top: 16px; min-height: 52px; }
+.order-item { align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: 7px; display: grid; gap: 8px; grid-template-columns: 24px minmax(0, 1fr) auto; padding: 10px; }
+.order-item:hover, .order-item:focus-within { border-color: #a8c0b7; box-shadow: 0 4px 12px rgb(30 54 50 / 8%); }
+.order-item.is-dragging { opacity: .55; }
+.order-item__grip { align-items: center; background: transparent; color: var(--ink-muted); cursor: grab; display: inline-flex; font-size: 13px; height: 28px; justify-content: center; letter-spacing: -2px; padding: 0; touch-action: none; }
+.order-item__body { min-width: 0; }
+.order-item__title-row { align-items: flex-start; display: flex; gap: 8px; justify-content: space-between; }
+.order-item__title { background: transparent; color: var(--ink); cursor: pointer; font-size: 12px; font-weight: 700; overflow-wrap: anywhere; padding: 0; text-align: left; }
+.order-item__body p { color: var(--ink-soft); font-size: 11px; line-height: 1.4; margin: 6px 0 0; }
+.order-priority { flex: 0 0 auto; font-size: 9px; font-weight: 750; text-transform: uppercase; }
+.order-priority--1 { color: var(--accent-strong); }.order-priority--2 { color: var(--amber); }.order-priority--3 { color: var(--indigo); }.order-priority--4 { color: var(--ink-muted); }
+.order-item__meta { align-items: center; color: var(--ink-muted); display: flex; flex-wrap: wrap; font-size: 10px; gap: 7px; margin-top: 8px; }
+.order-status { border-radius: 4px; padding: 2px 5px; text-transform: capitalize; }.order-status--open { background: var(--teal-soft); color: var(--teal); }.order-status--done { background: var(--surface-tint); color: var(--ink-muted); text-decoration: line-through; }.order-status--blocked { background: var(--accent-soft); color: var(--accent-strong); }
+.order-item__actions { align-items: center; display: flex; flex-wrap: wrap; gap: 2px; justify-content: flex-end; }
+.order-item__actions button { background: transparent; border-radius: 5px; color: var(--ink-muted); cursor: pointer; font-size: 10px; min-height: 28px; min-width: 28px; padding: 0 5px; }
+.order-item__actions button:hover:not(:disabled) { background: var(--surface-tint); color: var(--ink); }.order-item__actions button:disabled { cursor: not-allowed; opacity: .35; }
+.order-lane__empty { border: 1px dashed var(--line-strong); color: var(--ink-muted); font-size: 11px; margin: 0; padding: 14px; text-align: center; }
+.order-lane__add { background: transparent; color: var(--ink-soft); cursor: pointer; font-size: 11px; margin-top: 10px; padding: 4px 0; }.order-lane__add:hover { color: var(--accent-strong); }
+.order-empty { align-items: center; border: 1px dashed var(--line-strong); display: grid; justify-items: center; min-height: 280px; padding: 32px; text-align: center; }.order-empty__mark { align-items: center; background: var(--teal-soft); border-radius: 12px; color: var(--teal); display: inline-flex; font-size: 22px; height: 46px; justify-content: center; width: 46px; }.order-empty h2 { color: var(--ink); font-size: 16px; margin: 15px 0 0; }.order-empty p { color: var(--ink-soft); font-size: 12px; margin: 9px 0 18px; }
+.order-editor-overlay { align-items: center; background: rgb(31 41 43 / 28%); display: flex; inset: 0; justify-content: center; padding: 16px; position: fixed; z-index: 15; }
+.order-editor { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; box-shadow: var(--shadow); display: grid; gap: 15px; max-width: 500px; padding: 20px; width: 100%; }
+.order-editor__header { align-items: flex-start; display: flex; justify-content: space-between; }.order-editor__header h2 { color: var(--ink); font-size: 19px; margin: 0; }.order-editor label { color: var(--ink); display: grid; font-size: 11px; font-weight: 700; gap: 6px; }.order-editor input, .order-editor textarea, .order-editor select { background: var(--surface-soft); border: 1px solid var(--line-strong); border-radius: 6px; color: var(--ink); font-size: 12px; min-height: 36px; padding: 8px 9px; width: 100%; }.order-editor textarea { resize: vertical; }.order-editor__grid { display: grid; gap: 10px; grid-template-columns: repeat(3, 1fr); }.order-editor__actions { border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: flex-end; margin-top: 3px; padding-top: 15px; }
+@media (max-width: 720px) { .order-header, .order-intro { align-items: flex-start; flex-direction: column; }.order-lanes { grid-template-columns: minmax(0, 1fr); }.order-editor__grid { grid-template-columns: minmax(0, 1fr); } }
