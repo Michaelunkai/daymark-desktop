@@ -5,6 +5,11 @@ const SYNC_PATTERN = /^[A-Za-z0-9_-]{22}$/;
 
 export type SyncStatus = "starting" | "synced" | "syncing" | "offline" | "conflict";
 
+type SyncMessage = {
+  source: string;
+  state: AppState;
+};
+
 export function getSyncKey(storage?: Pick<Storage, "getItem" | "setItem"> | null): string {
   const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
   const fromUrl = params.get("sync") ?? "";
@@ -70,6 +75,65 @@ export async function pushSyncState(
   }
   if (!response.ok) throw new Error(`Sync write failed (${response.status}).`);
   return { state: payload.state, revision: Number(payload.revision ?? state.revision) };
+}
+
+export function mergeSyncStates(local: AppState, remote: AppState): AppState {
+  const newerRecord = <T extends { id: string; updatedAt: string }>(
+    left: Record<string, T>,
+    right: Record<string, T>,
+  ): Record<string, T> => {
+    const merged: Record<string, T> = { ...right };
+    Object.entries(left).forEach(([id, value]) => {
+      const other = right[id];
+      if (!other || value.updatedAt >= other.updatedAt) merged[id] = structuredClone(value);
+    });
+    return merged;
+  };
+
+  return {
+    ...structuredClone(remote),
+    revision: Math.max(local.revision, remote.revision),
+    updatedAt: local.updatedAt >= remote.updatedAt ? local.updatedAt : remote.updatedAt,
+    clientId: local.clientId,
+    projects: newerRecord(local.projects, remote.projects),
+    sections: newerRecord(local.sections, remote.sections),
+    labels: newerRecord(local.labels, remote.labels),
+    filters: newerRecord(local.filters, remote.filters),
+    tasks: newerRecord(local.tasks, remote.tasks),
+    orderItems: newerRecord(local.orderItems, remote.orderItems),
+    notes: newerRecord(local.notes, remote.notes),
+    diaryEntries: Object.entries(local.diaryEntries).reduce(
+      (merged, [date, entry]) => {
+        const other = remote.diaryEntries[date];
+        merged[date] = !other || entry.updatedAt >= other.updatedAt ? structuredClone(entry) : other;
+        return merged;
+      },
+      { ...remote.diaryEntries },
+    ),
+    preferences: local.updatedAt >= remote.updatedAt ? structuredClone(local.preferences) : structuredClone(remote.preferences),
+    undoStack: local.updatedAt >= remote.updatedAt ? structuredClone(local.undoStack) : structuredClone(remote.undoStack),
+  };
+}
+
+export function createSyncChannel(
+  key: string,
+  source: string,
+  onState: (state: AppState) => void,
+): { publish: (state: AppState) => void; close: () => void } | null {
+  if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") return null;
+  const channel = new BroadcastChannel(`daymark-sync:${key}`);
+  const handleMessage = (event: MessageEvent<SyncMessage>) => {
+    if (event.data?.source === source || !event.data?.state) return;
+    onState(event.data.state);
+  };
+  channel.addEventListener("message", handleMessage);
+  return {
+    publish: (state) => channel.postMessage({ source, state: structuredClone(state) } satisfies SyncMessage),
+    close: () => {
+      channel.removeEventListener("message", handleMessage);
+      channel.close();
+    },
+  };
 }
 
 function randomKey(): string {

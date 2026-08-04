@@ -3,7 +3,15 @@ import { addDays, addMonths, addYears, fromLocalDate, startOfMonth, startOfWeek,
 import { createId } from './core/sample-data'
 import { createAppStore } from './core/store'
 import { createBrowserStorage, loadState } from './core/storage'
-import { getAndroidSyncLink, getSyncKey, getSyncLink, pullSyncState, pushSyncState } from './core/sync'
+import {
+  createSyncChannel,
+  getAndroidSyncLink,
+  getSyncKey,
+  getSyncLink,
+  mergeSyncStates,
+  pullSyncState,
+  pushSyncState,
+} from './core/sync'
 import { clearLegacyJournal, readLegacyJournal } from './features/journal/model'
 import { UpcomingCalendar as IntegratedUpcomingCalendar } from './features/calendar/UpcomingCalendar'
 import { moveTaskToDate as buildMovedTask } from './features/calendar/task-movement'
@@ -1429,6 +1437,8 @@ function App() {
   const syncReadyRef = useRef(false)
   const syncRemoteRevisionRef = useRef(0)
   const syncPushTimerRef = useRef(null)
+  const syncChannelRef = useRef(null)
+  const syncSourceRef = useRef(null)
   const composerRef = useRef(null)
   const captureReturnFocusRef = useRef(null)
 
@@ -1438,6 +1448,20 @@ function App() {
 
   useEffect(() => {
     let cancelled = false
+    const source = `${appStore.getState().clientId}:${Math.random().toString(36).slice(2)}`
+    syncSourceRef.current = source
+    const applyRemoteState = (remoteState) => {
+      const local = appStore.getState()
+      if (
+        remoteState.revision > local.revision ||
+        (remoteState.revision === local.revision && remoteState.updatedAt > local.updatedAt)
+      ) {
+        syncRemoteRevisionRef.current = Math.max(syncRemoteRevisionRef.current, remoteState.revision)
+        appStore.replace(remoteState)
+        setSyncStatus('synced')
+      }
+    }
+    syncChannelRef.current = createSyncChannel(syncKey, source, applyRemoteState)
     const initializeSync = async () => {
       try {
         const remote = await pullSyncState(syncKey)
@@ -1473,6 +1497,8 @@ function App() {
     return () => {
       cancelled = true
       if (syncPushTimerRef.current) window.clearTimeout(syncPushTimerRef.current)
+      syncChannelRef.current?.close()
+      syncChannelRef.current = null
     }
   }, [syncKey])
 
@@ -1484,18 +1510,26 @@ function App() {
       try {
         const pushed = await pushSyncState(syncKey, state, syncRemoteRevisionRef.current)
         syncRemoteRevisionRef.current = pushed.revision
+        syncChannelRef.current?.publish(pushed.state)
         setSyncStatus('synced')
       } catch (error) {
         if (error?.code === 'conflict' && error.state) {
-          syncRemoteRevisionRef.current = Number(error.revision ?? error.state.revision)
-          appStore.replace(error.state)
-          setNotice('Another device changed Daymark. The latest synced workspace is now open.')
-          setSyncStatus('conflict')
+          const remoteRevision = Number(error.revision ?? error.state.revision)
+          const merged = mergeSyncStates(appStore.getState(), error.state)
+          const rebased = {
+            ...merged,
+            revision: Math.max(merged.revision, remoteRevision) + 1,
+            updatedAt: new Date().toISOString(),
+          }
+          syncRemoteRevisionRef.current = remoteRevision
+          appStore.replace(rebased)
+          setNotice('Daymark merged changes from another device and is syncing again.')
+          setSyncStatus('syncing')
         } else {
           setSyncStatus('offline')
         }
       }
-    }, 120)
+    }, 50)
     return () => {
       if (syncPushTimerRef.current) window.clearTimeout(syncPushTimerRef.current)
     }
@@ -1522,10 +1556,24 @@ function App() {
         if (!cancelled) setSyncStatus('offline')
       }
     }
-    const interval = window.setInterval(refreshRemote, 1500)
+    let timer = null
+    const schedule = () => {
+      timer = window.setTimeout(async () => {
+        await refreshRemote()
+        if (!cancelled) schedule()
+      }, document.visibilityState === 'hidden' ? 2000 : 350)
+    }
+    const refreshImmediately = () => {
+      refreshRemote()
+    }
+    window.addEventListener('online', refreshImmediately)
+    document.addEventListener('visibilitychange', refreshImmediately)
+    schedule()
     return () => {
       cancelled = true
-      window.clearInterval(interval)
+      if (timer) window.clearTimeout(timer)
+      window.removeEventListener('online', refreshImmediately)
+      document.removeEventListener('visibilitychange', refreshImmediately)
     }
   }, [syncKey, syncStatus])
 

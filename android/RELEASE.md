@@ -1,6 +1,6 @@
 # Daymark Android Release
 
-`daymark-android-1.2.0.apk` is a signed, installable Android package built
+`daymark-android-1.3.0.apk` is a signed, installable Android package built
 from the native WebView shell in this repository. It loads the same public
 Daymark application as Windows and mobile browsers, so the navigation drawer,
 responsive layout, and current web release stay in one maintained product
