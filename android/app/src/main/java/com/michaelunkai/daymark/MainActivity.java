@@ -3,6 +3,7 @@ package com.michaelunkai.daymark;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -18,12 +19,16 @@ import android.webkit.WebViewClient;
 public final class MainActivity extends Activity {
     private static final String START_URL =
             "https://daymark-desktop.michaelovsky55555.chatgpt.site/";
+    private static final String PREFS_NAME = "daymark";
+    private static final String SYNC_KEY_PREF = "sync_key";
     private WebView webView;
+    private SharedPreferences preferences;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         getWindow().setStatusBarColor(Color.rgb(247, 249, 247));
         getWindow().setNavigationBarColor(Color.rgb(247, 249, 247));
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
@@ -111,14 +116,18 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private static String urlForIntent(Intent intent) {
+    private String urlForIntent(Intent intent) {
         Uri data = intent == null ? null : intent.getData();
-        if (data == null || !"daymark".equals(data.getScheme()) || !"sync".equals(data.getHost())) {
-            return START_URL;
+        String key = null;
+        if (data != null && "daymark".equals(data.getScheme()) && "sync".equals(data.getHost())) {
+            String candidate = data.getLastPathSegment();
+            if (candidate != null && candidate.matches("[A-Za-z0-9_-]{22}")) {
+                key = candidate;
+                preferences.edit().putString(SYNC_KEY_PREF, key).apply();
+            }
         }
-        String key = data.getLastPathSegment();
-        if (key == null || !key.matches("[A-Za-z0-9_-]{22}")) return START_URL;
-        return START_URL + "?sync=" + Uri.encode(key);
+        if (key == null) key = preferences.getString(SYNC_KEY_PREF, null);
+        return key == null ? START_URL : START_URL + "?sync=" + Uri.encode(key);
     }
 
     private final class ThemeBridge {
