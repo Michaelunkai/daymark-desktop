@@ -73,3 +73,13 @@ Baseline: `edc1f5e` (`main`, `origin/codex/daymark-capture-edc1f5e`)
 - `build/sites-vite-plugin.js` copies that real Worker into `dist/server/index.js` after every production build and preserves `.openai/hosting.json` in `dist/.openai/hosting.json`.
 - Worker source behavior and post-build artifact identity are covered by `src/sites-build-contract.test.mjs`; `npm run verify` passed after the change.
 - Release remains gated on the Sites-only agent saving a version from the exact clean pushed commit and polling its deployment to terminal `succeeded`.
+
+## Verified Sites Release
+
+- Commit `84a30b3edacf01b4c1e2c53244e8be92f7c49a79` was clean, tested, and pushed normally to GitHub branch `codex/daymark-organizer-integration`.
+- The same commit was pushed normally to the Sites source branch `main`; Sites version `1` records that exact `source.commit_sha`.
+- Sites project: `appgprj_6a72433e80108191b2c3936efd51e00a`.
+- Version ID: `appgprj_6a72433e80108191b2c3936efd51e00a~appgver_0c05ca0cf6348191ab71fbbbe30b8f92`.
+- Deployment ID: `appgdep_6a7247f39f8c8191943972af73144f71`.
+- Independent provider polling returned terminal `succeeded`; production URL: `https://daymark-desktop.michaelovsky55555.chatgpt.site`.
+- Public access is confirmed by the Sites project record. Browser/Codex opening remains deferred because browser control is disabled.
