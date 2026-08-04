@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import { addDays, addMonths, addYears, fromLocalDate, startOfMonth, startOfWeek, toLocalDate } from './core/dates'
 import { createId } from './core/sample-data'
 import { createAppStore } from './core/store'
-import { createBrowserStorage } from './core/storage'
+import { createBrowserStorage, loadState } from './core/storage'
 import { UpcomingCalendar as IntegratedUpcomingCalendar } from './features/calendar/UpcomingCalendar'
 import { moveTaskToDate as buildMovedTask } from './features/calendar/task-movement'
 import './features/calendar/upcoming-calendar.css'
@@ -28,6 +28,7 @@ import {
   toTaskEditorProjectOptions,
   toTaskEditorSectionOptions,
 } from './features/task-editor'
+import { useTheme } from './styles/theme'
 
 const NAV_ITEMS = [
   { id: 'today', label: 'Today', icon: 'sun', count: 5 },
@@ -55,6 +56,14 @@ const TAGS = [
   { id: 'label:label-someday', label: 'Someday', count: 6 },
 ]
 
+const GITHUB_URL = 'https://github.com/Michaelunkai/daymark-desktop'
+const UI_SETTINGS_KEY = 'daymark.ui-settings'
+const DEFAULT_UI_SETTINGS = {
+  density: 'comfortable',
+  textScale: 'default',
+  weekStartsOn: 'monday',
+}
+
 const appStore = createAppStore(createBrowserStorage())
 const thoughtCaptureStore = createLocalThoughtCaptureStore(getBrowserStorage())
 
@@ -63,6 +72,26 @@ function getBrowserStorage() {
     return typeof window === 'undefined' ? undefined : window.localStorage
   } catch {
     return undefined
+  }
+}
+
+function readUiSettings() {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(UI_SETTINGS_KEY) ?? '{}')
+    return {
+      ...DEFAULT_UI_SETTINGS,
+      ...(parsed && typeof parsed === 'object' ? parsed : {}),
+    }
+  } catch {
+    return { ...DEFAULT_UI_SETTINGS }
+  }
+}
+
+function writeUiSettings(settings) {
+  try {
+    window.localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify(settings))
+  } catch {
+    // Preferences remain usable for the current session when storage is unavailable.
   }
 }
 
@@ -291,6 +320,12 @@ const ICONS = {
   close: (
     <>
       <path d="m6 6 12 12M18 6 6 18" />
+    </>
+  ),
+  github: (
+    <>
+      <path d="M15 22v-3.2c0-1.1-.4-1.9-1.1-2.3 3.6-.4 5.6-2.1 5.6-5.8 0-1.3-.5-2.4-1.3-3.3.1-.4.5-1.9-.2-3.2 0 0-1.1-.4-3.4 1.3a11.5 11.5 0 0 0-6.2 0C6.1 3.8 5 4.2 5 4.2c-.7 1.3-.3 2.8-.2 3.2-.8.9-1.3 2-1.3 3.3 0 3.7 2 5.4 5.6 5.8-.7.4-1.1 1.1-1.1 2.3V22" />
+      <path d="M8.3 18.2c-2.5 1.1-2.5-1.1-3.5-1.4M17.7 18.2c2.5 1.1 2.5-1.1 3.5-1.4" />
     </>
   ),
 }
@@ -631,6 +666,9 @@ function ThoughtCaptureTray({ session, onChange, onSave, onDismiss, onDiscard })
 }
 
 function getRouteInfo(route, state) {
+  if (route === 'settings') {
+    return { title: 'Settings', kicker: 'WORKSPACE PREFERENCES', subtitle: 'Tune Daymark to your own working rhythm.' }
+  }
   if (route === 'inbox') {
     return { title: 'Inbox', kicker: 'CAPTURED WORK', subtitle: 'A quiet place to sort what just arrived.' }
   }
@@ -893,8 +931,165 @@ function CalendarIntegrationStyle() {
   )
 }
 
+function SettingsPanel({
+  onExport,
+  onImport,
+  onReset,
+  onThemeChange,
+  onUiSettingsChange,
+  settings,
+  state,
+}) {
+  const fileInputRef = useRef(null)
+  const storageAvailable = Boolean(getBrowserStorage())
+  const stateSize = (() => {
+    try {
+      return new Blob([JSON.stringify(state)]).size
+    } catch {
+      return 0
+    }
+  })()
+
+  return (
+    <section aria-labelledby="settings-title" className="settings-page">
+      <div className="settings-page__intro">
+        <div>
+          <span className="section-kicker">WORKSPACE PREFERENCES</span>
+          <h2 id="settings-title">Settings</h2>
+          <p>Keep Daymark comfortable for the way you plan, capture, and review work.</p>
+        </div>
+        <span className={`storage-badge ${storageAvailable ? 'is-ready' : 'is-warning'}`} role="status">
+          <span className="storage-badge__dot" />
+          {storageAvailable ? 'Saved locally' : 'Storage unavailable'}
+        </span>
+      </div>
+
+      <div className="settings-grid">
+        <section className="settings-section">
+          <div className="settings-section__heading">
+            <div>
+              <h3>Appearance</h3>
+              <p>Choose a calm visual mode for long planning sessions.</p>
+            </div>
+          </div>
+          <label className="settings-field">
+            <span>
+              <strong>Theme</strong>
+              <small>Light, dark, or match your device.</small>
+            </span>
+            <select aria-label="Theme preference" onChange={(event) => onThemeChange(event.target.value)} value={state.preferences.theme}>
+              <option value="system">System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </label>
+          <label className="settings-field">
+            <span>
+              <strong>Text size</strong>
+              <small>Increase labels and task copy without changing layout.</small>
+            </span>
+            <select aria-label="Text size" onChange={(event) => onUiSettingsChange({ textScale: event.target.value })} value={settings.textScale}>
+              <option value="default">Default</option>
+              <option value="large">Large</option>
+            </select>
+          </label>
+          <label className="settings-field">
+            <span>
+              <strong>Interface density</strong>
+              <small>Use more breathing room or fit more tasks on screen.</small>
+            </span>
+            <select aria-label="Interface density" onChange={(event) => onUiSettingsChange({ density: event.target.value })} value={settings.density}>
+              <option value="comfortable">Comfortable</option>
+              <option value="compact">Compact</option>
+            </select>
+          </label>
+        </section>
+
+        <section className="settings-section">
+          <div className="settings-section__heading">
+            <div>
+              <h3>Planning defaults</h3>
+              <p>Make the calendar and task list reflect your working rhythm.</p>
+            </div>
+          </div>
+          <label className="settings-field">
+            <span>
+              <strong>Week starts on</strong>
+              <small>Used by Upcoming calendar navigation and grouping.</small>
+            </span>
+            <select aria-label="Week starts on" onChange={(event) => onUiSettingsChange({ weekStartsOn: event.target.value })} value={settings.weekStartsOn}>
+              <option value="monday">Monday</option>
+              <option value="sunday">Sunday</option>
+            </select>
+          </label>
+          <label className="settings-toggle">
+            <span>
+              <strong>Show completed tasks</strong>
+              <small>Keep finished work visible in task lists and search results.</small>
+            </span>
+            <input checked={state.preferences.showCompleted} onChange={(event) => onUiSettingsChange({ showCompleted: event.target.checked })} type="checkbox" />
+          </label>
+        </section>
+
+        <section className="settings-section settings-section--wide">
+          <div className="settings-section__heading">
+            <div>
+              <h3>Data and recovery</h3>
+              <p>Export a portable copy before moving devices or making a large change.</p>
+            </div>
+            <span className="settings-metric">{Math.max(1, Math.round(stateSize / 1024))} KB</span>
+          </div>
+          <div className="settings-actions">
+            <button className="secondary-button" onClick={onExport} type="button">
+              <Icon name="arrowUp" size={16} />
+              Export backup
+            </button>
+            <button className="secondary-button" onClick={() => fileInputRef.current?.click()} type="button">
+              <Icon name="inbox" size={16} />
+              Import backup
+            </button>
+            <input
+              accept="application/json,.json"
+              aria-label="Import Daymark backup"
+              className="visually-hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                if (file) onImport(file)
+                event.target.value = ''
+              }}
+              ref={fileInputRef}
+              type="file"
+            />
+          </div>
+          <div className="settings-recovery">
+            <span className="settings-recovery__icon"><Icon name="focus" size={16} /></span>
+            <span>
+              <strong>Local-first storage</strong>
+              <small>Daymark keeps your workspace in this browser. Backups are plain JSON and never uploaded.</small>
+            </span>
+          </div>
+        </section>
+
+        <section className="settings-section settings-section--wide settings-section--danger">
+          <div className="settings-section__heading">
+            <div>
+              <h3>Reset and help</h3>
+              <p>Reset only after exporting a backup. This removes the current local workspace from this browser.</p>
+            </div>
+          </div>
+          <div className="settings-danger-row">
+            <button className="danger-button" onClick={onReset} type="button">Reset local workspace</button>
+            <a className="help-link" href={`${GITHUB_URL}#readme`} rel="noreferrer" target="_blank">Read project help <span aria-hidden="true">↗</span></a>
+          </div>
+        </section>
+      </div>
+    </section>
+  )
+}
+
 function App() {
   const state = useAppState()
+  const { setPreference } = useTheme()
   const [route, setRoute] = useState('today')
   const [viewMode, setViewMode] = useState('list')
   const [composerOpen, setComposerOpen] = useState(false)
@@ -911,12 +1106,19 @@ function App() {
   const [projectDialogOpen, setProjectDialogOpen] = useState(false)
   const [captureSession, setCaptureSession] = useState(null)
   const [captureNotice, setCaptureNotice] = useState('')
+  const [uiSettings, setUiSettings] = useState(() => readUiSettings())
   const composerRef = useRef(null)
   const captureReturnFocusRef = useRef(null)
 
   useEffect(() => {
     seedDemoWorkspace()
   }, [])
+
+  useEffect(() => {
+    if (state.preferences.theme !== document.documentElement.dataset.theme) {
+      setPreference(state.preferences.theme)
+    }
+  }, [setPreference, state.preferences.theme])
 
   const tasks = useMemo(
     () => Object.values(state.tasks).map((task) => toViewTask(task, state)),
@@ -940,20 +1142,23 @@ function App() {
   )
   const routeInfo = getRouteInfo(route, state)
   const visibleTasks = useMemo(() => {
-    let scoped = tasks
-    if (route === 'inbox') scoped = tasks.filter((task) => task.project === state.preferences.inboxProjectId)
-    if (route === 'upcoming') scoped = tasks.filter((task) => state.tasks[task.id]?.due?.date >= today)
-    if (route === 'completed') scoped = tasks.filter((task) => task.completed)
-    if (route.startsWith('project:')) scoped = tasks.filter((task) => task.project === route.slice('project:'.length))
-    if (route.startsWith('label:')) scoped = tasks.filter((task) => task.tag === route.slice('label:'.length))
-    if (route === 'today') scoped = tasks.filter((task) => state.tasks[task.id]?.due?.date === today)
-    if (route !== 'completed') scoped = scoped.filter((task) => !task.completed)
+    const availableTasks = route === 'completed' || state.preferences.showCompleted
+      ? tasks
+      : tasks.filter((task) => !task.completed)
     if (searchTerm.trim()) {
       const query = searchTerm.trim().toLowerCase()
-      scoped = scoped.filter((task) => `${task.title} ${task.note} ${task.priority} ${task.projectName} ${task.tagName}`.toLowerCase().includes(query))
+      return availableTasks.filter((task) => `${task.title} ${task.note} ${task.priority} ${task.projectName} ${task.tagName}`.toLowerCase().includes(query))
     }
+    let scoped = availableTasks
+    if (route === 'inbox') scoped = availableTasks.filter((task) => task.project === state.preferences.inboxProjectId)
+    if (route === 'upcoming') scoped = availableTasks.filter((task) => state.tasks[task.id]?.due?.date >= today)
+    if (route.startsWith('project:')) scoped = availableTasks.filter((task) => task.project === route.slice('project:'.length))
+    if (route.startsWith('label:')) scoped = availableTasks.filter((task) => task.tag === route.slice('label:'.length))
+    if (route === 'today') scoped = availableTasks.filter((task) => state.tasks[task.id]?.due?.date === today)
+    if (route === 'completed') scoped = tasks.filter((task) => task.completed)
+    if (route !== 'completed' && !state.preferences.showCompleted) scoped = scoped.filter((task) => !task.completed)
     return scoped
-  }, [route, searchTerm, state.preferences.inboxProjectId, state.tasks, tasks, today])
+  }, [route, searchTerm, state.preferences.inboxProjectId, state.preferences.showCompleted, state.tasks, tasks, today])
 
   const sections = useMemo(() => {
     const orderedTasks = [...visibleTasks].sort((left, right) => {
@@ -1271,8 +1476,57 @@ function App() {
     navigate(action)
   }
 
+  const updateThemePreference = (theme) => {
+    setPreference(theme)
+    appStore.dispatch({ type: 'preferences.update', patch: { theme } })
+  }
+
+  const updateUiSettings = (patch) => {
+    if (typeof patch.showCompleted === 'boolean') {
+      appStore.dispatch({ type: 'preferences.update', patch: { showCompleted: patch.showCompleted } })
+    }
+    const next = { ...uiSettings, ...patch }
+    delete next.showCompleted
+    setUiSettings(next)
+    writeUiSettings(next)
+  }
+
+  const exportBackup = () => {
+    const blob = new Blob([JSON.stringify(appStore.getState(), null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `daymark-backup-${toLocalDate(new Date())}.json`
+    anchor.click()
+    URL.revokeObjectURL(url)
+    setNotice('Backup exported.')
+  }
+
+  const importBackup = async (file) => {
+    try {
+      const text = await file.text()
+      const imported = loadState({ read: () => text, write: () => undefined }).state
+      const confirmed = window.confirm('Replace this browser workspace with the imported backup?')
+      if (!confirmed) return
+      createBrowserStorage().write(JSON.stringify(imported))
+      appStore.reload()
+      setRoute('today')
+      setNotice('Backup imported.')
+    } catch {
+      setNotice('That backup could not be imported. Choose a Daymark JSON export.')
+    }
+  }
+
+  const resetWorkspace = () => {
+    if (!window.confirm('Reset this local workspace? Export a backup first if you may need this data.')) return
+    createBrowserStorage().remove?.()
+    appStore.reload()
+    setRoute('today')
+    setNotice('Local workspace reset.')
+  }
+
   return (
-    <div className={`app-shell ${sidebarOpen ? '' : 'sidebar-is-collapsed'}`}>
+    <div className={`app-shell density-${uiSettings.density} text-scale-${uiSettings.textScale} ${sidebarOpen ? '' : 'sidebar-is-collapsed'}`}>
       <CalendarIntegrationStyle />
       <header className="topbar">
         <div className="topbar__brand">
@@ -1283,6 +1537,9 @@ function App() {
             <LogoMark />
             <span>Daymark</span>
           </button>
+          <a aria-label="Open Daymark on GitHub" className="github-link" href={GITHUB_URL} rel="noreferrer" target="_blank" title="Open GitHub repository">
+            <Icon name="github" size={16} />
+          </a>
         </div>
 
         <div className="topbar__controls">
@@ -1363,7 +1620,7 @@ function App() {
             </SidebarSection>
           </div>
           <div className="sidebar__footer">
-            <SidebarRow icon="settings" label="Settings" onClick={() => undefined} />
+            <SidebarRow active={route === 'settings'} icon="settings" label="Settings" onClick={() => navigate('settings')} />
             <span className="sidebar__version">LOCAL SHELL 0.1</span>
           </div>
         </aside>
@@ -1419,7 +1676,17 @@ function App() {
               </div>
             ) : null}
 
-            {route === 'upcoming' ? (
+            {route === 'settings' ? (
+              <SettingsPanel
+                onExport={exportBackup}
+                onImport={importBackup}
+                onReset={resetWorkspace}
+                onThemeChange={updateThemePreference}
+                onUiSettingsChange={updateUiSettings}
+                settings={uiSettings}
+                state={state}
+              />
+            ) : route === 'upcoming' ? (
               <>
               <IntegratedUpcomingCalendar
                 initialMode="month"
@@ -1428,9 +1695,10 @@ function App() {
                 onTaskEdit={(taskId) => openTaskEditor('edit', state.tasks[taskId])}
                 onTaskMove={moveTaskToDate}
                 selectedDate={selectedCalendarDate}
-                weekStartsOn={1}
-                tasks={calendarTasks
+                weekStartsOn={uiSettings.weekStartsOn === 'sunday' ? 0 : 1}
+                  tasks={calendarTasks
                   .filter((task) => {
+                    if (!state.preferences.showCompleted && task.completedAt) return false
                     if (!task.due?.date) return false
                     if (!searchTerm.trim()) return true
                     const project = state.projects[task.projectId]
