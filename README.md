@@ -55,6 +55,34 @@ npx --yes tsx --test src\core\store.test.ts src\core\dates\dates.test.ts src\fea
 - Search, command palette, and keyboard navigation
 - Responsive list and board task layouts for desktop and mobile screens
 
+## Cross-device sync invariants
+
+These rules are part of the product behavior and must remain true in every
+future release:
+
+- The website and Android app share a workspace only after using the private
+  `daymark://sync/<22-character-pairing-code>` link from Settings.
+- Android must persist the accepted pairing code and reuse it on ordinary
+  launcher starts. Never silently generate a second Android-only workspace
+  after a device has already been paired.
+- Local edits are saved first, then pushed to `/api/sync/<pairing-code>`.
+  Remote state is polled while the page is open and merged by entity
+  `updatedAt` timestamps. Deletions must remain represented by sync
+  tombstones so they cannot reappear on another device.
+- The worker's `expectedRevision` is the revision currently stored in D1.
+  A `409` is a normal concurrent-edit conflict: merge the remote state,
+  increment the rebased revision, and retry. Do not remove conflict handling
+  or replace it with last-write-wins whole-state replacement.
+- Diary entries, notes, tasks, projects, order items, filters, labels,
+  preferences, and deletion tombstones all travel through the same sync state.
+  Do not add a new local-only persistence path for any user-editable data.
+- Before publishing, run `npm run verify`, build the Android release, install
+  it on an Android runtime, and test both Android-to-Windows and
+  Windows-to-Android edits using one identical pairing code.
+- Keep the Android release version, README download link, GitHub release
+  asset, `main`, and the deployed Sites source revision aligned. A green local
+  test or HTTP 200 alone is not deployment proof.
+
 ## Release verification
 
 The current Sites release was built and verified from commit
