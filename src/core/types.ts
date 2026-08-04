@@ -1,4 +1,4 @@
-export const CURRENT_SCHEMA_VERSION = 2 as const;
+export const CURRENT_SCHEMA_VERSION = 3 as const;
 
 export type EntityId = string;
 export type Priority = 1 | 2 | 3 | 4;
@@ -56,6 +56,12 @@ export interface TaskDue {
   recurrence: string | null;
 }
 
+export interface TaskCompletionContext {
+  projectId: EntityId;
+  sectionId: EntityId | null;
+  order: number;
+}
+
 export interface Task {
   id: EntityId;
   content: string;
@@ -67,6 +73,7 @@ export interface Task {
   priority: Priority;
   due: TaskDue | null;
   completedAt: string | null;
+  completionContext: TaskCompletionContext | null;
   order: number;
   createdAt: string;
   updatedAt: string;
@@ -126,9 +133,16 @@ export type TaskPatch = Partial<
     | "priority"
     | "due"
     | "completedAt"
+    | "completionContext"
     | "order"
   >
 >;
+
+export type TaskReorderInput = {
+  taskId: EntityId;
+  sectionId: EntityId | null;
+  order: number;
+};
 
 export type ProjectInput = {
   id?: EntityId;
@@ -171,6 +185,7 @@ export type UserAction =
   | { type: "task.update"; taskId: EntityId; patch: TaskPatch }
   | { type: "task.complete"; taskId: EntityId }
   | { type: "task.uncomplete"; taskId: EntityId }
+  | { type: "task.reorder"; input: TaskReorderInput }
   | { type: "task.delete"; taskId: EntityId }
   | { type: "project.add"; input: ProjectInput }
   | { type: "project.update"; projectId: EntityId; patch: Partial<Omit<Project, "id" | "createdAt" | "updatedAt">> }

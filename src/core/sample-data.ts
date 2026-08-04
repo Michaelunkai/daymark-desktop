@@ -77,6 +77,7 @@ export function createSampleState(
         priority: 2,
         due: null,
         completedAt: null,
+        completionContext: null,
         order: 0,
         createdAt: now,
         updatedAt: now,

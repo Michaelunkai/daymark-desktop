@@ -17,7 +17,7 @@ import type {
 
 const MAX_UNDO_ENTRIES = 20;
 type InvalidResult = { ok: false; reason: "invalid"; message: string; state?: AppState };
-type MutationResult = { ok: true; inverse: UndoAction } | InvalidResult;
+type MutationResult = { ok: true; inverse: UndoAction; changed?: boolean } | InvalidResult;
 
 export interface AppStore {
   getState(): AppState;
@@ -83,7 +83,7 @@ function apply(state: AppState, action: StoreAction, now: string, recordUndo = t
 
   const result = mutate(state, action, now);
   if (!result.ok) return result;
-  if (recordUndo && isUserAction(action) && action.type !== "task.delete") {
+  if (recordUndo && result.changed !== false && isUserAction(action) && action.type !== "task.delete") {
     state.undoStack.push(createUndoEntry(result.inverse, now));
     state.undoStack = state.undoStack.slice(-MAX_UNDO_ENTRIES);
   }
@@ -107,6 +107,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
         priority: action.input.priority ?? 4,
         due: action.input.due ?? null,
         completedAt: null,
+        completionContext: null,
         order: action.input.order ?? nextOrder(state.tasks),
         createdAt: now,
         updatedAt: now,
@@ -144,10 +145,87 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
     case "task.uncomplete": {
       const task = state.tasks[action.taskId];
       if (!task) return invalid("The task no longer exists.");
-      const before = task.completedAt;
-      task.completedAt = action.type === "task.complete" ? now : null;
+      const before = {
+        completedAt: task.completedAt,
+        completionContext: task.completionContext,
+        projectId: task.projectId,
+        sectionId: task.sectionId,
+        order: task.order,
+      };
+      if (action.type === "task.complete") {
+        if (task.completedAt) {
+          return { ok: true, changed: false, inverse: { type: "task.update", taskId: task.id, patch: {} } };
+        }
+        task.completedAt = now;
+        task.completionContext = {
+          projectId: task.projectId,
+          sectionId: task.sectionId,
+          order: task.order,
+        };
+      } else {
+        if (!task.completedAt) {
+          return { ok: true, changed: false, inverse: { type: "task.update", taskId: task.id, patch: {} } };
+        }
+        const context = task.completionContext;
+        task.completedAt = null;
+        if (context && isValidTaskLocation(state, context.projectId, context.sectionId)) {
+          task.projectId = context.projectId;
+          task.sectionId = context.sectionId;
+          placeTaskAtOrder(state, task, context.sectionId, context.order, now);
+        }
+        task.completionContext = null;
+      }
       task.updatedAt = now;
-      return { ok: true, inverse: { type: "task.update", taskId: task.id, patch: { completedAt: before } } };
+      return {
+        ok: true,
+        inverse: {
+          type: "task.update",
+          taskId: task.id,
+          patch: {
+            completedAt: before.completedAt,
+            completionContext: before.completionContext,
+            projectId: before.projectId,
+            sectionId: before.sectionId,
+            order: before.order,
+          },
+        },
+      };
+    }
+    case "task.reorder": {
+      const task = state.tasks[action.input.taskId];
+      if (!task) return invalid("The task no longer exists.");
+      if (task.completedAt) return invalid("Completed tasks cannot be reordered.");
+      if (!Number.isFinite(action.input.order) || action.input.order < 0) {
+        return invalid("Task order must be a non-negative number.");
+      }
+      if (!isValidTaskLocation(state, task.projectId, action.input.sectionId)) {
+        return invalid("The task section does not belong to its project.");
+      }
+
+      const before = { sectionId: task.sectionId, order: task.order };
+      const siblings = Object.values(state.tasks)
+        .filter(
+          (candidate) =>
+            candidate.projectId === task.projectId &&
+            candidate.completedAt === null &&
+            (candidate.sectionId ?? null) === (action.input.sectionId ?? null),
+        )
+        .sort((left, right) => left.order - right.order || left.id.localeCompare(right.id))
+        .filter((candidate) => candidate.id !== task.id);
+      const targetIndex = Math.min(Math.floor(action.input.order), siblings.length);
+      siblings.splice(targetIndex, 0, task);
+      for (const [index, sibling] of siblings.entries()) {
+        sibling.sectionId = action.input.sectionId;
+        sibling.order = index;
+        sibling.updatedAt = now;
+      }
+      return {
+        ok: true,
+        inverse: {
+          type: "task.reorder",
+          input: { taskId: task.id, sectionId: before.sectionId, order: before.order },
+        },
+      };
     }
     case "project.add": {
       if (!action.input.name.trim()) return invalid("A project needs a name.");
@@ -311,4 +389,29 @@ function pick<T extends object>(source: T, patch: Partial<T>): Partial<T> {
 
 function invalid(message: string): InvalidResult {
   return { ok: false, reason: "invalid", message };
+}
+
+function placeTaskAtOrder(
+  state: AppState,
+  task: Task,
+  sectionId: string | null,
+  requestedOrder: number,
+  now: string,
+) {
+  const siblings = Object.values(state.tasks)
+    .filter(
+      (candidate) =>
+        candidate.id !== task.id &&
+        candidate.projectId === task.projectId &&
+        candidate.completedAt === null &&
+        (candidate.sectionId ?? null) === (sectionId ?? null),
+    )
+    .sort((left, right) => left.order - right.order || left.id.localeCompare(right.id));
+  const targetIndex = Math.min(Math.max(Math.floor(requestedOrder), 0), siblings.length);
+  siblings.splice(targetIndex, 0, task);
+  for (const [index, sibling] of siblings.entries()) {
+    sibling.sectionId = sectionId;
+    sibling.order = index;
+    sibling.updatedAt = now;
+  }
 }
