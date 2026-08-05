@@ -39,11 +39,13 @@ Release state:
 - Visible production acceptance passed for note completion, Workspace Order,
   the multi-section Diary, calendar day selection and agenda, and a clean
   browser console.
-- Android install remains unverified because no Android device is attached.
-  The default ADB port `5037` is inside a Windows administrator-managed
-  exclusion range; ADB starts on non-reserved port `22000`, but
-  `adb -P 22000 devices -l` returns no devices. Do not remove the Windows
-  reservation or weaken security controls to work around this.
+- Android installation is verified on the connected wireless device. ADB used
+  safe non-reserved port `22000`; `com.michaelunkai.daymark` reports version
+  code `6` and version name `1.4.2`, and `MainActivity` is foreground after
+  launch. The captured runtime screen is
+  `android/releases/daymark-android-installed.png`. The default ADB port `5037`
+  remains administrator-managed; do not remove that reservation or weaken
+  Windows security controls.
 
 Preservation rules:
 

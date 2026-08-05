@@ -111,10 +111,11 @@ Release `1.4.2` evidence from August 5, 2026:
 - Visible production acceptance passed for note completion controls, Workspace
   Order with Do now/Later/After, the multi-section Diary, calendar day
   selection with task agenda and Add task, and a clean browser console.
-- Android release build passed. Physical installation was not completed:
-  Windows reserves the default ADB range containing TCP `5037`; ADB started
-  successfully on non-reserved port `22000`, but no Android device was attached
-  or enumerated. No Windows security reservation was removed or bypassed.
+- Android release build and installation passed on the connected Android
+  device. ADB used the safe non-reserved local port `22000`; package
+  `com.michaelunkai.daymark` reports version code `6` and version name `1.4.2`,
+  and `MainActivity` launched successfully. No Windows security reservation
+  was removed or bypassed.
 
 The required local gates are:
 
