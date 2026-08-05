@@ -76,6 +76,15 @@ export function createLongPressReorderController({
     },
     pointerUp(event) {
       if (pointerId === null || event?.pointerId !== pointerId) return
+      if (!triggered) {
+        const deltaX = (event?.clientX ?? 0) - startX
+        const deltaY = (event?.clientY ?? 0) - startY
+        if (event?.pointerType === 'mouse' && Math.hypot(deltaX, deltaY) > moveTolerance) {
+          triggerReorder()
+          event?.preventDefault?.()
+          onDragMove?.(event)
+        }
+      }
       const wasTriggered = triggered
       clearTimer()
       pointerId = null

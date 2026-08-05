@@ -81,6 +81,23 @@ test("held mouse movement enters reorder without waiting for the long-press time
   assert.equal(controller.consumeSuppressedClick(), true);
 });
 
+test("mouse travel is recognized when the release carries the final position", () => {
+  const scheduler = createScheduler();
+  const events: string[] = [];
+  const controller = createLongPressReorderController({
+    onCancel: () => events.push("cancel"),
+    onLongPress: () => events.push("enter"),
+    onDragMove: () => events.push("move"),
+    scheduler,
+  });
+
+  controller.pointerDown({ button: 0, clientX: 10, clientY: 20, isPrimary: true, pointerId: 4, pointerType: "mouse" });
+  controller.pointerUp({ pointerId: 4, clientX: 40, clientY: 20, pointerType: "mouse" });
+
+  assert.deepEqual(events, ["enter", "move"]);
+  assert.equal(controller.consumeSuppressedClick(), true);
+});
+
 test("reorder selection moves earlier and later without changing item identity", () => {
   const original = ["first", "selected", "last"];
   assert.deepEqual(moveInOrder(original, "selected", -1), ["selected", "first", "last"]);
