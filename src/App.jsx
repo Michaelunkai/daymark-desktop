@@ -76,6 +76,18 @@ const TAGS = [
 const GITHUB_URL = 'https://github.com/Michaelunkai/daymark-desktop'
 const UI_SETTINGS_KEY = 'daymark.ui-settings'
 const AGENT_BRIDGE_VERSION = 2
+const AGENT_CONNECTION_INFO = {
+  bridge: 'DaymarkAI',
+  alias: 'DaymarkAgent',
+  version: AGENT_BRIDGE_VERSION,
+  channel: 'daymark-agent',
+  manifest: '/daymark-agent.json',
+  readyEvent: 'daymark:agent-ready',
+  requestEvent: 'daymark:agent-request',
+  responseEvent: 'daymark:agent-response',
+  stateEvent: 'daymark:agent-state',
+  sessionEvent: 'daymark:agent-session',
+}
 const AGENT_ACTION_TYPES = [
   'task.add',
   'task.update',
@@ -2837,6 +2849,7 @@ function App() {
     window.addEventListener('daymark:agent-request', onWindowRequest)
     window.DaymarkAI = {
       version: AGENT_BRIDGE_VERSION,
+      getConnectionInfo: () => clone(AGENT_CONNECTION_INFO),
       getState: () => clone(appStore.getState()),
       getViewState: () => clone(agentBridgeActionsRef.current?.getViewState?.() ?? {}),
       dispatch: (action) => execute('dispatch', action),
@@ -2850,8 +2863,9 @@ function App() {
       stopSession: (sessionId) => execute('stopSession', { sessionId }),
       listSessions: () => execute('listSessions'),
     }
+    window.DaymarkAgent = window.DaymarkAI
     window.dispatchEvent(new CustomEvent('daymark:agent-ready', {
-      detail: { version: AGENT_BRIDGE_VERSION },
+      detail: { ...clone(AGENT_CONNECTION_INFO) },
     }))
     const unsubscribe = appStore.subscribe((nextState) => {
       const update = {
@@ -2871,6 +2885,7 @@ function App() {
       agentSessionsRef.current.clear()
       window.removeEventListener('daymark:agent-request', onWindowRequest)
       if (window.DaymarkAI?.version === AGENT_BRIDGE_VERSION) delete window.DaymarkAI
+      if (window.DaymarkAgent?.version === AGENT_BRIDGE_VERSION) delete window.DaymarkAgent
     }
   }, [])
 

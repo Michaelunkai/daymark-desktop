@@ -1,0 +1,26 @@
+{
+  "name": "Daymark",
+  "bridge": "DaymarkAI",
+  "alias": "DaymarkAgent",
+  "version": 2,
+  "channel": "daymark-agent",
+  "manifest": "/daymark-agent.json",
+  "readyEvent": "daymark:agent-ready",
+  "requestEvent": "daymark:agent-request",
+  "responseEvent": "daymark:agent-response",
+  "stateEvent": "daymark:agent-state",
+  "sessionEvent": "daymark:agent-session",
+  "operations": [
+    "getState",
+    "getViewState",
+    "dispatch",
+    "navigate",
+    "openTask",
+    "createTask",
+    "openProject",
+    "openOrder",
+    "startSession",
+    "stopSession",
+    "listSessions"
+  ]
+}
