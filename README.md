@@ -93,8 +93,28 @@ future release:
 
 For each release, record the exact Git commit, Sites saved version/deployment,
 Android version, APK SHA-256, and the browser/Android acceptance results here.
-The current source changes are prepared for Android `1.4.2`; the final commit
-and deployment identifiers are added after the GitHub and Sites release steps.
+Release `1.4.2` evidence from August 5, 2026:
+
+- Application source commit: `53f097d9d64384687fcd6781556650d1aef315cb`.
+- GitHub `main` and `codex/android-navigation-hardening-20260804` both contain
+  the release source and APK.
+- Sites saved version: `19`
+  (`appgprj_6a72433e80108191b2c3936efd51e00a~appgver_713d42d4e4c48191bb4cc27c69e19093`).
+- Sites production deployment:
+  `appgdep_6a728c20c07c819198dbf9fd54591a21`.
+- Production URL: `https://daymark-desktop.michaelovsky55555.chatgpt.site`.
+- APK: `android/releases/daymark-android-1.4.2.apk`.
+- APK SHA-256:
+  `B228B72768ADDEA801748A186C5190975FDF40863A6E1C6622EDAE3972E0E687`.
+- `npm run verify` passed, including the production build and Sites artifact
+  checks.
+- Visible production acceptance passed for note completion controls, Workspace
+  Order with Do now/Later/After, the multi-section Diary, calendar day
+  selection with task agenda and Add task, and a clean browser console.
+- Android release build passed. Physical installation was not completed:
+  Windows reserves the default ADB range containing TCP `5037`; ADB started
+  successfully on non-reserved port `22000`, but no Android device was attached
+  or enumerated. No Windows security reservation was removed or bypassed.
 
 The required local gates are:
 

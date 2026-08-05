@@ -25,11 +25,25 @@ Release state:
 
 - Android version: `1.4.2`, version code `6`.
 - Downloadable APK target: `android/releases/daymark-android-1.4.2.apk`.
-- `npm run test` and `npm run build` passed in this session.
+- Application source commit: `53f097d9d64384687fcd6781556650d1aef315cb`.
+- GitHub `main` and `codex/android-navigation-hardening-20260804` are pushed.
+- Sites saved version `19` is deployed successfully as
+  `appgdep_6a728c20c07c819198dbf9fd54591a21` at
+  `https://daymark-desktop.michaelovsky55555.chatgpt.site`.
+- APK SHA-256:
+  `B228B72768ADDEA801748A186C5190975FDF40863A6E1C6622EDAE3972E0E687`.
+- `npm run verify` passed, including the production build and Sites artifact
+  checks.
 - Android `assembleRelease` passed with Gradle 8.10.2 and JDK 17.0.20 using a
   fresh cache at `work/gradle-user-home`.
-- Live browser acceptance, GitHub push, APK copy/hash, and Sites deployment
-  still need to be recorded below before calling the release complete.
+- Visible production acceptance passed for note completion, Workspace Order,
+  the multi-section Diary, calendar day selection and agenda, and a clean
+  browser console.
+- Android install remains unverified because no Android device is attached.
+  The default ADB port `5037` is inside a Windows administrator-managed
+  exclusion range; ADB starts on non-reserved port `22000`, but
+  `adb -P 22000 devices -l` returns no devices. Do not remove the Windows
+  reservation or weaken security controls to work around this.
 
 Preservation rules:
 
