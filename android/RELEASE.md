@@ -1,6 +1,11 @@
 # Daymark Android Release
 
-`daymark-android-1.4.5.apk` is a signed, installable Android package built
+`daymark-android-1.4.6.apk` is the companion-enabled shell release. It loads
+the current Daymark web application and exposes the same live `DaymarkAI`
+bridge used by Codex sessions, including workspace reads, task/project
+updates, ordered actions, and reversible agent sessions.
+
+`daymark-android-1.4.5.apk` was the previous signed, installable Android package built
 from the native WebView shell in this repository. It loads the same public
 Daymark application as Windows and mobile browsers, so the navigation drawer,
 responsive layout, and current web release stay in one maintained product

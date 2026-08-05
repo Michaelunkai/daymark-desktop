@@ -40,6 +40,8 @@ import {
   toTaskEditorProjectOptions,
   toTaskEditorSectionOptions,
 } from './features/task-editor'
+import { CompanionPanel } from './features/companion/CompanionPanel'
+import './features/companion/companion.css'
 import { useTheme } from './styles/theme'
 
 const NAV_ITEMS = [
@@ -390,6 +392,12 @@ const ICONS = {
   close: (
     <>
       <path d="m6 6 12 12M18 6 6 18" />
+    </>
+  ),
+  companion: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="4" />
+      <path d="M8 9h8M8 12h5M8 15h8" />
     </>
   ),
   github: (
@@ -1815,6 +1823,7 @@ function App() {
   const [reorderMode, setReorderMode] = useState(null)
   const [captureSession, setCaptureSession] = useState(null)
   const [captureNotice, setCaptureNotice] = useState('')
+  const [companionOpen, setCompanionOpen] = useState(false)
   const [uiSettings, setUiSettings] = useState(() => readUiSettings())
   const [syncKey] = useState(() => getSyncKey(getBrowserStorage()))
   const [syncStatus, setSyncStatus] = useState('starting')
@@ -3052,6 +3061,9 @@ function App() {
             <span aria-hidden="true" className="agent-connection__dot" />
             Agent connected
           </span>
+          <button aria-label="Open Codex companion" className="icon-button" onClick={() => setCompanionOpen(true)} title="Codex companion" type="button">
+            <Icon name="companion" size={17} />
+          </button>
           <span className="topbar__divider" />
           <button className="avatar-button" title="Open profile menu" type="button">ML</button>
         </div>
@@ -3137,6 +3149,7 @@ function App() {
             </SidebarSection>
           </div>
           <div className="sidebar__footer">
+            <SidebarRow icon="companion" label="Codex companion" onClick={() => setCompanionOpen(true)} />
             <SidebarRow active={route === 'settings'} icon="settings" label="Settings" onClick={() => navigate('settings')} />
             <span className="sidebar__version">LOCAL SHELL 0.1</span>
           </div>
@@ -3524,6 +3537,12 @@ function App() {
         onDismiss={dismissThoughtCapture}
         onSave={saveThoughtCapture}
         session={captureSession}
+      />
+      <CompanionPanel
+        isOpen={companionOpen}
+        onClose={() => setCompanionOpen(false)}
+        projects={projectItems}
+        tasks={tasks}
       />
       {captureNotice ? (
         <div aria-live="polite" className="thought-capture-toast" role="status">
