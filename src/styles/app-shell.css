@@ -35,6 +35,40 @@ body {
   font-weight: var(--body-font-weight, 550);
 }
 
+.app-shell :where(p, span, label, button, input, textarea, select, small, li) {
+  font-weight: 620;
+}
+
+.app-shell :where(h1, h2, h3, h4, strong, b) {
+  font-weight: 750;
+}
+
+.app-shell :where(.icon, svg, .brand-mark span) {
+  font-weight: initial;
+}
+
+.agent-connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 0 9px;
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.agent-connection__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 16%, transparent);
+}
+
 body.navigation-drawer-open {
   overflow: hidden;
 }

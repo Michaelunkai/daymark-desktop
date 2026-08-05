@@ -194,7 +194,7 @@ export function ProjectCreateDialog({
             <textarea
               onChange={(event) => setDescription(event.target.value)}
               placeholder="What is this project for?"
-              rows={3}
+              rows={8}
               value={description}
             />
           </label>

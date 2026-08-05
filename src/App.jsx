@@ -73,7 +73,37 @@ const TAGS = [
 
 const GITHUB_URL = 'https://github.com/Michaelunkai/daymark-desktop'
 const UI_SETTINGS_KEY = 'daymark.ui-settings'
-const AGENT_BRIDGE_VERSION = 1
+const AGENT_BRIDGE_VERSION = 2
+const AGENT_ACTION_TYPES = [
+  'task.add',
+  'task.update',
+  'task.complete',
+  'task.uncomplete',
+  'task.reorder',
+  'task.delete',
+  'project.add',
+  'project.update',
+  'project.archive',
+  'project.delete',
+  'order.add',
+  'order.update',
+  'order.delete',
+  'note.add',
+  'note.update',
+  'note.complete',
+  'note.uncomplete',
+  'note.delete',
+  'diary.upsert',
+  'diary.update',
+  'section.add',
+  'section.update',
+  'label.add',
+  'label.update',
+  'filter.add',
+  'filter.update',
+  'preferences.update',
+  'undo',
+]
 const DEFAULT_UI_SETTINGS = {
   density: 'comfortable',
   textScale: 'default',
@@ -701,6 +731,88 @@ function SectionHeading({
   )
 }
 
+function BoardTaskCard({
+  isReordering,
+  onCancelReorder,
+  onLongPressReorder,
+  onReorderMove,
+  onReorderEnd,
+  onOpen,
+  onToggle,
+  task,
+}) {
+  const callbacksRef = useRef({ onLongPressReorder, onReorderEnd, onReorderMove, taskId: task.id })
+  callbacksRef.current = { onLongPressReorder, onReorderEnd, onReorderMove, taskId: task.id }
+  const reorderControllerRef = useRef(null)
+  if (!reorderControllerRef.current) {
+    reorderControllerRef.current = createLongPressReorderController({
+      onLongPress: () => callbacksRef.current.onLongPressReorder?.(callbacksRef.current.taskId),
+      onDragMove: (event) => callbacksRef.current.onReorderMove?.(callbacksRef.current.taskId, event),
+      onDragEnd: () => callbacksRef.current.onReorderEnd?.(),
+    })
+  }
+  useEffect(() => () => reorderControllerRef.current?.dispose(), [])
+
+  const handleOpen = (event) => {
+    if (reorderControllerRef.current.consumeSuppressedClick()) {
+      event.preventDefault()
+      return
+    }
+    if (isReordering) {
+      event.preventDefault()
+      onCancelReorder?.()
+      return
+    }
+    onOpen(task)
+  }
+
+  return (
+    <article
+      className={`board-task ${task.completed ? 'is-completed' : ''} ${isReordering ? 'is-reordering' : ''}`}
+      data-reorder-id={task.id}
+      draggable={!task.completed}
+      onContextMenu={(event) => event.preventDefault()}
+      onDragEnd={() => onReorderEnd?.()}
+      onDragStart={(event) => {
+        if (!task.completed) {
+          event.dataTransfer.effectAllowed = 'move'
+          event.dataTransfer.setData('text/plain', task.id)
+        }
+      }}
+    >
+      <button
+        aria-label={task.completed ? `Restore ${task.title}` : `Complete ${task.title}`}
+        className="board-task__complete"
+        onClick={() => onToggle(task.id)}
+        title={task.completed ? 'Restore task' : 'Complete task'}
+        type="button"
+      >
+        <Icon name={task.completed ? 'check' : 'circle'} size={14} />
+      </button>
+      <button
+        aria-describedby={isReordering ? 'reorder-mode-help' : undefined}
+        aria-label={isReordering ? `${task.title}, selected for reordering` : `Open ${task.title}`}
+        className="board-task__body"
+        data-reorder-mode={isReordering ? 'active' : undefined}
+        onClick={handleOpen}
+        onLostPointerCapture={(event) => reorderControllerRef.current.pointerCancel(event)}
+        onPointerCancel={(event) => reorderControllerRef.current.pointerCancel(event)}
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture?.(event.pointerId)
+          reorderControllerRef.current.pointerDown(event)
+        }}
+        onPointerMove={(event) => reorderControllerRef.current.pointerMove(event)}
+        onPointerUp={(event) => reorderControllerRef.current.pointerUp(event)}
+        type="button"
+      >
+        <span className={`board-task__priority board-task__priority--${task.priorityTone}`} />
+        <strong>{task.title}</strong>
+        <small>{task.due}</small>
+      </button>
+    </article>
+  )
+}
+
 function TaskComposer({ inputRef, value, onChange, onSubmit, onCancel }) {
   return (
     <form className="task-composer" onSubmit={onSubmit}>
@@ -968,7 +1080,11 @@ function getRouteInfo(route, state) {
   }
   if (route.startsWith('project:')) {
     const project = state.projects[route.slice('project:'.length)]
-    return { title: project?.name ?? 'Project', kicker: 'PROJECT VIEW', subtitle: 'Keep the next useful step visible.' }
+    return {
+      title: project?.name ?? 'Project',
+      kicker: 'PROJECT VIEW',
+      subtitle: project?.description?.trim() || 'No project details yet. Edit this project to add context.',
+    }
   }
   if (route.startsWith('label:')) {
     const tag = state.labels[route.slice('label:'.length)]
@@ -1709,6 +1825,8 @@ function App() {
   const composerRef = useRef(null)
   const captureReturnFocusRef = useRef(null)
   const agentBridgeActionsRef = useRef(null)
+  const agentSessionsRef = useRef(new Map())
+  const agentSessionTimersRef = useRef(new Map())
 
   useEffect(() => {
     seedDemoWorkspace()
@@ -2452,17 +2570,38 @@ function App() {
   }
 
   const moveTaskToPointerTarget = (taskId, event) => {
-    const targetId = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-reorder-id]')?.getAttribute('data-reorder-id')
-    if (!targetId || targetId === taskId) return
-    const siblings = taskSiblings(taskId)
-    const targetIndex = siblings.findIndex((task) => task.id === targetId)
-    if (targetIndex < 0 || reorderPointerTargetRef.current === targetId) return
-    reorderPointerTargetRef.current = targetId
-    const task = state.tasks[taskId]
-    if (!task) return
+    const element = document.elementFromPoint(event.clientX, event.clientY)
+    const targetId = element?.closest('[data-reorder-id]')?.getAttribute('data-reorder-id') ?? null
+    const targetSectionElement = element?.closest('[data-section-drop-id]')
+    const sourceTask = state.tasks[taskId]
+    if (!sourceTask) return
+
+    const targetTask = targetId ? state.tasks[targetId] : null
+    if (targetTask && (targetTask.id === taskId || targetTask.projectId !== sourceTask.projectId)) return
+    const targetSectionId = targetTask
+      ? targetTask.sectionId ?? null
+      : targetSectionElement
+        ? targetSectionElement.getAttribute('data-section-drop-id') || null
+        : null
+    if (!targetTask && !targetSectionElement) return
+
+    const targetSiblings = Object.values(state.tasks)
+      .filter((candidate) =>
+        candidate.projectId === sourceTask.projectId &&
+        candidate.completedAt === null &&
+        (candidate.sectionId ?? null) === targetSectionId &&
+        candidate.id !== taskId,
+      )
+      .sort((left, right) => left.order - right.order || left.id.localeCompare(right.id))
+    const targetIndex = targetTask
+      ? Math.max(0, targetSiblings.findIndex((candidate) => candidate.id === targetTask.id))
+      : targetSiblings.length
+    const pointerKey = `${targetSectionId ?? 'unsectioned'}:${targetId ?? 'end'}:${targetIndex}`
+    if (reorderPointerTargetRef.current === pointerKey) return
+    reorderPointerTargetRef.current = pointerKey
     const result = appStore.dispatch({
       type: 'task.reorder',
-      input: { taskId, sectionId: task.sectionId, order: targetIndex },
+      input: { taskId, sectionId: targetSectionId, order: targetIndex },
     })
     if (!result.ok) setNotice(result.message)
   }
@@ -2523,11 +2662,26 @@ function App() {
     setTaskEditor({ mode, taskId: task?.id ?? null, draft })
   }
 
-  agentBridgeActionsRef.current = { navigate, openTaskEditor }
+  agentBridgeActionsRef.current = {
+    navigate,
+    openTaskEditor,
+    getViewState: () => ({
+      route,
+      viewMode,
+      selectedTaskId: selectedTask?.id ?? null,
+      taskEditorOpen: Boolean(taskEditor),
+      projectDialogOpen,
+      reorderMode,
+      syncStatus,
+    }),
+  }
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
 
+    const channel = typeof BroadcastChannel === 'undefined'
+      ? null
+      : new BroadcastChannel('daymark-agent')
     const clone = (value) => {
       try {
         return structuredClone(value)
@@ -2535,28 +2689,127 @@ function App() {
         return JSON.parse(JSON.stringify(value))
       }
     }
-    const execute = (operation, payload) => {
-      if (operation === 'getState') return { ok: true, state: clone(appStore.getState()) }
-      if (operation === 'dispatch') return appStore.dispatch(payload)
-      if (operation === 'navigate') {
-        agentBridgeActionsRef.current?.navigate?.(payload?.route ?? 'today')
-        return { ok: true }
-      }
-      if (operation === 'openTask') {
-        const task = appStore.getState().tasks[payload?.taskId]
-        if (!task) return { ok: false, reason: 'invalid', message: 'The requested task does not exist.' }
-        agentBridgeActionsRef.current?.openTaskEditor?.('edit', task)
-        return { ok: true }
-      }
-      if (operation === 'createTask') {
-        agentBridgeActionsRef.current?.openTaskEditor?.('create', null, payload?.date ?? null)
-        return { ok: true }
-      }
-      return { ok: false, reason: 'invalid', message: `Unknown Daymark agent operation: ${operation}` }
-    }
+
     const publishResponse = (response, channel = null) => {
       channel?.postMessage(response)
       window.dispatchEvent(new CustomEvent('daymark:agent-response', { detail: response }))
+    }
+    const publishEvent = (type, detail) => {
+      const event = { type, version: AGENT_BRIDGE_VERSION, ...detail }
+      channel?.postMessage(event)
+      window.dispatchEvent(new CustomEvent(type, { detail: event }))
+      return event
+    }
+    const sessionSnapshot = (session) => clone({
+      ...session,
+      results: session.results.map((result) => ({ ...result })),
+    })
+    const normalizeAction = (operation, payload) => {
+      if (!AGENT_ACTION_TYPES.includes(operation)) return null
+      if (operation === 'undo') return { type: 'undo' }
+      const inputOperations = new Set(['task.add', 'project.add', 'order.add', 'note.add', 'diary.upsert', 'section.add', 'label.add', 'filter.add'])
+      if (inputOperations.has(operation)) {
+        return { type: operation, ...(payload?.input !== undefined ? { input: payload.input } : operation === 'diary.upsert' ? payload : { input: payload ?? {} }) }
+      }
+      return { type: operation, ...(payload ?? {}) }
+    }
+    let execute
+    const runSession = (sessionId) => {
+      const session = agentSessionsRef.current.get(sessionId)
+      if (!session || session.status !== 'running') return
+      if (session.stepIndex >= session.steps.length) {
+        session.status = 'completed'
+        session.finishedAt = new Date().toISOString()
+        agentSessionTimersRef.current.delete(sessionId)
+        publishEvent('daymark:agent-session', { session: sessionSnapshot(session) })
+        return
+      }
+      const step = session.steps[session.stepIndex]
+      const result = execute(step.operation, step.payload)
+      session.results.push({ index: session.stepIndex, operation: step.operation, result: clone(result) })
+      session.stepIndex += 1
+      publishEvent('daymark:agent-session', { session: sessionSnapshot(session) })
+      if (!result?.ok) {
+        session.status = 'failed'
+        session.error = result?.message ?? 'Agent session step failed.'
+        session.finishedAt = new Date().toISOString()
+        agentSessionTimersRef.current.delete(sessionId)
+        publishEvent('daymark:agent-session', { session: sessionSnapshot(session) })
+        return
+      }
+      const timer = window.setTimeout(() => runSession(sessionId), 0)
+      agentSessionTimersRef.current.set(sessionId, timer)
+    }
+    execute = (operation, payload) => {
+      try {
+        if (operation === 'getState') return { ok: true, state: clone(appStore.getState()) }
+        if (operation === 'getViewState') return { ok: true, view: clone(agentBridgeActionsRef.current?.getViewState?.() ?? {}) }
+        if (operation === 'dispatch') {
+          if (!payload || typeof payload !== 'object' || typeof payload.type !== 'string') return { ok: false, reason: 'invalid', message: 'A valid Daymark action is required.' }
+          return appStore.dispatch(payload)
+        }
+        if (operation === 'navigate') {
+          agentBridgeActionsRef.current?.navigate?.(payload?.route ?? 'today')
+          return { ok: true }
+        }
+        if (operation === 'openTask') {
+          const task = appStore.getState().tasks[payload?.taskId]
+          if (!task) return { ok: false, reason: 'invalid', message: 'The requested task does not exist.' }
+          agentBridgeActionsRef.current?.openTaskEditor?.('edit', task)
+          return { ok: true }
+        }
+        if (operation === 'createTask') {
+          agentBridgeActionsRef.current?.openTaskEditor?.('create', null, payload?.date ?? null)
+          return { ok: true }
+        }
+        if (operation === 'openProject') {
+          const project = appStore.getState().projects[payload?.projectId]
+          if (!project) return { ok: false, reason: 'invalid', message: 'The requested project does not exist.' }
+          agentBridgeActionsRef.current?.navigate?.(`project:${project.id}`)
+          return { ok: true }
+        }
+        if (operation === 'openOrder') {
+          agentBridgeActionsRef.current?.navigate?.('order')
+          return { ok: true }
+        }
+        if (operation === 'startSession') {
+          const steps = Array.isArray(payload?.steps) ? payload.steps.filter((step) => step && typeof step.operation === 'string') : []
+          if (!steps.length) return { ok: false, reason: 'invalid', message: 'An agent session needs at least one operation.' }
+          const session = {
+            id: createId('agent-session'),
+            name: String(payload?.name || 'Daymark agent session'),
+            status: 'running',
+            createdAt: new Date().toISOString(),
+            finishedAt: null,
+            stepIndex: 0,
+            steps: clone(steps),
+            results: [],
+          }
+          agentSessionsRef.current.set(session.id, session)
+          publishEvent('daymark:agent-session', { session: sessionSnapshot(session) })
+          runSession(session.id)
+          return { ok: true, session: sessionSnapshot(session) }
+        }
+        if (operation === 'stopSession') {
+          const session = agentSessionsRef.current.get(payload?.sessionId)
+          if (!session) return { ok: false, reason: 'invalid', message: 'The requested agent session does not exist.' }
+          const timer = agentSessionTimersRef.current.get(session.id)
+          if (timer) window.clearTimeout(timer)
+          agentSessionTimersRef.current.delete(session.id)
+          session.status = 'stopped'
+          session.finishedAt = new Date().toISOString()
+          publishEvent('daymark:agent-session', { session: sessionSnapshot(session) })
+          return { ok: true, session: sessionSnapshot(session) }
+        }
+        if (operation === 'listSessions') {
+          return { ok: true, sessions: [...agentSessionsRef.current.values()].map(sessionSnapshot) }
+        }
+        const action = normalizeAction(operation, payload)
+        if (action) return appStore.dispatch(action)
+        return { ok: false, reason: 'invalid', message: `Unknown Daymark agent operation: ${operation}` }
+      } catch (error) {
+        return { ok: false, reason: 'invalid', message: error instanceof Error ? error.message : 'Daymark rejected the agent request.' }
+      }
     }
     const handleRequest = (event, channel = null) => {
       const request = event?.data ?? event?.detail
@@ -2568,19 +2821,23 @@ function App() {
         result: execute(request.operation, request.payload),
       }, channel)
     }
-    const channel = typeof BroadcastChannel === 'undefined'
-      ? null
-      : new BroadcastChannel('daymark-agent')
     if (channel) channel.addEventListener('message', (event) => handleRequest(event, channel))
     const onWindowRequest = (event) => handleRequest(event)
     window.addEventListener('daymark:agent-request', onWindowRequest)
     window.DaymarkAI = {
       version: AGENT_BRIDGE_VERSION,
       getState: () => clone(appStore.getState()),
+      getViewState: () => clone(agentBridgeActionsRef.current?.getViewState?.() ?? {}),
       dispatch: (action) => execute('dispatch', action),
+      perform: (operation, payload) => execute(operation, payload),
       navigate: (nextRoute) => execute('navigate', { route: nextRoute }),
       openTask: (taskId) => execute('openTask', { taskId }),
       createTask: (date = null) => execute('createTask', { date }),
+      openProject: (projectId) => execute('openProject', { projectId }),
+      openOrder: () => execute('openOrder'),
+      startSession: (name, steps) => execute('startSession', { name, steps }),
+      stopSession: (sessionId) => execute('stopSession', { sessionId }),
+      listSessions: () => execute('listSessions'),
     }
     window.dispatchEvent(new CustomEvent('daymark:agent-ready', {
       detail: { version: AGENT_BRIDGE_VERSION },
@@ -2590,6 +2847,7 @@ function App() {
         type: 'daymark:agent-state',
         version: AGENT_BRIDGE_VERSION,
         state: clone(nextState),
+        view: clone(agentBridgeActionsRef.current?.getViewState?.() ?? {}),
       }
       channel?.postMessage(update)
       window.dispatchEvent(new CustomEvent('daymark:agent-state', { detail: update }))
@@ -2597,6 +2855,9 @@ function App() {
     return () => {
       unsubscribe()
       channel?.close()
+      agentSessionTimersRef.current.forEach((timer) => window.clearTimeout(timer))
+      agentSessionTimersRef.current.clear()
+      agentSessionsRef.current.clear()
       window.removeEventListener('daymark:agent-request', onWindowRequest)
       if (window.DaymarkAI?.version === AGENT_BRIDGE_VERSION) delete window.DaymarkAI
     }
@@ -2785,6 +3046,10 @@ function App() {
           <button aria-label="Open command palette" className="icon-button" onClick={() => setCommandOpen(true)} title="Command palette (Ctrl K)" type="button">
             <Icon name="command" size={17} />
           </button>
+          <span aria-label="Daymark agent connection active" className="agent-connection" data-agent-bridge="connected">
+            <span aria-hidden="true" className="agent-connection__dot" />
+            Agent connected
+          </span>
           <span className="topbar__divider" />
           <button className="avatar-button" title="Open profile menu" type="button">ML</button>
         </div>
@@ -3079,7 +3344,11 @@ function App() {
                 <div className="task-list">
                   {sections.length ? (
                     sections.map((section) => (
-                      <section className={`task-section ${reorderMode?.kind === 'section' && reorderMode.id === section.id ? 'is-reordering' : ''}`} key={section.id ?? section.name}>
+                      <section
+                        className={`task-section ${reorderMode?.kind === 'section' && reorderMode.id === section.id ? 'is-reordering' : ''}`}
+                        data-section-drop-id={section.id ?? ''}
+                        key={section.id ?? section.name}
+                      >
                         <SectionHeading
                           canMoveEarlier={Boolean(section.id && projectSections(section.projectId).findIndex((candidate) => candidate.id === section.id) > 0)}
                           canMoveLater={Boolean(section.id && (() => {
@@ -3137,6 +3406,7 @@ function App() {
                   {(sections.length ? sections : [{ id: null, name: 'Focus lane', tasks: [] }]).map((section) => (
                     <section
                       className="board-column"
+                      data-section-drop-id={section.id ?? ''}
                       key={section.id ?? section.name}
                       onDragOver={(event) => {
                         if (event.dataTransfer.types.includes('text/plain')) {
@@ -3173,34 +3443,19 @@ function App() {
                         variant="board"
                       />
                       <div className="board-column__body">
-                        {section.tasks.map((task) => (
-                          <article
-                            className={`board-task ${task.completed ? 'is-completed' : ''}`}
-                            draggable={!task.completed}
-                            key={task.id}
-                            onDragStart={(event) => {
-                              if (!task.completed) {
-                                event.dataTransfer.effectAllowed = 'move'
-                                event.dataTransfer.setData('text/plain', task.id)
-                              }
-                            }}
-                          >
-                            <button
-                              aria-label={task.completed ? `Restore ${task.title}` : `Complete ${task.title}`}
-                              className="board-task__complete"
-                              onClick={() => toggleTask(task.id)}
-                              title={task.completed ? 'Restore task' : 'Complete task'}
-                              type="button"
-                            >
-                              <Icon name={task.completed ? 'check' : 'circle'} size={14} />
-                            </button>
-                            <button className="board-task__body" onClick={() => openTaskEditor('edit', state.tasks[task.id])} type="button">
-                              <span className={`board-task__priority board-task__priority--${task.priorityTone}`} />
-                              <strong>{task.title}</strong>
-                              <small>{task.due}</small>
-                            </button>
-                          </article>
-                        ))}
+                         {section.tasks.map((task) => (
+                           <BoardTaskCard
+                             isReordering={reorderMode?.kind === 'task' && reorderMode.id === task.id}
+                             key={task.id}
+                             onCancelReorder={() => cancelReorderMode()}
+                             onLongPressReorder={task.completed ? undefined : () => enterReorderMode('task', task.id)}
+                             onOpen={(viewTask) => openTaskEditor('edit', state.tasks[viewTask.id])}
+                             onReorderEnd={finishPointerReorder}
+                             onReorderMove={moveTaskToPointerTarget}
+                             onToggle={toggleTask}
+                             task={task}
+                           />
+                         ))}
                         <button className="board-add" onClick={() => openTaskEditor('create')} type="button">
                           <Icon name="plus" size={15} />
                           Add task

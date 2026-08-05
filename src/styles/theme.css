@@ -7,9 +7,9 @@
   --color-surface-raised: #ffffff;
   --color-surface-hover: #f0f0ef;
   --color-surface-selected: #fce9e5;
-  --color-text-primary: #111111;
-  --color-text-secondary: #2d2d2b;
-  --color-text-tertiary: #4f4f4b;
+  --color-text-primary: #080808;
+  --color-text-secondary: #1d1d1b;
+  --color-text-tertiary: #383834;
   --color-border: #e4e1dd;
   --color-border-strong: #cac5bf;
   --color-accent: #c44536;
@@ -19,7 +19,7 @@
   --color-success: #267553;
   --color-focus-ring: #276fbb;
   --shadow-raised: 0 1px 2px rgb(35 31 28 / 0.08), 0 4px 12px rgb(35 31 28 / 0.05);
-  --body-font-weight: 550;
+  --body-font-weight: 620;
 
   /*
    * Compatibility aliases keep independently-owned feature styles on the
@@ -82,7 +82,7 @@
   --color-success: #73c9a5;
   --color-focus-ring: #78b7f5;
   --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.24), 0 8px 18px rgb(0 0 0 / 0.2);
-  --body-font-weight: 550;
+  --body-font-weight: 620;
   --amber: #ffd075;
   --amber-soft: #4a3917;
   --indigo: #adbaff;

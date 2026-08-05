@@ -142,7 +142,7 @@
 }
 
 .project-create-dialog__field textarea {
-  min-height: 92px;
+  min-height: 180px;
   padding: 10px 12px;
   resize: vertical;
 }
