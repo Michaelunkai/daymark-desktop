@@ -665,7 +665,7 @@ function UtilityPanel({ onAction }) {
 
       <div className="utility-panel__heading">
         <div>
-          <span className="section-kicker">ORGANIZE</span>
+          <span className="section-kicker">TAGS</span>
           <h2>Tags</h2>
         </div>
         <button className="text-button" onClick={() => onAction('label:label-focus')} type="button">
@@ -861,7 +861,7 @@ function getRouteInfo(route, state) {
     return { title: 'Completed', kicker: 'WORKSPACE HISTORY', subtitle: 'Completed work stays here until you restore it.' }
   }
   if (route === 'order') {
-    return { title: 'Order', kicker: 'WORKSPACE ORGANIZER', subtitle: 'Decide what comes next, and what follows it.' }
+    return { title: 'Order', kicker: 'WORKSPACE ORDER', subtitle: 'Decide what comes next, and what follows it.' }
   }
   if (route === 'notes') {
     return { title: 'Notes', kicker: 'PERSONAL REFERENCE', subtitle: 'Keep durable ideas close to the work they support.' }

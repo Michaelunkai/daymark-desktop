@@ -173,7 +173,7 @@ export function OrderWorkspace({ items, onAdd, onUpdate, onDelete, onMove }) {
     <section aria-labelledby="order-title" className="order-workspace">
       <header className="order-header">
         <div>
-          <span className="section-kicker">WORKSPACE ORGANIZER</span>
+          <span className="section-kicker">WORKSPACE ORDER</span>
           <h1 id="order-title">Order</h1>
           <p>Turn loose thoughts into a sequence you can actually follow.</p>
         </div>
