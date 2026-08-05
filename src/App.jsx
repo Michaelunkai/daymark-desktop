@@ -96,6 +96,7 @@ const AGENT_ACTION_TYPES = [
   'diary.upsert',
   'diary.update',
   'section.add',
+  'section.remove',
   'section.update',
   'label.add',
   'label.update',
