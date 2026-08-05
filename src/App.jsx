@@ -2068,9 +2068,9 @@ function App() {
           id: section.id,
           projectId: section.projectId,
           name: section.name,
-          tasks: orderedTasks.filter((task) => task.sectionId === section.id),
+          tasks: orderedTasks.filter((task) => state.tasks[task.id]?.sectionId === section.id),
         }))
-      const unsectioned = orderedTasks.filter((task) => !task.sectionId)
+      const unsectioned = orderedTasks.filter((task) => !state.tasks[task.id]?.sectionId)
       return unsectioned.length
         ? [...projectSections, { id: null, name: 'Unsectioned', tasks: unsectioned }]
         : projectSections
