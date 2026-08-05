@@ -85,6 +85,42 @@
   text-decoration: none;
 }
 
+.companion-session {
+  display: grid;
+  gap: 8px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-soft);
+}
+
+.companion-session__heading,
+.companion-session__event {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.companion-session__heading span,
+.companion-session__event span {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.companion-session__heading strong,
+.companion-session__event small,
+.companion-session p {
+  color: var(--ink-muted);
+  font-size: 10px;
+}
+
+.companion-session p {
+  margin: 0;
+  line-height: 1.45;
+}
+
 .companion-transcript {
   display: grid;
   gap: 7px;
