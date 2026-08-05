@@ -99,7 +99,9 @@ function OrderItemCard({
           <button className="order-item__title" onClick={() => onEdit(item)} type="button">{item.title}</button>
           <span className={`order-priority order-priority--${item.priority}`}>{PRIORITIES.find((priority) => priority.value === item.priority)?.label}</span>
         </div>
-        {item.details ? <p>{item.details}</p> : null}
+        <p className="order-item__details">
+          {item.details || 'No details yet. Open this item to add context.'}
+        </p>
         <div className="order-item__meta">
           <span className={`order-status order-status--${item.status}`}>{item.status}</span>
           {item.relationId ? <span>after {orderedItems.find((candidate) => candidate.id === item.relationId)?.title ?? 'another item'}</span> : null}

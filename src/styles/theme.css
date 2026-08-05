@@ -7,9 +7,9 @@
   --color-surface-raised: #ffffff;
   --color-surface-hover: #f0f0ef;
   --color-surface-selected: #fce9e5;
-  --color-text-primary: #252321;
-  --color-text-secondary: #6d6965;
-  --color-text-tertiary: #918c87;
+  --color-text-primary: #111111;
+  --color-text-secondary: #2d2d2b;
+  --color-text-tertiary: #4f4f4b;
   --color-border: #e4e1dd;
   --color-border-strong: #cac5bf;
   --color-accent: #c44536;
@@ -19,6 +19,7 @@
   --color-success: #267553;
   --color-focus-ring: #276fbb;
   --shadow-raised: 0 1px 2px rgb(35 31 28 / 0.08), 0 4px 12px rgb(35 31 28 / 0.05);
+  --body-font-weight: 550;
 
   /*
    * Compatibility aliases keep independently-owned feature styles on the
@@ -70,8 +71,8 @@
   --color-surface-hover: #38393d;
   --color-surface-selected: #4a2e2c;
   --color-text-primary: #f4f2ef;
-  --color-text-secondary: #c2beb8;
-  --color-text-tertiary: #938f8a;
+  --color-text-secondary: #d5d1ca;
+  --color-text-tertiary: #b1aca5;
   --color-border: #424348;
   --color-border-strong: #595b60;
   --color-accent: #f07867;
@@ -81,6 +82,7 @@
   --color-success: #73c9a5;
   --color-focus-ring: #78b7f5;
   --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.24), 0 8px 18px rgb(0 0 0 / 0.2);
+  --body-font-weight: 550;
   --amber: #ffd075;
   --amber-soft: #4a3917;
   --indigo: #adbaff;
@@ -95,8 +97,8 @@
     --color-surface-hover: #38393d;
     --color-surface-selected: #4a2e2c;
     --color-text-primary: #f4f2ef;
-    --color-text-secondary: #c2beb8;
-    --color-text-tertiary: #938f8a;
+    --color-text-secondary: #d5d1ca;
+    --color-text-tertiary: #b1aca5;
     --color-border: #424348;
     --color-border-strong: #595b60;
     --color-accent: #f07867;

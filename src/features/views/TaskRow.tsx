@@ -87,6 +87,9 @@ export function TaskRow({
       {onTaskOpen ? (
         <button className="view-task-row-main" type="button" onClick={() => onTaskOpen(task.id)}>
           <span className="view-task-row-title">{title}</span>
+          <span className="view-task-row-description">
+            {task.description.trim() || "No details yet. Open the task to add context."}
+          </span>
           {dueLabel || taskLabels.length > 0 ? (
             <span className="view-task-row-meta">
               {dueLabel ? (
@@ -103,6 +106,9 @@ export function TaskRow({
       ) : (
         <div className="view-task-row-main">
           <span className="view-task-row-title">{title}</span>
+          <span className="view-task-row-description">
+            {task.description.trim() || "No details yet. Open the task to add context."}
+          </span>
           {dueLabel || taskLabels.length > 0 ? (
             <span className="view-task-row-meta">
               {dueLabel ? (

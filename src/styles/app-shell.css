@@ -32,6 +32,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background: var(--canvas);
+  font-weight: var(--body-font-weight, 550);
 }
 
 body.navigation-drawer-open {

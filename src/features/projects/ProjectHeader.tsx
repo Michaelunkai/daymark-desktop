@@ -20,7 +20,9 @@ export function ProjectHeader({ project, onToggleFavorite, onAddSection }: Proje
             <h1>{project.name}</h1>
             {project.isFavorite ? <span className="project-favorite-label">Favorite</span> : null}
           </div>
-          {project.description ? <p>{project.description}</p> : null}
+          <p className={project.description ? undefined : "project-description-placeholder"}>
+            {project.description || "No project details yet. Add a description to keep the purpose visible here."}
+          </p>
         </div>
       </div>
 

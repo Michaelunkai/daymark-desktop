@@ -73,6 +73,7 @@ const TAGS = [
 
 const GITHUB_URL = 'https://github.com/Michaelunkai/daymark-desktop'
 const UI_SETTINGS_KEY = 'daymark.ui-settings'
+const AGENT_BRIDGE_VERSION = 1
 const DEFAULT_UI_SETTINGS = {
   density: 'comfortable',
   textScale: 'default',
@@ -1609,6 +1610,7 @@ function App() {
   const reorderPointerTargetRef = useRef(null)
   const composerRef = useRef(null)
   const captureReturnFocusRef = useRef(null)
+  const agentBridgeActionsRef = useRef(null)
 
   useEffect(() => {
     seedDemoWorkspace()
@@ -2313,6 +2315,85 @@ function App() {
     setSelectedTask(null)
     setTaskEditor({ mode, taskId: task?.id ?? null, draft })
   }
+
+  agentBridgeActionsRef.current = { navigate, openTaskEditor }
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    const clone = (value) => {
+      try {
+        return structuredClone(value)
+      } catch {
+        return JSON.parse(JSON.stringify(value))
+      }
+    }
+    const execute = (operation, payload) => {
+      if (operation === 'getState') return { ok: true, state: clone(appStore.getState()) }
+      if (operation === 'dispatch') return appStore.dispatch(payload)
+      if (operation === 'navigate') {
+        agentBridgeActionsRef.current?.navigate?.(payload?.route ?? 'today')
+        return { ok: true }
+      }
+      if (operation === 'openTask') {
+        const task = appStore.getState().tasks[payload?.taskId]
+        if (!task) return { ok: false, reason: 'invalid', message: 'The requested task does not exist.' }
+        agentBridgeActionsRef.current?.openTaskEditor?.('edit', task)
+        return { ok: true }
+      }
+      if (operation === 'createTask') {
+        agentBridgeActionsRef.current?.openTaskEditor?.('create', null, payload?.date ?? null)
+        return { ok: true }
+      }
+      return { ok: false, reason: 'invalid', message: `Unknown Daymark agent operation: ${operation}` }
+    }
+    const publishResponse = (response, channel = null) => {
+      channel?.postMessage(response)
+      window.dispatchEvent(new CustomEvent('daymark:agent-response', { detail: response }))
+    }
+    const handleRequest = (event, channel = null) => {
+      const request = event?.data ?? event?.detail
+      if (!request || request.type !== 'daymark:agent-request') return
+      publishResponse({
+        type: 'daymark:agent-response',
+        version: AGENT_BRIDGE_VERSION,
+        requestId: request.requestId ?? null,
+        result: execute(request.operation, request.payload),
+      }, channel)
+    }
+    const channel = typeof BroadcastChannel === 'undefined'
+      ? null
+      : new BroadcastChannel('daymark-agent')
+    if (channel) channel.addEventListener('message', (event) => handleRequest(event, channel))
+    const onWindowRequest = (event) => handleRequest(event)
+    window.addEventListener('daymark:agent-request', onWindowRequest)
+    window.DaymarkAI = {
+      version: AGENT_BRIDGE_VERSION,
+      getState: () => clone(appStore.getState()),
+      dispatch: (action) => execute('dispatch', action),
+      navigate: (nextRoute) => execute('navigate', { route: nextRoute }),
+      openTask: (taskId) => execute('openTask', { taskId }),
+      createTask: (date = null) => execute('createTask', { date }),
+    }
+    window.dispatchEvent(new CustomEvent('daymark:agent-ready', {
+      detail: { version: AGENT_BRIDGE_VERSION },
+    }))
+    const unsubscribe = appStore.subscribe((nextState) => {
+      const update = {
+        type: 'daymark:agent-state',
+        version: AGENT_BRIDGE_VERSION,
+        state: clone(nextState),
+      }
+      channel?.postMessage(update)
+      window.dispatchEvent(new CustomEvent('daymark:agent-state', { detail: update }))
+    })
+    return () => {
+      unsubscribe()
+      channel?.close()
+      window.removeEventListener('daymark:agent-request', onWindowRequest)
+      if (window.DaymarkAI?.version === AGENT_BRIDGE_VERSION) delete window.DaymarkAI
+    }
+  }, [])
 
   const saveTaskEditor = (draft) => {
     if (!taskEditor) return
