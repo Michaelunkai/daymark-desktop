@@ -10,11 +10,6 @@ function getSpeechRecognition() {
   return window.SpeechRecognition || window.webkitSpeechRecognition || null
 }
 
-function openExternal(url, setFeedback) {
-  const opened = window.open(url, '_blank', 'noopener,noreferrer')
-  if (!opened) setFeedback('Allow pop-ups to open ChatGPT.')
-}
-
 export function CompanionPanel({ isOpen, onClose, projects, tasks }) {
   const [bridgeReady, setBridgeReady] = useState(false)
   const [voiceActive, setVoiceActive] = useState(false)
@@ -123,8 +118,8 @@ export function CompanionPanel({ isOpen, onClose, projects, tasks }) {
           <button className="primary-button" onClick={readWorkspace} type="button">Read workspace</button>
           <button className="secondary-button" onClick={copyContext} type="button">{copied ? 'Copied' : 'Copy workspace context'}</button>
           <button className="secondary-button" onClick={toggleVoice} type="button">{voiceActive ? 'Stop voice capture' : 'Start voice capture'}</button>
-          <button className="secondary-button" onClick={() => openExternal(CODEX_URL, setFeedback)} type="button">Open Codex</button>
-          <button className="secondary-button" onClick={() => openExternal(CHATGPT_URL, setFeedback)} type="button">Open ChatGPT voice</button>
+          <a className="secondary-button companion-link" href={CODEX_URL} rel="noreferrer" target="_blank">Open Codex</a>
+          <a className="secondary-button companion-link" href={CHATGPT_URL} rel="noreferrer" target="_blank">Open ChatGPT voice</a>
         </div>
 
         <label className="companion-transcript">

@@ -77,6 +77,14 @@
   width: 100%;
 }
 
+.companion-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-decoration: none;
+}
+
 .companion-transcript {
   display: grid;
   gap: 7px;
