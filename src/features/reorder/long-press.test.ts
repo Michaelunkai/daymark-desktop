@@ -116,6 +116,24 @@ test("touch travel after long press is recognized when only release carries the 
   assert.equal(controller.consumeSuppressedClick(), true);
 });
 
+test("touch travel is recognized when cancellation carries the final position", () => {
+  const scheduler = createScheduler();
+  const events: string[] = [];
+  const controller = createLongPressReorderController({
+    onLongPress: () => events.push("enter"),
+    onDragMove: () => events.push("move"),
+    onDragEnd: () => events.push("end"),
+    scheduler,
+  });
+
+  controller.pointerDown({ button: 0, clientX: 10, clientY: 20, isPrimary: true, pointerId: 4, pointerType: "touch" });
+  scheduler.runAll();
+  controller.pointerCancel({ pointerId: 4, clientX: 40, clientY: 20, pointerType: "touch" });
+
+  assert.deepEqual(events, ["enter", "move", "end"]);
+  assert.equal(controller.consumeSuppressedClick(), true);
+});
+
 test("reorder selection moves earlier and later without changing item identity", () => {
   const original = ["first", "selected", "last"];
   assert.deepEqual(moveInOrder(original, "selected", -1), ["selected", "first", "last"]);

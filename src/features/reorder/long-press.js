@@ -112,7 +112,16 @@ export function createLongPressReorderController({
       if (wasTriggered) onDragEnd?.(event)
     },
     pointerCancel(event) {
-      if (triggered) onDragEnd?.(event)
+      if (triggered) {
+        const deltaX = (event?.clientX ?? 0) - startX
+        const deltaY = (event?.clientY ?? 0) - startY
+        if (hasPosition(event) && Math.hypot(deltaX, deltaY) > moveTolerance) {
+          event?.preventDefault?.()
+          dragMoved = true
+          onDragMove?.(event)
+        }
+        onDragEnd?.(event)
+      }
       cancelPress(event)
     },
     consumeSuppressedClick() {
