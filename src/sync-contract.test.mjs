@@ -21,5 +21,8 @@ test("remote sync contract is present in the client and Sites worker", async () 
   assert.match(app, /}, 50\)/);
   assert.match(worker, /daymark_sync_states/);
   assert.match(worker, /,\s*409\)/);
+  assert.match(worker, /function mergeSyncStates/);
+  assert.match(worker, /const nextRevision = Math\.max/);
+  assert.match(worker, /applyTombstones/);
   assert.match(hosting, /"d1":\s*"DB"/);
 });

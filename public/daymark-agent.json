@@ -10,6 +10,7 @@
   "responseEvent": "daymark:agent-response",
   "stateEvent": "daymark:agent-state",
   "sessionEvent": "daymark:agent-session",
+  "messageEvent": "window.postMessage",
   "operations": [
     "getState",
     "getViewState",

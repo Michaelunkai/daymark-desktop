@@ -12,6 +12,7 @@ test('publishes a discoverable Daymark agent contract', async () => {
   assert.equal(manifest.alias, 'DaymarkAgent')
   assert.equal(manifest.version, 2)
   assert.equal(manifest.channel, 'daymark-agent')
+  assert.equal(manifest.messageEvent, 'window.postMessage')
   assert.ok(manifest.operations.includes('getState'))
   assert.ok(manifest.operations.includes('startSession'))
 })

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { buildCompanionContext } from './companion-context.js'
+import { buildCompanionContext, buildCompanionPrompt } from './companion-context.js'
 import './companion.css'
 
 const CODEX_URL = 'https://chatgpt.com/codex'
@@ -13,6 +13,7 @@ function getSpeechRecognition() {
 export function CompanionPanel({ isOpen, onClose, projects, tasks }) {
   const [bridgeReady, setBridgeReady] = useState(false)
   const [voiceActive, setVoiceActive] = useState(false)
+  const [request, setRequest] = useState('')
   const [transcript, setTranscript] = useState('')
   const [feedback, setFeedback] = useState('')
   const [copied, setCopied] = useState(false)
@@ -59,6 +60,21 @@ export function CompanionPanel({ isOpen, onClose, projects, tasks }) {
     }
     const active = Object.values(state.tasks ?? {}).filter((task) => !task.completedAt).length
     setFeedback(`Live read: ${Object.keys(state.projects ?? {}).length} projects, ${active} active tasks.`)
+  }
+
+  const copyHandoff = async (destination) => {
+    const context = buildCompanionPrompt({
+      bridgeVersion: window.DaymarkAI?.version ?? 2,
+      projects,
+      request: request || transcript,
+      tasks,
+    })
+    try {
+      await navigator.clipboard.writeText(context)
+      setFeedback(`${destination} opened. Your request and live workspace context are ready to paste.`)
+    } catch {
+      setFeedback(`${destination} opened. Clipboard access is unavailable, so copy the workspace context manually.`)
+    }
   }
 
   const toggleVoice = () => {
@@ -118,9 +134,20 @@ export function CompanionPanel({ isOpen, onClose, projects, tasks }) {
           <button className="primary-button" onClick={readWorkspace} type="button">Read workspace</button>
           <button className="secondary-button" onClick={copyContext} type="button">{copied ? 'Copied' : 'Copy workspace context'}</button>
           <button className="secondary-button" onClick={toggleVoice} type="button">{voiceActive ? 'Stop voice capture' : 'Start voice capture'}</button>
-          <a className="secondary-button companion-link" href={CODEX_URL} rel="noreferrer" target="_blank">Open Codex</a>
-          <a className="secondary-button companion-link" href={CHATGPT_URL} rel="noreferrer" target="_blank">Open ChatGPT voice</a>
+          <a className="secondary-button companion-link" href={CODEX_URL} onClick={() => copyHandoff('Codex')} rel="noopener" target="_blank">Open Codex</a>
+          <a className="secondary-button companion-link" href={CHATGPT_URL} onClick={() => copyHandoff('ChatGPT')} rel="noopener" target="_blank">Open ChatGPT voice</a>
         </div>
+
+        <label className="companion-transcript">
+          <span>Tell the signed-in companion what to do</span>
+          <textarea
+            aria-label="Companion request"
+            onChange={(event) => setRequest(event.target.value)}
+            placeholder="e.g. Review the Daymark project and complete the next open task."
+            rows={3}
+            value={request}
+          />
+        </label>
 
         <label className="companion-transcript">
           <span>Voice transcript</span>
@@ -136,7 +163,7 @@ export function CompanionPanel({ isOpen, onClose, projects, tasks }) {
         {feedback ? <p aria-live="polite" className="companion-feedback" role="status">{feedback}</p> : null}
 
         <footer className="companion-panel__footer">
-          <span>Connected Codex sessions use the live DaymarkAI bridge.</span>
+          <span>ChatGPT/Codex opens in your signed-in subscription; DaymarkAI supplies live read/write access.</span>
           <button className="text-button" onClick={onClose} type="button">Done</button>
         </footer>
       </section>

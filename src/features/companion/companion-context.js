@@ -21,3 +21,13 @@ export function buildCompanionContext({ projects = [], tasks = [], bridgeVersion
     'Use the DaymarkAI bridge to read or update this workspace when connected.',
   ].join('\n')
 }
+
+export function buildCompanionPrompt({ projects = [], request = '', tasks = [], bridgeVersion = 2 }) {
+  return [
+    'You are my signed-in Daymark companion.',
+    request.trim() || 'Read my Daymark workspace and wait for my next instruction.',
+    'Use the live DaymarkAI bridge when available. You may read state, navigate, open items, create tasks, and dispatch supported Daymark actions.',
+    '',
+    buildCompanionContext({ bridgeVersion, projects, tasks }),
+  ].join('\n')
+}

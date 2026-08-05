@@ -11,6 +11,7 @@ import {
   mergeSyncStates,
   pullSyncState,
   pushSyncState,
+  syncStatesMatch,
 } from './core/sync'
 import { clearLegacyJournal, readLegacyJournal } from './features/journal/model'
 import { UpcomingCalendar as IntegratedUpcomingCalendar } from './features/calendar/UpcomingCalendar'
@@ -87,6 +88,7 @@ const AGENT_CONNECTION_INFO = {
   responseEvent: 'daymark:agent-response',
   stateEvent: 'daymark:agent-state',
   sessionEvent: 'daymark:agent-session',
+  messageEvent: 'window.postMessage',
 }
 const AGENT_ACTION_TYPES = [
   'task.add',
@@ -1841,6 +1843,7 @@ function App() {
   const [syncStatus, setSyncStatus] = useState('starting')
   const syncReadyRef = useRef(false)
   const syncRemoteRevisionRef = useRef(0)
+  const syncSkipNextPushRef = useRef(false)
   const syncPushTimerRef = useRef(null)
   const syncChannelRef = useRef(null)
   const syncSourceRef = useRef(null)
@@ -1855,18 +1858,25 @@ function App() {
     seedDemoWorkspace()
   }, [])
 
+  const replaceFromSync = (nextState, shouldPush = false) => {
+    syncSkipNextPushRef.current = !shouldPush
+    appStore.replace(nextState)
+  }
+
   useEffect(() => {
     let cancelled = false
     const source = `${appStore.getState().clientId}:${Math.random().toString(36).slice(2)}`
     syncSourceRef.current = source
     const applyRemoteState = (remoteState) => {
       const local = appStore.getState()
-      if (
-        remoteState.revision > local.revision ||
-        (remoteState.revision === local.revision && remoteState.updatedAt > local.updatedAt)
-      ) {
+      const merged = mergeSyncStates(local, remoteState)
+      if (!syncStatesMatch(merged, local)) {
         syncRemoteRevisionRef.current = Math.max(syncRemoteRevisionRef.current, remoteState.revision)
-        appStore.replace(remoteState)
+        replaceFromSync({
+          ...merged,
+          revision: Math.max(local.revision, remoteState.revision),
+          updatedAt: local.updatedAt >= remoteState.updatedAt ? local.updatedAt : remoteState.updatedAt,
+        }, !syncStatesMatch(merged, remoteState))
         setSyncStatus('synced')
       }
     }
@@ -1876,23 +1886,30 @@ function App() {
         const remote = await pullSyncState(syncKey)
         if (cancelled) return
         const local = appStore.getState()
-        if (
-          remote.state &&
-          (remote.revision > local.revision ||
-            (remote.revision === local.revision && remote.state.updatedAt > local.updatedAt))
-        ) {
-          appStore.replace(remote.state)
-          syncRemoteRevisionRef.current = remote.revision
-        } else if (
-          !remote.state ||
-          local.revision > remote.revision ||
-          (local.revision === remote.revision && local.updatedAt > remote.state.updatedAt)
-        ) {
+        if (!remote.state) {
           const pushed = await pushSyncState(syncKey, local, remote.revision)
           if (cancelled) return
           syncRemoteRevisionRef.current = pushed.revision
         } else {
+          const merged = mergeSyncStates(local, remote.state)
           syncRemoteRevisionRef.current = remote.revision
+          if (!syncStatesMatch(merged, remote.state)) {
+            const rebased = {
+              ...merged,
+              revision: Math.max(local.revision, remote.revision) + 1,
+              updatedAt: new Date().toISOString(),
+            }
+            const pushed = await pushSyncState(syncKey, rebased, remote.revision)
+            if (cancelled) return
+            syncRemoteRevisionRef.current = pushed.revision
+            replaceFromSync(pushed.state)
+          } else if (!syncStatesMatch(merged, local)) {
+            replaceFromSync({
+              ...merged,
+              revision: remote.revision,
+              updatedAt: remote.state.updatedAt,
+            })
+          }
         }
         syncReadyRef.current = true
         setSyncStatus('synced')
@@ -1912,7 +1929,11 @@ function App() {
   }, [syncKey])
 
   useEffect(() => {
-    if (!syncReadyRef.current || state.revision === 0) return
+    if (!syncReadyRef.current) return
+    if (syncSkipNextPushRef.current) {
+      syncSkipNextPushRef.current = false
+      return
+    }
     if (syncPushTimerRef.current) window.clearTimeout(syncPushTimerRef.current)
     syncPushTimerRef.current = window.setTimeout(async () => {
       setSyncStatus('syncing')
@@ -1952,13 +1973,14 @@ function App() {
         const remote = await pullSyncState(syncKey)
         if (cancelled || !remote.state) return
         const local = appStore.getState()
-        if (
-          remote.revision > syncRemoteRevisionRef.current &&
-          (remote.revision > local.revision ||
-            (remote.revision === local.revision && remote.state.updatedAt >= local.updatedAt))
-        ) {
-          syncRemoteRevisionRef.current = remote.revision
-          appStore.replace(remote.state)
+        const merged = mergeSyncStates(local, remote.state)
+        syncRemoteRevisionRef.current = Math.max(syncRemoteRevisionRef.current, remote.revision)
+        if (!syncStatesMatch(merged, local)) {
+          replaceFromSync({
+            ...merged,
+            revision: Math.max(local.revision, remote.revision),
+            updatedAt: local.updatedAt >= remote.state.updatedAt ? local.updatedAt : remote.state.updatedAt,
+          }, !syncStatesMatch(merged, remote.state))
           setSyncStatus('synced')
         }
       } catch {
@@ -2846,7 +2868,21 @@ function App() {
     }
     if (channel) channel.addEventListener('message', (event) => handleRequest(event, channel))
     const onWindowRequest = (event) => handleRequest(event)
+    const onMessageRequest = (event) => {
+      if (event.source !== window) return
+      const request = event.data
+      if (!request || request.type !== 'daymark:agent-request') return
+      const response = {
+        type: 'daymark:agent-response',
+        version: AGENT_BRIDGE_VERSION,
+        requestId: request.requestId ?? null,
+        result: execute(request.operation, request.payload),
+      }
+      window.postMessage(response, window.location.origin)
+      publishResponse(response)
+    }
     window.addEventListener('daymark:agent-request', onWindowRequest)
+    window.addEventListener('message', onMessageRequest)
     window.DaymarkAI = {
       version: AGENT_BRIDGE_VERSION,
       getConnectionInfo: () => clone(AGENT_CONNECTION_INFO),
@@ -2884,6 +2920,7 @@ function App() {
       agentSessionTimersRef.current.clear()
       agentSessionsRef.current.clear()
       window.removeEventListener('daymark:agent-request', onWindowRequest)
+      window.removeEventListener('message', onMessageRequest)
       if (window.DaymarkAI?.version === AGENT_BRIDGE_VERSION) delete window.DaymarkAI
       if (window.DaymarkAgent?.version === AGENT_BRIDGE_VERSION) delete window.DaymarkAgent
     }

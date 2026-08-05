@@ -1,5 +1,5 @@
 import { createSampleState } from "./sample-data";
-import { mergeSyncStates } from "./sync";
+import { mergeSyncStates, syncStatesMatch } from "./sync";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -58,3 +58,13 @@ staleTombstoneLocal.syncTombstones = {
 };
 const updateWins = mergeSyncStates(staleTombstoneLocal, newerRemote);
 assert(updateWins.tasks["task-welcome"], "A newer entity update must survive an older deletion marker.");
+
+assert(syncStatesMatch(local, local), "A state should match itself.");
+assert(
+  syncStatesMatch(local, { ...local, revision: 42, clientId: "other-client", updatedAt: older }),
+  "Transport metadata should not create a content conflict.",
+);
+assert(
+  !syncStatesMatch(local, { ...local, tasks: { ...local.tasks, "task-extra": local.tasks["task-welcome"] } }),
+  "Different entity content must remain detectable.",
+);

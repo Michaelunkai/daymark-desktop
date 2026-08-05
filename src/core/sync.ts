@@ -118,6 +118,33 @@ export function mergeSyncStates(local: AppState, remote: AppState): AppState {
   return merged;
 }
 
+export function syncStatesMatch(left: AppState, right: AppState): boolean {
+  return stableSerialize(syncComparableState(left)) === stableSerialize(syncComparableState(right));
+}
+
+function syncComparableState(state: AppState): Omit<AppState, "clientId" | "revision" | "updatedAt"> {
+  const comparable = structuredClone(state) as AppState & {
+    clientId?: string;
+    revision?: number;
+    updatedAt?: string;
+  };
+  delete comparable.clientId;
+  delete comparable.revision;
+  delete comparable.updatedAt;
+  return comparable;
+}
+
+function stableSerialize(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableSerialize).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entry]) => `${JSON.stringify(key)}:${stableSerialize(entry)}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
 function mergeTombstones(
   local: AppState["syncTombstones"],
   remote: AppState["syncTombstones"],

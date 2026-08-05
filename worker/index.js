@@ -84,11 +84,16 @@ async function handleSync(request, db, syncKey) {
   }
 
   const updatedAt = new Date().toISOString()
-  const stateJson = JSON.stringify(state)
+  const currentState = current ? JSON.parse(current.state_json) : null
+  const mergedState = currentState ? mergeSyncStates(state, currentState) : structuredClone(state)
+  const nextRevision = Math.max(Number(current?.revision ?? 0) + 1, Number(state.revision), 1)
+  mergedState.revision = nextRevision
+  mergedState.updatedAt = updatedAt
+  const stateJson = JSON.stringify(mergedState)
   if (current) {
     const result = await db
       .prepare("UPDATE daymark_sync_states SET revision = ?1, state_json = ?2, updated_at = ?3 WHERE sync_key = ?4 AND revision = ?5")
-      .bind(state.revision, stateJson, updatedAt, syncKey, expectedRevision)
+      .bind(nextRevision, stateJson, updatedAt, syncKey, expectedRevision)
       .run()
     if (!result.meta?.changes) {
       const latest = await db
@@ -104,10 +109,76 @@ async function handleSync(request, db, syncKey) {
   } else {
     await db
       .prepare("INSERT INTO daymark_sync_states (sync_key, revision, state_json, updated_at) VALUES (?1, ?2, ?3, ?4)")
-      .bind(syncKey, state.revision, stateJson, updatedAt)
+      .bind(syncKey, nextRevision, stateJson, updatedAt)
       .run()
   }
-  return json({ revision: state.revision, state, updatedAt })
+  return json({ revision: nextRevision, state: mergedState, updatedAt })
+}
+
+function mergeSyncStates(local, remote) {
+  const newerRecord = (left, right) => {
+    const merged = { ...right }
+    for (const [id, value] of Object.entries(left ?? {})) {
+      const other = right?.[id]
+      if (!other || value.updatedAt >= other.updatedAt) merged[id] = structuredClone(value)
+    }
+    return merged
+  }
+
+  const merged = {
+    ...structuredClone(remote),
+    revision: Math.max(Number(local?.revision ?? 0), Number(remote?.revision ?? 0)),
+    updatedAt: local?.updatedAt >= remote?.updatedAt ? local.updatedAt : remote.updatedAt,
+    clientId: local?.clientId ?? remote?.clientId,
+    projects: newerRecord(local?.projects, remote?.projects),
+    sections: newerRecord(local?.sections, remote?.sections),
+    labels: newerRecord(local?.labels, remote?.labels),
+    filters: newerRecord(local?.filters, remote?.filters),
+    tasks: newerRecord(local?.tasks, remote?.tasks),
+    orderItems: newerRecord(local?.orderItems, remote?.orderItems),
+    notes: newerRecord(local?.notes, remote?.notes),
+    diaryEntries: newerRecord(local?.diaryEntries, remote?.diaryEntries),
+    preferences: local?.updatedAt >= remote?.updatedAt
+      ? structuredClone(local.preferences)
+      : structuredClone(remote.preferences),
+    undoStack: local?.updatedAt >= remote?.updatedAt
+      ? structuredClone(local.undoStack)
+      : structuredClone(remote.undoStack),
+    syncTombstones: mergeTombstones(local?.syncTombstones, remote?.syncTombstones),
+  }
+  applyTombstones(merged)
+  return merged
+}
+
+function mergeTombstones(local, remote) {
+  const merged = { ...(remote ?? {}) }
+  for (const [key, tombstone] of Object.entries(local ?? {})) {
+    const other = merged[key]
+    if (!other || tombstone.deletedAt >= other.deletedAt) merged[key] = structuredClone(tombstone)
+  }
+  return merged
+}
+
+function applyTombstones(state) {
+  const collections = {
+    projects: state.projects,
+    sections: state.sections,
+    labels: state.labels,
+    filters: state.filters,
+    tasks: state.tasks,
+    orderItems: state.orderItems,
+    notes: state.notes,
+    diaryEntries: state.diaryEntries,
+  }
+  for (const [key, tombstone] of Object.entries(state.syncTombstones ?? {})) {
+    const separator = key.indexOf(":")
+    if (separator < 1) continue
+    const collectionName = key.slice(0, separator)
+    const id = key.slice(separator + 1)
+    const collection = collections[collectionName]
+    const record = collection?.[id]
+    if (record && tombstone.deletedAt >= record.updatedAt) delete collection[id]
+  }
 }
 
 function json(value, status = 200) {
