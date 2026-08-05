@@ -16,6 +16,7 @@ export function createLongPressReorderController({
   let timer = null
   let triggered = false
   let dragMoved = false
+  let movedBeforeTrigger = false
   let suppressClick = false
 
   const clearTimer = () => {
@@ -46,6 +47,7 @@ export function createLongPressReorderController({
     resetPress()
     triggered = false
     dragMoved = false
+    movedBeforeTrigger = false
     if (!wasTriggered) onCancel?.()
   }
 
@@ -80,11 +82,19 @@ export function createLongPressReorderController({
         onDragMove?.(event)
         return
       }
+      if (event?.pointerType === 'touch') {
+        movedBeforeTrigger = true
+        return
+      }
       cancelPress(event)
     },
     pointerUp(event) {
       if (pointerId === null || event?.pointerId !== pointerId) return
-      if (!triggered) {
+      if (!triggered && event?.pointerType === 'touch' && movedBeforeTrigger) {
+        cancelPress(event)
+        return
+      }
+      if (!triggered && event?.pointerType === 'mouse') {
         const deltaX = (event?.clientX ?? 0) - startX
         const deltaY = (event?.clientY ?? 0) - startY
         if (hasPosition(event) && Math.hypot(deltaX, deltaY) > moveTolerance) {
@@ -109,6 +119,7 @@ export function createLongPressReorderController({
       startY = 0
       triggered = false
       dragMoved = false
+      movedBeforeTrigger = false
       if (wasTriggered) onDragEnd?.(event)
     },
     pointerCancel(event) {
@@ -133,6 +144,7 @@ export function createLongPressReorderController({
       resetPress()
       triggered = false
       dragMoved = false
+      movedBeforeTrigger = false
       suppressClick = false
     },
   }

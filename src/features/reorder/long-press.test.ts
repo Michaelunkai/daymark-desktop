@@ -116,6 +116,45 @@ test("touch travel after long press is recognized when only release carries the 
   assert.equal(controller.consumeSuppressedClick(), true);
 });
 
+test("touch travel stays pending until the long-press threshold is reached", () => {
+  const scheduler = createScheduler();
+  const events: string[] = [];
+  const controller = createLongPressReorderController({
+    onCancel: () => events.push("cancel"),
+    onLongPress: () => events.push("enter"),
+    onDragMove: () => events.push("move"),
+    scheduler,
+  });
+
+  controller.pointerDown({ button: 0, clientX: 10, clientY: 20, isPrimary: true, pointerId: 4, pointerType: "touch" });
+  controller.pointerMove({ clientX: 25, clientY: 20, pointerId: 4, pointerType: "touch" });
+  assert.deepEqual(events, []);
+
+  scheduler.runAll();
+  controller.pointerMove({ clientX: 40, clientY: 20, pointerId: 4, pointerType: "touch" });
+  controller.pointerUp({ pointerId: 4, pointerType: "touch" });
+
+  assert.deepEqual(events, ["enter", "move"]);
+  assert.equal(controller.consumeSuppressedClick(), true);
+});
+
+test("touch travel and release before the long-press threshold still cancel", () => {
+  const scheduler = createScheduler();
+  const events: string[] = [];
+  const controller = createLongPressReorderController({
+    onCancel: () => events.push("cancel"),
+    onLongPress: () => events.push("enter"),
+    scheduler,
+  });
+
+  controller.pointerDown({ button: 0, clientX: 10, clientY: 20, isPrimary: true, pointerId: 4, pointerType: "touch" });
+  controller.pointerMove({ clientX: 25, clientY: 20, pointerId: 4, pointerType: "touch" });
+  controller.pointerUp({ pointerId: 4, clientX: 25, clientY: 20, pointerType: "touch" });
+
+  assert.deepEqual(events, ["cancel"]);
+  assert.equal(controller.consumeSuppressedClick(), false);
+});
+
 test("touch travel is recognized when cancellation carries the final position", () => {
   const scheduler = createScheduler();
   const events: string[] = [];
