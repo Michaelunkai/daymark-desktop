@@ -257,6 +257,7 @@ function toViewTask(task, state) {
   return {
     id: task.id,
     title: task.content,
+    sectionId: task.sectionId ?? null,
     section: state.sections[task.sectionId]?.name ?? 'Other tasks',
     project: task.projectId,
     projectName: project?.name ?? 'Inbox',
