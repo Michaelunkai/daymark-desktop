@@ -34,14 +34,13 @@
 .upcoming-calendar__title {
   min-width: 0;
   margin: 0;
-  overflow: hidden;
+  overflow-wrap: anywhere;
   color: var(--ink);
   font-size: 1.35rem;
   font-weight: 750;
   line-height: var(--line-height-tight);
   text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .upcoming-calendar__nav-button,
@@ -260,13 +259,10 @@
 .upcoming-calendar__task,
 .upcoming-calendar__more-tasks {
   min-width: 0;
-  overflow: hidden;
   color: var(--ink);
   font-size: var(--font-size-xs);
   line-height: 1.2;
   text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .upcoming-calendar__task {
@@ -292,6 +288,15 @@
 
 .upcoming-calendar__task:hover {
   background: color-mix(in srgb, var(--teal) 20%, var(--surface));
+}
+
+.upcoming-calendar__task-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .upcoming-calendar__task--completed {
