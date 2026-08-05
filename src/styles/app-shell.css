@@ -425,7 +425,7 @@ kbd {
   min-height: 38px;
   padding: 0 4px 0 9px;
   text-align: left;
-  touch-action: pan-y;
+  touch-action: none;
 }
 
 .project-sidebar-item__main:hover,
@@ -906,7 +906,7 @@ kbd {
   background: transparent;
   cursor: pointer;
   text-align: left;
-  touch-action: pan-y;
+  touch-action: none;
 }
 
 .task-row__body:hover .task-row__title {
@@ -1305,6 +1305,7 @@ kbd {
   min-width: 0;
   padding: 0;
   text-align: left;
+  touch-action: none;
 }
 
 .board-task:hover {
