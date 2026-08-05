@@ -605,6 +605,102 @@ function TaskRow({
   )
 }
 
+function SectionHeading({
+  section,
+  count,
+  variant = 'list',
+  collapsed = false,
+  canMoveEarlier = false,
+  canMoveLater = false,
+  isReordering = false,
+  onToggle,
+  onLongPressReorder,
+  onReorderMove,
+  onReorderEnd,
+  onMoveEarlier,
+  onMoveLater,
+}) {
+  const callbacksRef = useRef({ onLongPressReorder, onReorderEnd, onReorderMove, sectionId: section.id })
+  callbacksRef.current = { onLongPressReorder, onReorderEnd, onReorderMove, sectionId: section.id }
+  const reorderControllerRef = useRef(null)
+
+  if (!reorderControllerRef.current) {
+    reorderControllerRef.current = createLongPressReorderController({
+      onLongPress: () => callbacksRef.current.onLongPressReorder?.(callbacksRef.current.sectionId),
+      onDragMove: (event) => callbacksRef.current.onReorderMove?.(callbacksRef.current.sectionId, event),
+      onDragEnd: () => callbacksRef.current.onReorderEnd?.(),
+    })
+  }
+
+  useEffect(() => () => reorderControllerRef.current?.dispose(), [])
+
+  const handlePointerDown = (event) => {
+    if (!onLongPressReorder || event.target.closest('button')) return
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+    reorderControllerRef.current.pointerDown(event)
+  }
+
+  const className = variant === 'board' ? 'board-column__heading' : 'task-section__heading'
+
+  return (
+    <div
+      aria-describedby={isReordering ? 'reorder-mode-help' : undefined}
+      className={`${className} ${isReordering ? 'is-reordering' : ''}`}
+      data-reorder-mode={isReordering ? 'active' : undefined}
+      data-section-reorder-id={section.id ?? undefined}
+      onContextMenu={(event) => event.preventDefault()}
+      onLostPointerCapture={(event) => reorderControllerRef.current.pointerCancel(event)}
+      onPointerCancel={(event) => reorderControllerRef.current.pointerCancel(event)}
+      onPointerDown={handlePointerDown}
+      onPointerMove={(event) => reorderControllerRef.current.pointerMove(event)}
+      onPointerUp={(event) => reorderControllerRef.current.pointerUp(event)}
+      role={onLongPressReorder ? 'button' : undefined}
+      tabIndex={onLongPressReorder ? 0 : undefined}
+    >
+      <span className="section-heading__name">{section.name}</span>
+      <span className="section-heading__count">{count}</span>
+      <span className="section-heading__actions">
+        {variant === 'list' && onToggle ? (
+          <button
+            aria-expanded={!collapsed}
+            aria-label={`${collapsed ? 'Expand' : 'Collapse'} ${section.name}`}
+            className="icon-button"
+            onClick={() => onToggle(section.id, !collapsed)}
+            title={collapsed ? 'Expand section' : 'Collapse section'}
+            type="button"
+          >
+            <Icon name={collapsed ? 'chevronRight' : 'chevronDown'} size={16} />
+          </button>
+        ) : null}
+        {onLongPressReorder ? (
+          <>
+            <button
+              aria-label={`Move ${section.name} earlier`}
+              className="icon-button section-order-button"
+              disabled={!canMoveEarlier}
+              onClick={onMoveEarlier}
+              title="Move section earlier"
+              type="button"
+            >
+              <Icon name="chevronUp" size={14} />
+            </button>
+            <button
+              aria-label={`Move ${section.name} later`}
+              className="icon-button section-order-button"
+              disabled={!canMoveLater}
+              onClick={onMoveLater}
+              title="Move section later"
+              type="button"
+            >
+              <Icon name="chevronDown" size={14} />
+            </button>
+          </>
+        ) : null}
+      </span>
+    </div>
+  )
+}
+
 function TaskComposer({ inputRef, value, onChange, onSubmit, onCancel }) {
   return (
     <form className="task-composer" onSubmit={onSubmit}>
@@ -1596,6 +1692,8 @@ function App() {
   const [taskEditor, setTaskEditor] = useState(null)
   const [projectDialogOpen, setProjectDialogOpen] = useState(false)
   const [projectToEdit, setProjectToEdit] = useState(null)
+  const [sectionComposerOpen, setSectionComposerOpen] = useState(false)
+  const [sectionDraft, setSectionDraft] = useState('')
   const [reorderMode, setReorderMode] = useState(null)
   const [captureSession, setCaptureSession] = useState(null)
   const [captureNotice, setCaptureNotice] = useState('')
@@ -1841,9 +1939,43 @@ function App() {
       const rightTask = state.tasks[right.id]
       return (leftTask?.order ?? 0) - (rightTask?.order ?? 0) || left.id.localeCompare(right.id)
     })
-    const names = [...new Set(orderedTasks.map((task) => task.section))]
-    return names.map((name) => ({ name, tasks: orderedTasks.filter((task) => task.section === name) }))
-  }, [state.tasks, visibleTasks])
+    const projectId = route.startsWith('project:') ? route.slice('project:'.length) : null
+
+    if (projectId) {
+      const projectSections = Object.values(state.sections)
+        .filter((section) => section.projectId === projectId)
+        .sort((left, right) => left.order - right.order || left.id.localeCompare(right.id))
+        .map((section) => ({
+          id: section.id,
+          projectId: section.projectId,
+          name: section.name,
+          tasks: orderedTasks.filter((task) => task.sectionId === section.id),
+        }))
+      const unsectioned = orderedTasks.filter((task) => !task.sectionId)
+      return unsectioned.length
+        ? [...projectSections, { id: null, name: 'Unsectioned', tasks: unsectioned }]
+        : projectSections
+    }
+
+    const groups = new Map()
+    for (const task of orderedTasks) {
+      const sectionRecord = task.sectionId ? state.sections[task.sectionId] : null
+      const key = task.sectionId ?? `name:${task.section}`
+      if (!groups.has(key)) {
+        groups.set(key, {
+          id: sectionRecord?.id ?? null,
+          projectId: sectionRecord?.projectId ?? null,
+          name: sectionRecord?.name ?? task.section,
+          order: sectionRecord?.order ?? Number.MAX_SAFE_INTEGER,
+          tasks: [],
+        })
+      }
+      groups.get(key).tasks.push(task)
+    }
+    return [...groups.values()]
+      .sort((left, right) => left.order - right.order || left.name.localeCompare(right.name))
+      .map(({ order, ...section }) => section)
+  }, [route, state.sections, state.tasks, visibleTasks])
 
   useEffect(() => {
     if (composerOpen) {
@@ -2007,6 +2139,7 @@ function App() {
 
   const navigate = (nextRoute) => {
     setReorderMode(null)
+    setSectionComposerOpen(false)
     setRoute(nextRoute)
     setSelectedTask(null)
     if (window.matchMedia('(max-width: 720px)').matches) setSidebarOpen(false)
@@ -2061,6 +2194,7 @@ function App() {
   const enterReorderMode = (kind, id) => {
     if (kind === 'project' && !state.projects[id]) return
     if (kind === 'task' && (!state.tasks[id] || state.tasks[id].completedAt)) return
+    if (kind === 'section' && !state.sections[id]) return
     setReorderMode({ kind, id })
     setNotice('')
   }
@@ -2068,6 +2202,79 @@ function App() {
   const cancelReorderMode = (message = '') => {
     setReorderMode(null)
     if (message) setNotice(message)
+  }
+
+  const projectSections = (projectId) => Object.values(state.sections)
+    .filter((section) => section.projectId === projectId)
+    .sort((left, right) => left.order - right.order || left.id.localeCompare(right.id))
+
+  const toggleSection = (sectionId, nextValue) => {
+    if (!sectionId) return
+    const result = appStore.dispatch({
+      type: 'section.update',
+      sectionId,
+      patch: { isCollapsed: nextValue },
+    })
+    if (!result.ok) setNotice(result.message)
+  }
+
+  const moveSectionBy = (sectionId, direction) => {
+    const current = state.sections[sectionId]
+    if (!current) return
+    const siblings = projectSections(current.projectId)
+    const index = siblings.findIndex((section) => section.id === sectionId)
+    const neighbor = siblings[index + direction]
+    if (!neighbor) return
+    const first = appStore.dispatch({
+      type: 'section.update',
+      sectionId: current.id,
+      patch: { order: neighbor.order },
+    })
+    if (!first.ok) {
+      setNotice(first.message)
+      return
+    }
+    const second = appStore.dispatch({
+      type: 'section.update',
+      sectionId: neighbor.id,
+      patch: { order: current.order },
+    })
+    if (!second.ok) setNotice(second.message)
+    else if (reorderMode?.kind === 'section' && reorderMode.id === sectionId) {
+      setNotice(`${current.name} moved ${direction < 0 ? 'earlier' : 'later'}. Use Escape or Done to leave reorder mode.`)
+    }
+  }
+
+  const moveSectionToPointerTarget = (sectionId, event) => {
+    const targetId = document.elementFromPoint(event.clientX, event.clientY)
+      ?.closest('[data-section-reorder-id]')
+      ?.getAttribute('data-section-reorder-id')
+    if (!targetId || targetId === sectionId || reorderPointerTargetRef.current === targetId) return
+    const current = state.sections[sectionId]
+    const target = state.sections[targetId]
+    if (!current || !target || current.projectId !== target.projectId) return
+    reorderPointerTargetRef.current = targetId
+    appStore.dispatch({ type: 'section.update', sectionId, patch: { order: target.order } })
+    appStore.dispatch({ type: 'section.update', sectionId: targetId, patch: { order: current.order } })
+  }
+
+  const createSection = (event) => {
+    event.preventDefault()
+    const name = sectionDraft.trim()
+    const projectId = route.startsWith('project:') ? route.slice('project:'.length) : null
+    if (!name || !projectId || !state.projects[projectId]) return
+    const order = projectSections(projectId).reduce((highest, section) => Math.max(highest, section.order), -1) + 1
+    const result = appStore.dispatch({
+      type: 'section.add',
+      input: { id: createId('section'), projectId, name, order },
+    })
+    if (!result.ok) {
+      setNotice(result.message)
+      return
+    }
+    setSectionDraft('')
+    setSectionComposerOpen(false)
+    setNotice(`Added ${name}.`)
   }
 
   const editProject = (project) => {
@@ -2734,7 +2941,9 @@ function App() {
                   {' '}
                   {reorderMode.kind === 'project'
                     ? state.projects[reorderMode.id]?.name
-                    : state.tasks[reorderMode.id]?.content}
+                    : reorderMode.kind === 'section'
+                      ? state.sections[reorderMode.id]?.name
+                      : state.tasks[reorderMode.id]?.content}
                   {' '}selected. Use the Move earlier or Move later controls.
                 </span>
                 <button className="text-button" onClick={() => cancelReorderMode()} type="button">Done</button>
@@ -2823,25 +3032,72 @@ function App() {
                   <span>{route === 'today' ? 'Focus lane' : 'Active tasks'}</span>
                   <span className="canvas-toolbar__count">{visibleTasks.filter((task) => !task.completed).length}</span>
                 </div>
-                <button className="toolbar-button" title="Filter and sort tasks" type="button">
-                  <Icon name="filter" size={15} />
-                  Sort
-                </button>
+                <div className="canvas-toolbar__actions">
+                  {route.startsWith('project:') ? (
+                    <button
+                      aria-expanded={sectionComposerOpen}
+                      className="toolbar-button"
+                      onClick={() => {
+                        setSectionComposerOpen((open) => !open)
+                        setNotice('')
+                      }}
+                      title="Add a section"
+                      type="button"
+                    >
+                      <Icon name="plus" size={15} />
+                      Add section
+                    </button>
+                  ) : null}
+                  <button className="toolbar-button" title="Filter and sort tasks" type="button">
+                    <Icon name="filter" size={15} />
+                    Sort
+                  </button>
+                </div>
               </div>
+
+              {route.startsWith('project:') && sectionComposerOpen ? (
+                <form className="section-composer" onSubmit={createSection}>
+                  <label htmlFor="section-name">New section</label>
+                  <input
+                    autoFocus
+                    id="section-name"
+                    onChange={(event) => setSectionDraft(event.target.value)}
+                    placeholder="e.g. Ready for review"
+                    value={sectionDraft}
+                  />
+                  <button className="primary-button" disabled={!sectionDraft.trim()} type="submit">
+                    <Icon name="check" size={15} />
+                    Add section
+                  </button>
+                  <button className="secondary-button" onClick={() => setSectionComposerOpen(false)} type="button">
+                    Cancel
+                  </button>
+                </form>
+              ) : null}
 
               {viewMode === 'list' ? (
                 <div className="task-list">
                   {sections.length ? (
                     sections.map((section) => (
-                      <section className="task-section" key={section.name}>
-                        <div className="task-section__heading">
-                          <span>{section.name}</span>
-                          <span>{section.tasks.length}</span>
-                          <button aria-label={`Collapse ${section.name}`} className="icon-button" title="Collapse section" type="button">
-                            <Icon name="chevronDown" size={16} />
-                          </button>
-                        </div>
-                        {section.tasks.map((task) => {
+                      <section className={`task-section ${reorderMode?.kind === 'section' && reorderMode.id === section.id ? 'is-reordering' : ''}`} key={section.id ?? section.name}>
+                        <SectionHeading
+                          canMoveEarlier={Boolean(section.id && projectSections(section.projectId).findIndex((candidate) => candidate.id === section.id) > 0)}
+                          canMoveLater={Boolean(section.id && (() => {
+                            const index = projectSections(section.projectId).findIndex((candidate) => candidate.id === section.id)
+                            return index >= 0 && index < projectSections(section.projectId).length - 1
+                          })())}
+                          collapsed={Boolean(section.id && state.sections[section.id]?.isCollapsed)}
+                          count={section.tasks.length}
+                          isReordering={reorderMode?.kind === 'section' && reorderMode.id === section.id}
+                          onLongPressReorder={route.startsWith('project:') && section.id ? () => enterReorderMode('section', section.id) : undefined}
+                          onMoveEarlier={() => moveSectionBy(section.id, -1)}
+                          onMoveLater={() => moveSectionBy(section.id, 1)}
+                          onReorderEnd={finishPointerReorder}
+                          onReorderMove={moveSectionToPointerTarget}
+                          onToggle={section.id ? toggleSection : undefined}
+                          section={section}
+                        />
+                        {!section.id || !state.sections[section.id]?.isCollapsed ? section.tasks.map((task) => {
                           const siblings = taskSiblings(task.id)
                           const siblingIndex = siblings.findIndex((candidate) => candidate.id === task.id)
                           return (
@@ -2861,7 +3117,7 @@ function App() {
                               task={task}
                             />
                           )
-                        })}
+                        }) : null}
                       </section>
                     ))
                   ) : (
@@ -2878,15 +3134,57 @@ function App() {
                 </div>
               ) : (
                 <div className="board-view">
-                  {(sections.length ? sections : [{ name: 'Focus lane', tasks: [] }]).map((section) => (
-                    <section className="board-column" key={section.name}>
-                      <div className="board-column__heading">
-                        <span>{section.name}</span>
-                        <span>{section.tasks.length}</span>
-                      </div>
+                  {(sections.length ? sections : [{ id: null, name: 'Focus lane', tasks: [] }]).map((section) => (
+                    <section
+                      className="board-column"
+                      key={section.id ?? section.name}
+                      onDragOver={(event) => {
+                        if (event.dataTransfer.types.includes('text/plain')) {
+                          event.preventDefault()
+                          event.dataTransfer.dropEffect = 'move'
+                        }
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault()
+                        const taskId = event.dataTransfer.getData('text/plain')
+                        const task = state.tasks[taskId]
+                        if (!task || task.completedAt) return
+                        const result = appStore.dispatch({
+                          type: 'task.reorder',
+                          input: { taskId, sectionId: section.id ?? null, order: section.tasks.length },
+                        })
+                        if (!result.ok) setNotice(result.message)
+                      }}
+                    >
+                      <SectionHeading
+                        canMoveEarlier={Boolean(section.id && projectSections(section.projectId).findIndex((candidate) => candidate.id === section.id) > 0)}
+                        canMoveLater={Boolean(section.id && (() => {
+                          const index = projectSections(section.projectId).findIndex((candidate) => candidate.id === section.id)
+                          return index >= 0 && index < projectSections(section.projectId).length - 1
+                        })())}
+                        count={section.tasks.length}
+                        isReordering={reorderMode?.kind === 'section' && reorderMode.id === section.id}
+                        onLongPressReorder={route.startsWith('project:') && section.id ? () => enterReorderMode('section', section.id) : undefined}
+                        onMoveEarlier={() => moveSectionBy(section.id, -1)}
+                        onMoveLater={() => moveSectionBy(section.id, 1)}
+                        onReorderEnd={finishPointerReorder}
+                        onReorderMove={moveSectionToPointerTarget}
+                        section={section}
+                        variant="board"
+                      />
                       <div className="board-column__body">
                         {section.tasks.map((task) => (
-                          <article className={`board-task ${task.completed ? 'is-completed' : ''}`} key={task.id}>
+                          <article
+                            className={`board-task ${task.completed ? 'is-completed' : ''}`}
+                            draggable={!task.completed}
+                            key={task.id}
+                            onDragStart={(event) => {
+                              if (!task.completed) {
+                                event.dataTransfer.effectAllowed = 'move'
+                                event.dataTransfer.setData('text/plain', task.id)
+                              }
+                            }}
+                          >
                             <button
                               aria-label={task.completed ? `Restore ${task.title}` : `Complete ${task.title}`}
                               className="board-task__complete"
