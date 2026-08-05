@@ -73,6 +73,8 @@ export function UpcomingCalendar({
     () => groupUpcomingTasks(tasks, today),
     [tasks, today],
   )
+  const selectedDay = selectedDate ?? today
+  const selectedDayTasks = tasksByDate.get(selectedDay) ?? []
   const range = calendarRange(mode, cursor, weekStartsOn)
   const heading = mode === "year"
     ? String(fromLocalDate(cursor).getFullYear())
@@ -183,7 +185,7 @@ export function UpcomingCalendar({
               <button
                 className="upcoming-calendar__month-button"
                 key={date}
-                onClick={() => { setCursor(date); setMode("month") }}
+                onClick={() => { setCursor(date); setMode("month"); onDateSelect?.(date) }}
                 type="button"
               >
                 <span>{formatDate(date, { month: "long" })}</span>
@@ -221,6 +223,30 @@ export function UpcomingCalendar({
           </div>
         </>
       )}
+
+      <section className="upcoming-selected-day" aria-labelledby="selected-day-title">
+        <div className="upcoming-agenda__header">
+          <div>
+            <p className="upcoming-calendar__eyebrow">SELECTED DAY</p>
+            <h3 id="selected-day-title">{formatDate(selectedDay, { weekday: "long", month: "long", day: "numeric" })}</h3>
+          </div>
+          <button className="upcoming-calendar__add-button" onClick={() => onTaskAdd?.(selectedDay)} type="button">
+            <span aria-hidden="true">+</span><span>Add task</span>
+          </button>
+        </div>
+        {selectedDayTasks.length ? (
+          <div className="upcoming-agenda__tasks">
+            {selectedDayTasks.map((task) => (
+              <AgendaTask key={task.id} onEdit={onTaskEdit} onToggle={onTaskToggle} task={task} />
+            ))}
+          </div>
+        ) : (
+          <div className="upcoming-agenda__empty">
+            <strong>No tasks are scheduled for this day.</strong>
+            <span>Add one now, or choose another date above.</span>
+          </div>
+        )}
+      </section>
 
       <section className="upcoming-agenda" aria-labelledby="upcoming-agenda-title">
         <div className="upcoming-agenda__header">

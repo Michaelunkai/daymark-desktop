@@ -47,6 +47,7 @@ const NAV_ITEMS = [
   { id: 'inbox', label: 'Inbox', icon: 'inbox', count: 4 },
   { id: 'upcoming', label: 'Upcoming', icon: 'calendar', count: 7 },
   { id: 'completed', label: 'Completed', icon: 'check', count: 0 },
+  { id: 'order', label: 'Order', icon: 'list', count: 0 },
   { id: 'notes', label: 'Notes', icon: 'note', count: 0 },
   { id: 'diary', label: 'Diary', icon: 'note', count: 0 },
 ]
@@ -86,6 +87,14 @@ function getBrowserStorage() {
     return typeof window === 'undefined' ? undefined : window.localStorage
   } catch {
     return undefined
+  }
+}
+
+function notifyAndroidBackHandled(atRoot) {
+  try {
+    window.DaymarkAndroid?.onBackHandled?.(Boolean(atRoot))
+  } catch {
+    // The native bridge is optional when Daymark runs in a browser.
   }
 }
 
@@ -280,6 +289,7 @@ const ICONS = {
       <path d="M12 5v14M5 12h14" />
     </>
   ),
+  circle: <circle cx="12" cy="12" r="7.5" />,
   menu: (
     <>
       <path d="M4 7h16M4 12h16M4 17h16" />
@@ -426,16 +436,20 @@ function ProjectSidebarItem({
   onDelete,
   onEdit,
   onLongPressReorder,
+  onReorderMove,
+  onReorderEnd,
   onMoveEarlier,
   onMoveLater,
   project,
 }) {
-  const callbacksRef = useRef({ onLongPressReorder, projectId: project.id })
-  callbacksRef.current = { onLongPressReorder, projectId: project.id }
+  const callbacksRef = useRef({ onLongPressReorder, onReorderEnd, onReorderMove, projectId: project.id })
+  callbacksRef.current = { onLongPressReorder, onReorderEnd, onReorderMove, projectId: project.id }
   const reorderControllerRef = useRef(null)
   if (!reorderControllerRef.current) {
     reorderControllerRef.current = createLongPressReorderController({
       onLongPress: () => callbacksRef.current.onLongPressReorder?.(callbacksRef.current.projectId),
+      onDragMove: (event) => callbacksRef.current.onReorderMove?.(callbacksRef.current.projectId, event),
+      onDragEnd: () => callbacksRef.current.onReorderEnd?.(),
     })
   }
   useEffect(() => () => reorderControllerRef.current?.dispose(), [])
@@ -471,6 +485,8 @@ function ProjectSidebarItem({
         }}
         onPointerMove={(event) => reorderControllerRef.current.pointerMove(event)}
         onPointerUp={(event) => reorderControllerRef.current.pointerUp(event)}
+        data-reorder-id={project.id}
+        onContextMenu={(event) => event.preventDefault()}
         type="button"
       >
         <span className={`project-dot project-dot--${PROJECT_COLORS[project.color] ?? 'teal'}`} />
@@ -497,18 +513,22 @@ function TaskRow({
   isReordering,
   onCancelReorder,
   onLongPressReorder,
+  onReorderMove,
+  onReorderEnd,
   onMoveEarlier,
   onMoveLater,
   task,
   onToggle,
   onOpen,
 }) {
-  const callbacksRef = useRef({ onLongPressReorder, taskId: task.id })
-  callbacksRef.current = { onLongPressReorder, taskId: task.id }
+  const callbacksRef = useRef({ onLongPressReorder, onReorderEnd, onReorderMove, taskId: task.id })
+  callbacksRef.current = { onLongPressReorder, onReorderEnd, onReorderMove, taskId: task.id }
   const reorderControllerRef = useRef(null)
   if (!reorderControllerRef.current) {
     reorderControllerRef.current = createLongPressReorderController({
       onLongPress: () => callbacksRef.current.onLongPressReorder?.(callbacksRef.current.taskId),
+      onDragMove: (event) => callbacksRef.current.onReorderMove?.(callbacksRef.current.taskId, event),
+      onDragEnd: () => callbacksRef.current.onReorderEnd?.(),
     })
   }
   useEffect(() => () => reorderControllerRef.current?.dispose(), [])
@@ -551,6 +571,8 @@ function TaskRow({
         }}
         onPointerMove={(event) => reorderControllerRef.current.pointerMove(event)}
         onPointerUp={(event) => reorderControllerRef.current.pointerUp(event)}
+        data-reorder-id={task.id}
+        onContextMenu={(event) => event.preventDefault()}
         type="button"
       >
         <span className="task-row__title">{task.title}</span>
@@ -1293,12 +1315,116 @@ function SettingsPanel({
   )
 }
 
-function JournalView({ journal, onDiaryUpdate, onNoteAdd, onNoteDelete, onNoteUpdate, route }) {
+function readablePreview(value) {
+  return String(value ?? '').replace(/\s+/g, ' ').trim() || 'No body yet'
+}
+
+function NoteListItem({ note, selected, onComplete, onMove, onSelect }) {
+  const [isDragging, setIsDragging] = useState(false)
+  const lastTargetRef = useRef(null)
+  const callbacksRef = useRef({ noteId: note.id, onMove })
+  callbacksRef.current = { noteId: note.id, onMove }
+  const controllerRef = useRef(null)
+
+  if (!controllerRef.current) {
+    controllerRef.current = createLongPressReorderController({
+      onLongPress: () => {
+        lastTargetRef.current = null
+        setIsDragging(true)
+      },
+      onDragMove: (event) => {
+        const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-note-reorder-id]')
+        const targetId = target?.getAttribute('data-note-reorder-id')
+        if (!targetId || targetId === callbacksRef.current.noteId || targetId === lastTargetRef.current) return
+        lastTargetRef.current = targetId
+        callbacksRef.current.onMove?.(callbacksRef.current.noteId, targetId)
+      },
+      onDragEnd: () => {
+        lastTargetRef.current = null
+        setIsDragging(false)
+      },
+    })
+  }
+
+  useEffect(() => () => controllerRef.current?.dispose(), [])
+
+  return (
+    <article className={`note-list-item-shell ${selected ? 'is-selected' : ''} ${note.completedAt ? 'is-completed' : ''} ${isDragging ? 'is-dragging' : ''}`}>
+      <button
+        aria-label={note.completedAt ? `Restore ${note.title}` : `Complete ${note.title}`}
+        className="note-complete-button"
+        onClick={() => onComplete(note.id)}
+        title={note.completedAt ? 'Restore note' : 'Complete note'}
+        type="button"
+      >
+        {note.completedAt ? '✓' : ''}
+      </button>
+      <button
+        aria-pressed={selected}
+        className="note-list-item"
+        data-note-reorder-id={note.id}
+        onClick={(event) => {
+          if (controllerRef.current.consumeSuppressedClick()) {
+            event.preventDefault()
+            return
+          }
+          onSelect(note.id)
+        }}
+        onContextMenu={(event) => event.preventDefault()}
+        onLostPointerCapture={(event) => controllerRef.current.pointerCancel(event)}
+        onPointerCancel={(event) => controllerRef.current.pointerCancel(event)}
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture?.(event.pointerId)
+          controllerRef.current.pointerDown(event)
+        }}
+        onPointerMove={(event) => controllerRef.current.pointerMove(event)}
+        onPointerUp={(event) => controllerRef.current.pointerUp(event)}
+        type="button"
+      >
+        <strong>{note.title || 'Untitled note'}</strong>
+        <span>{readablePreview(note.body)}</span>
+      </button>
+    </article>
+  )
+}
+
+function DiaryField({ label, value, placeholder, onChange, rows = 5 }) {
+  return (
+    <label className="diary-field">
+      <span>{label}</span>
+      <textarea
+        aria-label={label}
+        className="journal-editor journal-editor--compact"
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        value={value}
+      />
+    </label>
+  )
+}
+
+function JournalView({
+  journal,
+  onDiaryUpdate,
+  onNoteAdd,
+  onNoteComplete,
+  onNoteDelete,
+  onNoteMove,
+  onNoteUpdate,
+  route,
+}) {
   const today = toLocalDate(new Date())
   const [selectedDate, setSelectedDate] = useState(today)
   const [selectedNoteId, setSelectedNoteId] = useState(() => journal.notes[0]?.id ?? null)
   const selectedNote = journal.notes.find((note) => note.id === selectedNoteId) ?? null
-  const diaryEntry = journal.diaryEntries[selectedDate]
+  const diaryEntry = journal.diaryEntries[selectedDate] ?? {
+    body: '',
+    morning: '',
+    highlights: '',
+    reflection: '',
+    tomorrow: '',
+  }
 
   useEffect(() => {
     if (!selectedNoteId || journal.notes.some((note) => note.id === selectedNoteId)) return
@@ -1309,20 +1435,59 @@ function JournalView({ journal, onDiaryUpdate, onNoteAdd, onNoteDelete, onNoteUp
     return (
       <section aria-label="Diary" className="journal-view">
         <div className="journal-toolbar">
-          <label>
+          <div className="diary-date-controls">
+            <button
+              aria-label="Previous diary day"
+              className="icon-button"
+              onClick={() => setSelectedDate((date) => addDays(date, -1))}
+              title="Previous day"
+              type="button"
+            >
+              <Icon name="chevronUp" size={16} />
+            </button>
+            <label>
             <span>Date</span>
             <input aria-label="Diary date" onChange={(event) => setSelectedDate(event.target.value)} type="date" value={selectedDate} />
-          </label>
-          <span className="journal-saved" role="status">{diaryEntry ? 'Saved locally' : 'No entry yet'}</span>
+            </label>
+            <button className="text-button" onClick={() => setSelectedDate(today)} type="button">Today</button>
+            <button
+              aria-label="Next diary day"
+              className="icon-button"
+              onClick={() => setSelectedDate((date) => addDays(date, 1))}
+              title="Next day"
+              type="button"
+            >
+              <Icon name="chevronDown" size={16} />
+            </button>
+          </div>
+          <span className="journal-saved" role="status">
+            {Object.values(diaryEntry).some((value) => typeof value === 'string' && value.trim()) ? 'Saved locally' : 'Start a new day'}
+          </span>
         </div>
-        <textarea
-          aria-label={`Diary entry for ${selectedDate}`}
-          className="journal-editor"
-          onChange={(event) => onDiaryUpdate(selectedDate, event.target.value)}
-          placeholder="What happened today? What is worth carrying forward?"
-          rows={18}
-          value={diaryEntry?.body ?? ''}
-        />
+        <div className="diary-intro">
+          <div>
+            <span className="section-kicker">A DAY IN VIEW</span>
+            <h2>{new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(fromLocalDate(selectedDate))}</h2>
+          </div>
+          <p>Capture the shape of the day in small, useful pieces. Each section saves immediately and syncs with the rest of Daymark.</p>
+        </div>
+        <div className="diary-entry-grid">
+          <DiaryField label="Start of day" placeholder="What matters as you begin?" value={diaryEntry.morning} onChange={(value) => onDiaryUpdate(selectedDate, { morning: value })} />
+          <DiaryField label="Highlights" placeholder="What went well or deserves remembering?" value={diaryEntry.highlights} onChange={(value) => onDiaryUpdate(selectedDate, { highlights: value })} />
+          <DiaryField label="Reflection" placeholder="What did you learn, notice, or feel?" value={diaryEntry.reflection} onChange={(value) => onDiaryUpdate(selectedDate, { reflection: value })} />
+          <DiaryField label="Tomorrow" placeholder="What should your future self see first?" value={diaryEntry.tomorrow} onChange={(value) => onDiaryUpdate(selectedDate, { tomorrow: value })} />
+          <label className="diary-field diary-field--wide">
+            <span>Free notes</span>
+            <textarea
+              aria-label={`Diary entry for ${selectedDate}`}
+              className="journal-editor"
+              onChange={(event) => onDiaryUpdate(selectedDate, { body: event.target.value })}
+              placeholder="Anything else worth carrying forward..."
+              rows={10}
+              value={diaryEntry.body}
+            />
+          </label>
+        </div>
       </section>
     )
   }
@@ -1347,17 +1512,15 @@ function JournalView({ journal, onDiaryUpdate, onNoteAdd, onNoteDelete, onNoteUp
           </button>
         </div>
         {journal.notes.length ? (
-          journal.notes.map((note) => (
-            <button
-              aria-pressed={note.id === selectedNoteId}
-              className={`note-list-item ${note.id === selectedNoteId ? 'is-selected' : ''}`}
+            journal.notes.map((note) => (
+            <NoteListItem
               key={note.id}
-              onClick={() => setSelectedNoteId(note.id)}
-              type="button"
-            >
-              <strong>{note.title || 'Untitled note'}</strong>
-              <span>{note.body || 'No body yet'}</span>
-            </button>
+              note={note}
+              onComplete={onNoteComplete}
+              onMove={onNoteMove}
+              onSelect={setSelectedNoteId}
+              selected={note.id === selectedNoteId}
+            />
           ))
         ) : (
           <p className="journal-empty">Create a note for ideas, references, or decisions you want to keep.</p>
@@ -1367,7 +1530,11 @@ function JournalView({ journal, onDiaryUpdate, onNoteAdd, onNoteDelete, onNoteUp
         {selectedNote ? (
           <>
             <div className="journal-toolbar">
-              <span className="journal-saved" role="status">Saved locally</span>
+              <span className="journal-saved" role="status">{selectedNote.completedAt ? 'Completed note' : 'Saved locally'}</span>
+              <button className="secondary-button" onClick={() => onNoteComplete(selectedNote.id)} type="button">
+                <Icon name="check" size={15} />
+                {selectedNote.completedAt ? 'Restore note' : 'Complete note'}
+              </button>
               <button
                 className="danger-button"
                 onClick={() => {
@@ -1439,6 +1606,7 @@ function App() {
   const syncPushTimerRef = useRef(null)
   const syncChannelRef = useRef(null)
   const syncSourceRef = useRef(null)
+  const reorderPointerTargetRef = useRef(null)
   const composerRef = useRef(null)
   const captureReturnFocusRef = useRef(null)
 
@@ -1624,7 +1792,7 @@ function App() {
   )
   const journal = useMemo(
     () => ({
-      notes: Object.values(state.notes).sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
+      notes: Object.values(state.notes).sort((left, right) => left.order - right.order || right.updatedAt.localeCompare(left.updatedAt)),
       diaryEntries: state.diaryEntries,
     }),
     [state.diaryEntries, state.notes],
@@ -1840,7 +2008,53 @@ function App() {
     setRoute(nextRoute)
     setSelectedTask(null)
     if (window.matchMedia('(max-width: 720px)').matches) setSidebarOpen(false)
+    notifyAndroidBackHandled(false)
   }
+
+  useEffect(() => {
+    const handleAndroidBack = () => {
+      if (taskEditor) {
+        setTaskEditor(null)
+        notifyAndroidBackHandled(false)
+        return
+      }
+      if (projectDialogOpen) {
+        setProjectDialogOpen(false)
+        setProjectToEdit(null)
+        notifyAndroidBackHandled(false)
+        return
+      }
+      if (captureSession?.isOpen) {
+        dismissThoughtCapture()
+        notifyAndroidBackHandled(false)
+        return
+      }
+      if (commandOpen) {
+        setCommandOpen(false)
+        notifyAndroidBackHandled(false)
+        return
+      }
+      if (selectedTask) {
+        setSelectedTask(null)
+        notifyAndroidBackHandled(false)
+        return
+      }
+      if (sidebarOpen && window.matchMedia('(max-width: 720px)').matches) {
+        setSidebarOpen(false)
+        notifyAndroidBackHandled(false)
+        return
+      }
+      if (route !== 'today') {
+        navigate('today')
+        notifyAndroidBackHandled(false)
+        return
+      }
+      setNotice('Press Back again to exit Daymark.')
+      notifyAndroidBackHandled(true)
+    }
+    window.addEventListener('daymark:android-back', handleAndroidBack)
+    return () => window.removeEventListener('daymark:android-back', handleAndroidBack)
+  }, [captureSession, commandOpen, projectDialogOpen, route, selectedTask, sidebarOpen, taskEditor])
 
   const enterReorderMode = (kind, id) => {
     if (kind === 'project' && !state.projects[id]) return
@@ -1864,6 +2078,26 @@ function App() {
     if (!result.ok) setNotice(result.message)
   }
 
+  const toggleNote = (noteId) => {
+    const note = state.notes[noteId]
+    if (!note) return
+    const result = appStore.dispatch({
+      type: note.completedAt ? 'note.uncomplete' : 'note.complete',
+      noteId,
+    })
+    if (!result.ok) setNotice(result.message)
+  }
+
+  const moveNoteToTarget = (noteId, targetId) => {
+    if (!targetId || targetId === noteId || reorderPointerTargetRef.current === targetId) return
+    const current = state.notes[noteId]
+    const target = state.notes[targetId]
+    if (!current || !target) return
+    reorderPointerTargetRef.current = targetId
+    appStore.dispatch({ type: 'note.update', noteId, patch: { order: target.order } })
+    appStore.dispatch({ type: 'note.update', noteId: targetId, patch: { order: current.order } })
+  }
+
   const updateNote = (noteId, patch) => {
     const result = appStore.dispatch({ type: 'note.update', noteId, patch })
     if (!result.ok) setNotice(result.message)
@@ -1874,8 +2108,8 @@ function App() {
     if (!result.ok) setNotice(result.message)
   }
 
-  const updateDiary = (date, body) => {
-    const result = appStore.dispatch({ type: 'diary.upsert', date, body })
+  const updateDiary = (date, patch) => {
+    const result = appStore.dispatch({ type: 'diary.update', date, patch })
     if (!result.ok) setNotice(result.message)
   }
 
@@ -1911,6 +2145,16 @@ function App() {
     }
   }
 
+  const moveProjectToTarget = (projectId, targetId) => {
+    if (!targetId || targetId === projectId || reorderPointerTargetRef.current === targetId) return
+    const current = projectItems.find((project) => project.id === projectId)
+    const target = projectItems.find((project) => project.id === targetId)
+    if (!current || !target) return
+    reorderPointerTargetRef.current = targetId
+    appStore.dispatch({ type: 'project.update', projectId, patch: { order: target.order } })
+    appStore.dispatch({ type: 'project.update', projectId: targetId, patch: { order: current.order } })
+  }
+
   const deleteProject = (project) => {
     const taskCount = Object.values(state.tasks).filter((task) => task.projectId === project.id).length
     const confirmed = window.confirm(
@@ -1943,11 +2187,15 @@ function App() {
     if (!result.ok) setNotice(result.message)
   }
 
-  const moveOrderItem = (itemId, swapId) => {
+  const moveOrderItem = (itemId, swapId, laneId = null) => {
     const item = state.orderItems[itemId]
     const swap = state.orderItems[swapId]
-    if (!item || !swap) return
-    appStore.dispatch({ type: 'order.update', itemId, patch: { order: swap.order } })
+    if (!item) return
+    if (laneId && item.lane !== laneId) {
+      appStore.dispatch({ type: 'order.update', itemId, patch: { lane: laneId, relationId: null } })
+    }
+    if (!swap) return
+    appStore.dispatch({ type: 'order.update', itemId, patch: { order: swap.order, ...(laneId ? { lane: laneId, relationId: null } : {}) } })
     appStore.dispatch({ type: 'order.update', itemId: swap.id, patch: { order: item.order } })
   }
 
@@ -1992,6 +2240,27 @@ function App() {
     else if (reorderMode?.kind === 'task' && reorderMode.id === taskId) {
       setNotice(`${task.content} moved ${direction < 0 ? 'earlier' : 'later'}. Use Escape or Done to leave reorder mode.`)
     }
+  }
+
+  const moveTaskToPointerTarget = (taskId, event) => {
+    const targetId = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-reorder-id]')?.getAttribute('data-reorder-id')
+    if (!targetId || targetId === taskId) return
+    const siblings = taskSiblings(taskId)
+    const targetIndex = siblings.findIndex((task) => task.id === targetId)
+    if (targetIndex < 0 || reorderPointerTargetRef.current === targetId) return
+    reorderPointerTargetRef.current = targetId
+    const task = state.tasks[taskId]
+    if (!task) return
+    const result = appStore.dispatch({
+      type: 'task.reorder',
+      input: { taskId, sectionId: task.sectionId, order: targetIndex },
+    })
+    if (!result.ok) setNotice(result.message)
+  }
+
+  const finishPointerReorder = () => {
+    reorderPointerTargetRef.current = null
+    setReorderMode(null)
   }
 
   const submitTask = (event) => {
@@ -2248,6 +2517,8 @@ function App() {
                       ? tasks.filter((task) => state.tasks[task.id]?.due?.date >= today && !task.completed).length
                         : item.id === 'completed'
                           ? tasks.filter((task) => task.completed).length
+                          : item.id === 'order'
+                            ? orderItems.length
                           : item.id === 'notes'
                             ? journal.notes.length
                             : Object.keys(journal.diaryEntries).length}
@@ -2281,15 +2552,13 @@ function App() {
                   onDelete={() => deleteProject(project)}
                   onEdit={() => editProject(project)}
                   onLongPressReorder={() => enterReorderMode('project', project.id)}
+                  onReorderMove={(projectId, event) => moveProjectToTarget(projectId, document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-reorder-id]')?.getAttribute('data-reorder-id'))}
+                  onReorderEnd={finishPointerReorder}
                   onMoveEarlier={() => moveProjectBy(project.id, -1)}
                   onMoveLater={() => moveProjectBy(project.id, 1)}
                   project={project}
                 />
               ))}
-            </SidebarSection>
-
-            <SidebarSection title="ORGANIZE">
-              <SidebarRow active={route === 'order'} icon="arrowUp" label="Order" onClick={() => navigate('order')} />
             </SidebarSection>
 
             <SidebarSection
@@ -2413,7 +2682,9 @@ function App() {
                 journal={journal}
                 onDiaryUpdate={updateDiary}
                 onNoteAdd={addNote}
+                onNoteComplete={toggleNote}
                 onNoteDelete={deleteNote}
+                onNoteMove={moveNoteToTarget}
                 onNoteUpdate={updateNote}
                 route={route}
               />
@@ -2500,6 +2771,8 @@ function App() {
                               key={task.id}
                               onCancelReorder={() => cancelReorderMode()}
                               onLongPressReorder={task.completed ? undefined : () => enterReorderMode('task', task.id)}
+                              onReorderMove={moveTaskToPointerTarget}
+                              onReorderEnd={finishPointerReorder}
                               onMoveEarlier={() => moveTaskBy(task.id, -1)}
                               onMoveLater={() => moveTaskBy(task.id, 1)}
                               onOpen={(viewTask) => openTaskEditor('edit', state.tasks[viewTask.id])}
@@ -2532,11 +2805,22 @@ function App() {
                       </div>
                       <div className="board-column__body">
                         {section.tasks.map((task) => (
-                          <button className="board-task" key={task.id} onClick={() => openTaskEditor('edit', state.tasks[task.id])} type="button">
-                            <span className={`board-task__priority board-task__priority--${task.priorityTone}`} />
-                            <strong>{task.title}</strong>
-                            <small>{task.due}</small>
-                          </button>
+                          <article className={`board-task ${task.completed ? 'is-completed' : ''}`} key={task.id}>
+                            <button
+                              aria-label={task.completed ? `Restore ${task.title}` : `Complete ${task.title}`}
+                              className="board-task__complete"
+                              onClick={() => toggleTask(task.id)}
+                              title={task.completed ? 'Restore task' : 'Complete task'}
+                              type="button"
+                            >
+                              <Icon name={task.completed ? 'check' : 'circle'} size={14} />
+                            </button>
+                            <button className="board-task__body" onClick={() => openTaskEditor('edit', state.tasks[task.id])} type="button">
+                              <span className={`board-task__priority board-task__priority--${task.priorityTone}`} />
+                              <strong>{task.title}</strong>
+                              <small>{task.due}</small>
+                            </button>
+                          </article>
                         ))}
                         <button className="board-add" onClick={() => openTaskEditor('create')} type="button">
                           <Icon name="plus" size={15} />

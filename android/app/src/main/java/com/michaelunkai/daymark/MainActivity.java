@@ -15,26 +15,31 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
 
 public final class MainActivity extends Activity {
     private static final String START_URL =
             "https://daymark-desktop.michaelovsky55555.chatgpt.site/";
     private static final String PREFS_NAME = "daymark";
     private static final String SYNC_KEY_PREF = "sync_key";
+    private static final int SURFACE_COLOR = Color.rgb(247, 249, 247);
     private WebView webView;
     private SharedPreferences preferences;
+    private View loadingCover;
+    private int rootBackPresses;
+    private long lastRootBackAt;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        getWindow().setStatusBarColor(Color.rgb(247, 249, 247));
-        getWindow().setNavigationBarColor(Color.rgb(247, 249, 247));
+        getWindow().setStatusBarColor(SURFACE_COLOR);
+        getWindow().setNavigationBarColor(SURFACE_COLOR);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
 
         webView = new WebView(this);
-        webView.setBackgroundColor(Color.rgb(247, 249, 247));
+        webView.setBackgroundColor(SURFACE_COLOR);
         webView.addJavascriptInterface(new ThemeBridge(), "DaymarkAndroid");
         webView.setWebViewClient(new DaymarkWebViewClient());
         webView.setWebChromeClient(new WebChromeClient());
@@ -51,7 +56,21 @@ public final class MainActivity extends Activity {
         settings.setMediaPlaybackRequiresUserGesture(true);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
 
-        setContentView(webView);
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(SURFACE_COLOR);
+        root.addView(
+                webView,
+                new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT));
+        loadingCover = new View(this);
+        loadingCover.setBackgroundColor(SURFACE_COLOR);
+        root.addView(
+                loadingCover,
+                new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT));
+        setContentView(root);
         if (savedInstanceState == null) {
             webView.loadUrl(urlForIntent(getIntent()));
         } else {
@@ -74,26 +93,48 @@ public final class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack();
-        } else {
+        if (webView == null || webView.getUrl() == null) {
             super.onBackPressed();
+            return;
         }
+        webView.evaluateJavascript(
+                "(function(){window.dispatchEvent(new Event('daymark:android-back'));return true;})()",
+                null);
     }
 
     @Override
     protected void onDestroy() {
         if (webView != null) {
-            webView.loadUrl("about:blank");
+            webView.stopLoading();
             webView.destroy();
         }
         super.onDestroy();
     }
 
-    private static final class DaymarkWebViewClient extends WebViewClient {
+    private void handleBackResult(boolean atRoot) {
+        if (!atRoot) {
+            rootBackPresses = 0;
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now - lastRootBackAt > 2200) rootBackPresses = 0;
+        lastRootBackAt = now;
+        rootBackPresses += 1;
+        if (rootBackPresses >= 2) {
+            rootBackPresses = 0;
+            super.onBackPressed();
+        }
+    }
+
+    private final class DaymarkWebViewClient extends WebViewClient {
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
             return false;
+        }
+
+        @Override
+        public void onPageFinished(WebView view, String url) {
+            if (loadingCover != null) loadingCover.setVisibility(View.GONE);
         }
 
         @Override
@@ -135,14 +176,19 @@ public final class MainActivity extends Activity {
         public void setTheme(String theme) {
             final boolean dark = "dark".equals(theme);
             runOnUiThread(() -> {
-                getWindow().setStatusBarColor(dark ? Color.rgb(25, 34, 30) : Color.rgb(247, 249, 247));
-                getWindow().setNavigationBarColor(dark ? Color.rgb(25, 34, 30) : Color.rgb(247, 249, 247));
+                getWindow().setStatusBarColor(dark ? Color.rgb(25, 34, 30) : SURFACE_COLOR);
+                getWindow().setNavigationBarColor(dark ? Color.rgb(25, 34, 30) : SURFACE_COLOR);
                 int flags = dark ? 0 : View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && !dark) {
                     flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
                 }
                 getWindow().getDecorView().setSystemUiVisibility(flags);
             });
+        }
+
+        @JavascriptInterface
+        public void onBackHandled(boolean atRoot) {
+            runOnUiThread(() -> handleBackResult(atRoot));
         }
     }
 }

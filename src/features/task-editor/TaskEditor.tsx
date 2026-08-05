@@ -251,7 +251,7 @@ export function TaskEditor({
                     changeField('description', event.currentTarget.value)
                   }
                   placeholder="Add context, links, or the next step"
-                  rows={4}
+                  rows={8}
                 />
               </div>
             </section>

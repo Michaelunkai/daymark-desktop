@@ -1,5 +1,44 @@
 # Daymark Continuation Handoff
 
+## Current Session: August 5, 2026
+
+Repository used for this release work:
+
+`C:\Users\micha\Documents\Codex\2026-08-05\daymark-origin-main`
+
+This checkout is a local-first React/Vite Daymark shell with a native Android
+WebView wrapper. The current source work adds or preserves:
+
+- Completion and restore controls for notes, list tasks, calendar agenda tasks,
+  Order items, and Board task cards.
+- Readable text wrapping for task titles and notes, larger task descriptions,
+  normalized note previews, and a multi-section diary per date.
+- Calendar day selection that opens the selected date and its add-task agenda.
+- Workspace navigation with Order alongside the other workspace tabs; the old
+  Organize/Before UI is removed. Order now exposes Do now, Later, and After.
+- Long-press pointer reorder for tasks, projects, notes, and Order items.
+- Android startup loading cover, no blank `about:blank` teardown, persisted sync
+  pairing, theme bridge, and Back coordination with overlay/home handling before
+  native exit.
+
+Release state:
+
+- Android version: `1.4.2`, version code `6`.
+- Downloadable APK target: `android/releases/daymark-android-1.4.2.apk`.
+- `npm run test` and `npm run build` passed in this session.
+- Android `assembleRelease` passed with Gradle 8.10.2 and JDK 17.0.20 using a
+  fresh cache at `work/gradle-user-home`.
+- Live browser acceptance, GitHub push, APK copy/hash, and Sites deployment
+  still need to be recorded below before calling the release complete.
+
+Preservation rules:
+
+- Do not discard existing uncommitted changes in this checkout.
+- Keep local-first persistence and sync tombstones intact.
+- Do not claim deployed or Android-runtime success from source tests alone.
+- Record exact commit, APK hash, Sites saved version/deployment, and browser
+  evidence after those steps complete.
+
 ## Original Goal
 
 Build Daymark into a production-ready local-first task planner.

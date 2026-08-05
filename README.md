@@ -14,7 +14,7 @@ https://daymark-desktop.michaelovsky55555.chatgpt.site
 
 Download the installable Android package from the repository:
 
-[Daymark Android 1.4.1 APK](android/releases/daymark-android-1.4.1.apk)
+[Daymark Android 1.4.2 APK](android/releases/daymark-android-1.4.2.apk)
 
 The Android shell targets Android 6.0+ and opens the same responsive Daymark
 application used by Windows and mobile browsers.
@@ -48,9 +48,15 @@ npx --yes tsx --test src\core\store.test.ts src\core\dates\dates.test.ts src\fea
 - Natural-language due-date parsing and recurring scheduling helpers
 - Calendar and Upcoming views for scheduled work
 - Project create, edit, delete, and durable ordering controls
-- Long-press reorder mode for projects and tasks, with accessible Move earlier,
-  Move later, Escape, and Done controls
-- Order workspace for before, now, later, and after planning
+- Long-press reorder mode for projects, tasks, and notes, with accessible Move
+  earlier, Move later, Escape, and Done controls
+- Order workspace grouped with the main workspace navigation: Do now, Later,
+  and After, with completion controls and drag/long-press movement
+- Notes and Board task cards include direct completion and restore controls
+- Diary entries include date navigation plus start-of-day, highlights,
+  reflection, tomorrow, and free-notes sections
+- Calendar day selection opens that date's agenda immediately and provides
+  inline add-task access
 - Persisted dark mode and application settings, including backup import/export
 - Search, command palette, and keyboard navigation
 - Responsive list and board task layouts for desktop and mobile screens
@@ -85,11 +91,15 @@ future release:
 
 ## Release verification
 
-The current Sites release was built and verified from commit
-`a5052546aa6619837c97ae545b0efecf9f9cc88f` on branch
-`codex/daymark-long-press-reorder`.
+For each release, record the exact Git commit, Sites saved version/deployment,
+Android version, APK SHA-256, and the browser/Android acceptance results here.
+The current source changes are prepared for Android `1.4.2`; the final commit
+and deployment identifiers are added after the GitHub and Sites release steps.
 
-Before release, the project passed `npm run verify`, which includes the core
-and feature tests, the long-press reorder tests, production build, and Sites
-worker artifact checks. The public root, `/workspace/order`, and the emitted
-JavaScript and CSS assets were independently verified with HTTP 200 responses.
+The required local gates are:
+
+```powershell
+npm run verify
+$env:JAVA_HOME='C:\path\to\jdk17'
+gradle --gradle-user-home .\work\gradle-user-home assembleRelease
+```

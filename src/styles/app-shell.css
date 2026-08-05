@@ -807,12 +807,11 @@ kbd {
 
 .task-row__title {
   display: block;
-  overflow: hidden;
+  overflow-wrap: anywhere;
   font-size: 13px;
   font-weight: 650;
   line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .is-completed .task-row__title {
@@ -1170,6 +1169,36 @@ kbd {
   text-align: left;
 }
 
+.board-task__complete {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink-muted);
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  width: 28px;
+}
+
+.board-task__complete:hover,
+.board-task__complete:focus-visible {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.board-task__body {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+}
+
 .board-task:hover {
   border-color: #a8c0b7;
   box-shadow: 0 6px 14px rgba(30, 54, 50, 0.08);
@@ -1198,11 +1227,9 @@ kbd {
 }
 
 .board-task strong {
-  overflow: hidden;
+  overflow-wrap: anywhere;
   font-size: 12px;
   line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .board-task small {
@@ -1789,6 +1816,60 @@ kbd {
   width: 100%;
 }
 
+.diary-date-controls {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.diary-date-controls label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 12rem;
+}
+
+.diary-date-controls label span,
+.diary-field > span {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.diary-intro {
+  align-items: flex-start;
+  display: flex;
+  gap: 1.5rem;
+  justify-content: space-between;
+  margin: 1.2rem 0;
+}
+
+.diary-intro p {
+  color: var(--ink-muted);
+  line-height: 1.55;
+  max-width: 38rem;
+  margin: 0;
+}
+
+.diary-entry-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.diary-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.diary-field--wide {
+  grid-column: 1 / -1;
+}
+
+.diary-field .journal-editor--compact {
+  min-height: 160px;
+}
+
 .notes-layout {
   grid-template-columns: minmax(190px, 0.35fr) minmax(0, 1fr);
 }
@@ -1885,6 +1966,19 @@ kbd {
 
   .journal-editor {
     min-height: 280px;
+  }
+
+  .diary-intro {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .diary-entry-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .diary-field--wide {
+    grid-column: auto;
   }
 }
 

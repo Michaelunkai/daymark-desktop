@@ -2,6 +2,8 @@ import { createSampleState } from "./sample-data";
 import {
   CURRENT_SCHEMA_VERSION,
   type AppState,
+  type DiaryEntry,
+  type Note,
   type StateStorage,
   type Task,
 } from "./types";
@@ -151,7 +153,7 @@ function validateCurrentState(value: Record<string, unknown>): AppState {
   ) {
     throw new Error("Stored state is incomplete.");
   }
-  return migrateTasks(value) as unknown as AppState;
+  return migrateDiaryEntries(migrateNotes(migrateTasks(value))) as unknown as AppState;
 }
 
 function getBrowserStorage(): Pick<Storage, "getItem" | "setItem" | "removeItem"> | undefined {
@@ -190,6 +192,48 @@ function migrateTasks(value: Record<string, unknown>): Record<string, unknown> {
   );
 
   return { ...value, tasks };
+}
+
+function migrateNotes(value: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(value.notes)) return value;
+  const notes = Object.fromEntries(
+    Object.entries(value.notes).map(([id, rawNote], index) => {
+      if (!isRecord(rawNote)) throw new Error(`Stored note ${id} is invalid.`);
+      const note = rawNote as Partial<Note>;
+      return [
+        id,
+        {
+          ...rawNote,
+          completedAt: typeof note.completedAt === "string" ? note.completedAt : null,
+          order: typeof note.order === "number" ? note.order : index,
+        },
+      ];
+    }),
+  );
+  return { ...value, notes };
+}
+
+function migrateDiaryEntries(value: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(value.diaryEntries)) return value;
+  const diaryEntries = Object.fromEntries(
+    Object.entries(value.diaryEntries).map(([date, rawEntry]) => {
+      if (!isRecord(rawEntry)) throw new Error(`Stored diary entry ${date} is invalid.`);
+      const entry = rawEntry as Partial<DiaryEntry>;
+      return [
+        date,
+        {
+          ...rawEntry,
+          date: typeof entry.date === "string" ? entry.date : date,
+          body: typeof entry.body === "string" ? entry.body : "",
+          morning: typeof entry.morning === "string" ? entry.morning : "",
+          highlights: typeof entry.highlights === "string" ? entry.highlights : "",
+          reflection: typeof entry.reflection === "string" ? entry.reflection : "",
+          tomorrow: typeof entry.tomorrow === "string" ? entry.tomorrow : "",
+        },
+      ];
+    }),
+  );
+  return { ...value, diaryEntries };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

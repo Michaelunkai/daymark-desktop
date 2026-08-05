@@ -16,6 +16,7 @@ import type {
   UndoAction,
   UndoEntry,
   UserAction,
+  DiaryEntry,
 } from "./types";
 
 const MAX_UNDO_ENTRIES = 20;
@@ -394,6 +395,8 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
         id,
         title: title || "Untitled note",
         body,
+        completedAt: null,
+        order: action.input.order ?? nextOrder(state.notes),
         createdAt: now,
         updatedAt: now,
       };
@@ -427,6 +430,22 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       });
       return { ok: true, inverse: { type: "note.update", noteId: note.id, patch: before } };
     }
+    case "note.complete":
+    case "note.uncomplete": {
+      const note = state.notes[action.noteId];
+      if (!note) return invalid("The note no longer exists.");
+      const before = { completedAt: note.completedAt };
+      const nextCompletedAt = action.type === "note.complete" ? now : null;
+      if (note.completedAt === nextCompletedAt) {
+        return { ok: true, changed: false, inverse: { type: "note.update", noteId: note.id, patch: {} } };
+      }
+      note.completedAt = nextCompletedAt;
+      note.updatedAt = now;
+      return {
+        ok: true,
+        inverse: { type: "note.update", noteId: note.id, patch: before },
+      };
+    }
     case "diary.upsert": {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(action.date)) return invalid("Diary entries need a valid date.");
       const before = state.diaryEntries[action.date];
@@ -439,6 +458,10 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       const entry: DiaryEntry = {
         date: action.date,
         body: action.body,
+        morning: before?.morning ?? "",
+        highlights: before?.highlights ?? "",
+        reflection: before?.reflection ?? "",
+        tomorrow: before?.tomorrow ?? "",
         updatedAt: now,
       };
       state.diaryEntries[action.date] = entry;
@@ -454,6 +477,36 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       state.diaryEntries[action.entry.date] = structuredClone(action.entry);
       clearTombstone(state, "diaryEntries", action.entry.date);
       return { ok: true, inverse: { type: "diary.remove", date: action.entry.date } };
+    case "diary.update": {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(action.date)) return invalid("Diary entries need a valid date.");
+      const before = state.diaryEntries[action.date];
+      const next: DiaryEntry = {
+        date: action.date,
+        body: before?.body ?? "",
+        morning: before?.morning ?? "",
+        highlights: before?.highlights ?? "",
+        reflection: before?.reflection ?? "",
+        tomorrow: before?.tomorrow ?? "",
+        updatedAt: now,
+        ...action.patch,
+      };
+      const hasContent = [next.body, next.morning, next.highlights, next.reflection, next.tomorrow]
+        .some((value) => value.trim());
+      if (!hasContent) {
+        if (!before) return { ok: true, changed: false, inverse: { type: "diary.update", date: action.date, patch: {} } };
+        delete state.diaryEntries[action.date];
+        markTombstone(state, "diaryEntries", action.date, now);
+        return { ok: true, inverse: { type: "diary.restore", entry: structuredClone(before) } };
+      }
+      state.diaryEntries[action.date] = next;
+      clearTombstone(state, "diaryEntries", action.date);
+      return {
+        ok: true,
+        inverse: before
+          ? { type: "diary.restore", entry: structuredClone(before) }
+          : { type: "diary.remove", date: action.date },
+      };
+    }
     case "diary.remove": {
       const entry = state.diaryEntries[action.date];
       if (!entry) return invalid("The diary entry no longer exists.");

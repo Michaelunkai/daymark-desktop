@@ -98,6 +98,8 @@ export interface Note {
   id: EntityId;
   title: string;
   body: string;
+  completedAt: string | null;
+  order: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -105,6 +107,10 @@ export interface Note {
 export interface DiaryEntry {
   date: string;
   body: string;
+  morning: string;
+  highlights: string;
+  reflection: string;
+  tomorrow: string;
   updatedAt: string;
 }
 
@@ -211,9 +217,14 @@ export type NoteInput = {
   id?: EntityId;
   title?: string;
   body?: string;
+  order?: number;
 };
 
-export type NotePatch = Partial<Pick<Note, "title" | "body">>;
+export type NotePatch = Partial<Pick<Note, "title" | "body" | "completedAt" | "order">>;
+
+export type DiaryPatch = Partial<
+  Pick<DiaryEntry, "body" | "morning" | "highlights" | "reflection" | "tomorrow">
+>;
 
 export type SectionInput = {
   id?: EntityId;
@@ -256,8 +267,11 @@ export type UserAction =
   | { type: "order.delete"; itemId: EntityId }
   | { type: "note.add"; input: NoteInput }
   | { type: "note.update"; noteId: EntityId; patch: NotePatch }
+  | { type: "note.complete"; noteId: EntityId }
+  | { type: "note.uncomplete"; noteId: EntityId }
   | { type: "note.delete"; noteId: EntityId }
   | { type: "diary.upsert"; date: string; body: string }
+  | { type: "diary.update"; date: string; patch: DiaryPatch }
   | { type: "section.add"; input: SectionInput }
   | { type: "section.update"; sectionId: EntityId; patch: Partial<Pick<Section, "name" | "order" | "isCollapsed">> }
   | { type: "label.add"; input: LabelInput }
@@ -287,7 +301,10 @@ export type UndoAction =
   | { type: "note.restore"; note: Note }
   | { type: "note.remove"; noteId: EntityId }
   | { type: "note.update"; noteId: EntityId; patch: NotePatch }
+  | { type: "note.complete"; noteId: EntityId }
+  | { type: "note.uncomplete"; noteId: EntityId }
   | { type: "diary.restore"; entry: DiaryEntry }
+  | { type: "diary.update"; date: string; patch: DiaryPatch }
   | { type: "diary.remove"; date: string }
   | { type: "section.restore"; section: Section }
   | { type: "section.remove"; sectionId: EntityId }

@@ -3,6 +3,8 @@ export const LONG_PRESS_MOVE_TOLERANCE = 10
 
 export function createLongPressReorderController({
   onCancel,
+  onDragEnd,
+  onDragMove,
   onLongPress,
   delay = LONG_PRESS_DELAY,
   moveTolerance = LONG_PRESS_MOVE_TOLERANCE,
@@ -53,20 +55,28 @@ export function createLongPressReorderController({
       }, delay)
     },
     pointerMove(event) {
-      if (pointerId === null || event?.pointerId !== pointerId || triggered) return
+      if (pointerId === null || event?.pointerId !== pointerId) return
+      if (triggered) {
+        event?.preventDefault?.()
+        onDragMove?.(event)
+        return
+      }
       const deltaX = (event?.clientX ?? 0) - startX
       const deltaY = (event?.clientY ?? 0) - startY
       if (Math.hypot(deltaX, deltaY) > moveTolerance) cancelPress(event)
     },
     pointerUp(event) {
       if (pointerId === null || event?.pointerId !== pointerId) return
+      const wasTriggered = triggered
       clearTimer()
       pointerId = null
       startX = 0
       startY = 0
       triggered = false
+      if (wasTriggered) onDragEnd?.(event)
     },
     pointerCancel(event) {
+      if (triggered) onDragEnd?.(event)
       cancelPress(event)
     },
     consumeSuppressedClick() {
