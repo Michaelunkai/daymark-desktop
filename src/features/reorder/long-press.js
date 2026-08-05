@@ -15,6 +15,7 @@ export function createLongPressReorderController({
   let startY = 0
   let timer = null
   let triggered = false
+  let dragMoved = false
   let suppressClick = false
 
   const clearTimer = () => {
@@ -27,6 +28,7 @@ export function createLongPressReorderController({
   const triggerReorder = () => {
     clearTimer()
     triggered = true
+    dragMoved = false
     suppressClick = true
     onLongPress()
   }
@@ -43,8 +45,11 @@ export function createLongPressReorderController({
     const wasTriggered = triggered
     resetPress()
     triggered = false
+    dragMoved = false
     if (!wasTriggered) onCancel?.()
   }
+
+  const hasPosition = (event) => Number.isFinite(event?.clientX) && Number.isFinite(event?.clientY)
 
   return {
     pointerDown(event) {
@@ -54,12 +59,14 @@ export function createLongPressReorderController({
       startX = event?.clientX ?? 0
       startY = event?.clientY ?? 0
       triggered = false
+      dragMoved = false
       timer = scheduler.setTimeout(triggerReorder, delay)
     },
     pointerMove(event) {
       if (pointerId === null || event?.pointerId !== pointerId) return
       if (triggered) {
         event?.preventDefault?.()
+        dragMoved = true
         onDragMove?.(event)
         return
       }
@@ -69,6 +76,7 @@ export function createLongPressReorderController({
       if (event?.pointerType === 'mouse' && event?.buttons === 1) {
         triggerReorder()
         event?.preventDefault?.()
+        dragMoved = true
         onDragMove?.(event)
         return
       }
@@ -79,9 +87,18 @@ export function createLongPressReorderController({
       if (!triggered) {
         const deltaX = (event?.clientX ?? 0) - startX
         const deltaY = (event?.clientY ?? 0) - startY
-        if (event?.pointerType === 'mouse' && Math.hypot(deltaX, deltaY) > moveTolerance) {
+        if (hasPosition(event) && Math.hypot(deltaX, deltaY) > moveTolerance) {
           triggerReorder()
           event?.preventDefault?.()
+          dragMoved = true
+          onDragMove?.(event)
+        }
+      } else if (!dragMoved) {
+        const deltaX = (event?.clientX ?? 0) - startX
+        const deltaY = (event?.clientY ?? 0) - startY
+        if (hasPosition(event) && Math.hypot(deltaX, deltaY) > moveTolerance) {
+          event?.preventDefault?.()
+          dragMoved = true
           onDragMove?.(event)
         }
       }
@@ -91,6 +108,7 @@ export function createLongPressReorderController({
       startX = 0
       startY = 0
       triggered = false
+      dragMoved = false
       if (wasTriggered) onDragEnd?.(event)
     },
     pointerCancel(event) {
@@ -105,6 +123,7 @@ export function createLongPressReorderController({
     dispose() {
       resetPress()
       triggered = false
+      dragMoved = false
       suppressClick = false
     },
   }
