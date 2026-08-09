@@ -4,7 +4,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 20px;
+  padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
   background: rgb(19 26 24 / 0.42);
   backdrop-filter: blur(5px);
 }
@@ -13,7 +13,7 @@
   display: grid;
   gap: 16px;
   width: min(500px, 100%);
-  max-height: min(720px, calc(100vh - 40px));
+  max-height: min(720px, calc(var(--daymark-viewport-height, 100dvh) - max(40px, calc(env(safe-area-inset-top) + env(safe-area-inset-bottom) + 20px))));
   overflow: auto;
   padding: 24px;
   border: 1px solid var(--line-strong);
@@ -30,6 +30,14 @@
   gap: 14px;
 }
 
+.companion-panel__header > div,
+.companion-panel__footer span,
+.companion-session__heading span,
+.companion-session__event span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .companion-panel__header h2 {
   margin: 0;
   color: var(--ink);
@@ -41,6 +49,7 @@
   align-items: center;
   gap: 8px;
   width: fit-content;
+  max-width: 100%;
   min-height: 30px;
   padding: 0 10px;
   border: 1px solid var(--line);
@@ -181,10 +190,11 @@
 @media (max-width: 520px) {
   .companion-scrim {
     align-items: end;
-    padding: 10px;
+    padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
   }
 
   .companion-panel {
     padding: 20px;
+    max-height: calc(var(--daymark-viewport-height, 100dvh) - max(20px, calc(env(safe-area-inset-top) + env(safe-area-inset-bottom) + 12px)));
   }
 }
