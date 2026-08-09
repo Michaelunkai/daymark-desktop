@@ -410,6 +410,17 @@ const ICONS = {
       <path d="m6 6 12 12M18 6 6 18" />
     </>
   ),
+  edit: (
+    <>
+      <path d="m5 19 3.2-.7L18.4 8.1a2.1 2.1 0 0 0-3-3L5.2 15.3 5 19Z" />
+      <path d="m13.8 6.8 3.4 3.4" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M4.5 7h15M9 7V4.5h6V7M7 7l.8 12.5h8.4L17 7M10 10.5v5.5M14 10.5v5.5" />
+    </>
+  ),
   companion: (
     <>
       <rect x="4" y="4" width="16" height="16" rx="4" />
@@ -547,12 +558,16 @@ function ProjectSidebarItem({
         type="button"
       >
         <span className={`project-dot project-dot--${PROJECT_COLORS[project.color] ?? 'teal'}`} />
-        <span className="sidebar-row__label">{project.name}</span>
+        <span className="sidebar-row__label" title={project.name}>{project.name}</span>
         <span className="sidebar-row__count">{count}</span>
       </button>
       <span className="project-sidebar-item__actions">
-        <button aria-label={`Edit ${project.name}`} onClick={onEdit} title={`Edit ${project.name}`} type="button">Edit</button>
-        <button aria-label={`Delete ${project.name}`} onClick={onDelete} title={`Delete ${project.name}`} type="button">Delete</button>
+        <button aria-label={`Edit ${project.name}`} onClick={onEdit} title={`Edit ${project.name}`} type="button">
+          <Icon name="edit" size={14} />
+        </button>
+        <button aria-label={`Delete ${project.name}`} className="project-sidebar-item__delete" onClick={onDelete} title={`Delete ${project.name}`} type="button">
+          <Icon name="trash" size={14} />
+        </button>
         <button aria-label={`Move ${project.name} earlier`} disabled={!canMoveEarlier} onClick={onMoveEarlier} title="Move project earlier" type="button">
           <Icon name="chevronUp" size={14} />
         </button>
