@@ -1,0 +1,17 @@
+/index.html
+  Cache-Control: no-store
+
+/
+  Cache-Control: no-store
+
+/daymark-agent.json
+  Cache-Control: no-store
+
+/.well-known/daymark-ai.json
+  Cache-Control: no-store
+
+/daymark-ai-client.json
+  Cache-Control: no-store
+
+/daymark-ai-connector.mjs
+  Cache-Control: no-store
