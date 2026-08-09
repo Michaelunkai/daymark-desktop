@@ -1364,6 +1364,48 @@ function ConfirmationDialog({ actionLabel, isOpen, message, onCancel, onConfirm,
   )
 }
 
+function SectionEditorDialog({ onCancel, onSave, section }) {
+  const inputRef = useRef(null)
+  const [name, setName] = useState('')
+
+  useEffect(() => {
+    if (!section) return undefined
+    setName(section.name)
+    const focusTimer = window.setTimeout(() => inputRef.current?.select(), 0)
+    return () => window.clearTimeout(focusTimer)
+  }, [section])
+
+  if (!section) return null
+
+  const submit = (event) => {
+    event.preventDefault()
+    onSave(section.id, name.trim())
+  }
+
+  return (
+    <div className="confirmation-overlay" onMouseDown={(event) => event.target === event.currentTarget && onCancel()}>
+      <form aria-labelledby="section-editor-title" className="confirmation-dialog section-editor-dialog" onSubmit={submit}>
+        <span aria-hidden="true" className="confirmation-dialog__icon">
+          <Icon name="edit" size={18} />
+        </span>
+        <div>
+          <span className="section-kicker">EDIT SECTION</span>
+          <h2 id="section-editor-title">Rename section</h2>
+          <p>Choose a clear name for this group of tasks.</p>
+        </div>
+        <label>
+          <span>Section name</span>
+          <input autoComplete="off" onChange={(event) => setName(event.target.value)} ref={inputRef} type="text" value={name} />
+        </label>
+        <footer>
+          <button className="secondary-button" onClick={onCancel} type="button">Cancel</button>
+          <button className="primary-button" type="submit">Save section</button>
+        </footer>
+      </form>
+    </div>
+  )
+}
+
 function IntegrationStyles() {
   return (
     <style>{`
@@ -1380,7 +1422,7 @@ function IntegrationStyles() {
       .upcoming-day__more{padding:2px 5px;color:var(--teal);font-size:10px;font-weight:700}.upcoming-day__add{position:absolute;right:6px;bottom:5px;display:grid;width:24px;height:24px;place-items:center;border-radius:5px;background:transparent;color:var(--ink-muted);cursor:pointer;opacity:0}.upcoming-day:hover .upcoming-day__add,.upcoming-day:focus-within .upcoming-day__add{opacity:1}.upcoming-day__add:hover{color:var(--teal);background:var(--teal-soft)}
       .year-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:18px}.year-month{display:grid;gap:9px;padding:12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);cursor:pointer;text-align:left}.year-month:hover,.year-month.is-selected{border-color:var(--teal);background:var(--teal-soft)}.year-month strong{font-size:11px}.year-month__dots{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}.year-month__dots i{width:100%;aspect-ratio:1;border-radius:2px;background:var(--surface-tint)}.year-month__dots i.is-scheduled{background:var(--teal)}
       .upcoming-calendar__footer{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:0 15px;background:var(--surface-soft);color:var(--ink-muted);font-size:11px}.upcoming-calendar__footer span{display:inline-flex;align-items:center;gap:6px}.upcoming-calendar__footer .text-button{display:inline-flex;align-items:center;gap:5px}.calendar-legend-dot{width:7px;height:7px;border-radius:50%;background:var(--teal)}
-      .integration-modal,.confirmation-overlay{position:fixed;z-index:30;inset:0;display:grid;place-items:center;padding:20px;background:rgba(24,32,31,.35);backdrop-filter:blur(3px)}.project-dialog{display:grid;gap:17px;width:min(440px,100%);padding:24px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);box-shadow:var(--shadow)}.project-dialog__header{display:flex;align-items:flex-start;justify-content:space-between}.project-dialog h2{margin:0;color:var(--ink);font-size:20px}.project-dialog label,.project-dialog fieldset{display:grid;gap:7px;padding:0;color:var(--ink-soft);border:0;font-size:12px;font-weight:700}.project-dialog input[type="text"],.project-dialog input:not([type]),.project-dialog textarea{width:100%;padding:10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit}.project-dialog textarea{resize:vertical}.project-color-options{display:flex;gap:8px}.project-color{width:27px;height:27px;border:3px solid var(--surface);border-radius:50%;cursor:pointer}.project-color[aria-pressed="true"]{outline:2px solid var(--focus)}.project-color--teal{background:var(--teal)}.project-color--amber{background:#d99a20}.project-color--indigo{background:var(--indigo)}.project-dialog__checkbox{display:flex!important;align-items:center;gap:8px}.project-dialog__error{margin:0;color:var(--color-danger);font-size:12px}.project-dialog footer{display:flex;justify-content:flex-end;gap:9px;padding-top:3px}.confirmation-dialog{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;width:min(420px,100%);padding:24px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);box-shadow:var(--shadow)}.confirmation-dialog__icon{display:grid;width:34px;height:34px;place-items:center;border-radius:50%;background:#fbe5e5;color:var(--color-danger)}.confirmation-dialog h2{margin:3px 0 7px;color:var(--ink);font-size:20px}.confirmation-dialog p{margin:0;color:var(--ink-soft);line-height:1.5}.confirmation-dialog footer{grid-column:1/-1;display:flex;justify-content:flex-end;gap:9px;padding-top:3px}
+      .integration-modal,.confirmation-overlay{position:fixed;z-index:30;inset:0;display:grid;place-items:center;padding:20px;background:rgba(24,32,31,.35);backdrop-filter:blur(3px)}.project-dialog{display:grid;gap:17px;width:min(440px,100%);padding:24px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);box-shadow:var(--shadow)}.project-dialog__header{display:flex;align-items:flex-start;justify-content:space-between}.project-dialog h2{margin:0;color:var(--ink);font-size:20px}.project-dialog label,.project-dialog fieldset{display:grid;gap:7px;padding:0;color:var(--ink-soft);border:0;font-size:12px;font-weight:700}.project-dialog input[type="text"],.project-dialog input:not([type]),.project-dialog textarea{width:100%;padding:10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit}.project-dialog textarea{resize:vertical}.project-color-options{display:flex;gap:8px}.project-color{width:27px;height:27px;border:3px solid var(--surface);border-radius:50%;cursor:pointer}.project-color[aria-pressed="true"]{outline:2px solid var(--focus)}.project-color--teal{background:var(--teal)}.project-color--amber{background:#d99a20}.project-color--indigo{background:var(--indigo)}.project-dialog__checkbox{display:flex!important;align-items:center;gap:8px}.project-dialog__error{margin:0;color:var(--color-danger);font-size:12px}.project-dialog footer{display:flex;justify-content:flex-end;gap:9px;padding-top:3px}.confirmation-dialog{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;width:min(420px,100%);padding:24px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);box-shadow:var(--shadow)}.confirmation-dialog__icon{display:grid;width:34px;height:34px;place-items:center;border-radius:50%;background:#fbe5e5;color:var(--color-danger)}.confirmation-dialog h2{margin:3px 0 7px;color:var(--ink);font-size:20px}.confirmation-dialog p{margin:0;color:var(--ink-soft);line-height:1.5}.confirmation-dialog footer{grid-column:1/-1;display:flex;justify-content:flex-end;gap:9px;padding-top:3px}.section-editor-dialog label{grid-column:1/-1;display:grid;gap:7px;color:var(--ink-soft);font-size:12px;font-weight:700}.section-editor-dialog input{width:100%;min-height:40px;padding:0 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit}.section-editor-dialog input:focus{outline:2px solid color-mix(in srgb,var(--teal) 35%,transparent);outline-offset:1px}
       @media(max-width:900px){.upcoming-calendar__toolbar{grid-template-columns:1fr auto}.calendar-range-label{grid-column:1/-1;justify-self:start;margin-top:-8px;padding-bottom:12px}.year-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.upcoming-day{min-height:112px}}@media(max-width:620px){.upcoming-calendar__toolbar{gap:8px;padding:10px}.calendar-mode-control button{padding:0 7px}.upcoming-grid--month{overflow:auto;grid-template-columns:repeat(7,minmax(112px,1fr))}.upcoming-day{min-height:118px}.year-grid{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px}.upcoming-calendar__footer{align-items:flex-start;flex-direction:column;padding:10px 14px}.upcoming-task-chip b{font-size:9px}}
     `}</style>
   )
@@ -1935,6 +1977,7 @@ function App() {
   const [projectToEdit, setProjectToEdit] = useState(null)
   const [sectionComposerOpen, setSectionComposerOpen] = useState(false)
   const [sectionDraft, setSectionDraft] = useState('')
+  const [sectionEditor, setSectionEditor] = useState(null)
   const [reorderMode, setReorderMode] = useState(null)
   const [captureSession, setCaptureSession] = useState(null)
   const [captureNotice, setCaptureNotice] = useState('')
@@ -2519,6 +2562,16 @@ function App() {
 
   useEffect(() => {
     const handleAndroidBack = () => {
+      if (confirmation) {
+        setConfirmation(null)
+        notifyAndroidBackHandled(false)
+        return
+      }
+      if (sectionEditor) {
+        setSectionEditor(null)
+        notifyAndroidBackHandled(false)
+        return
+      }
       if (taskEditor) {
         setTaskEditor(null)
         notifyAndroidBackHandled(false)
@@ -2560,7 +2613,7 @@ function App() {
     }
     window.addEventListener('daymark:android-back', handleAndroidBack)
     return () => window.removeEventListener('daymark:android-back', handleAndroidBack)
-  }, [captureSession, commandOpen, projectDialogOpen, route, selectedTask, sidebarOpen, taskEditor])
+  }, [captureSession, commandOpen, confirmation, projectDialogOpen, route, sectionEditor, selectedTask, sidebarOpen, taskEditor])
 
   const enterReorderMode = (kind, id) => {
     if (kind === 'project' && !state.projects[id]) return
@@ -2592,15 +2645,30 @@ function App() {
   const editSection = (sectionId) => {
     const section = state.sections[sectionId]
     if (!section) return
-    const name = window.prompt('Section name', section.name)?.trim()
-    if (!name || name === section.name) return
+    setSectionEditor(section)
+  }
+
+  const saveSection = (sectionId, name) => {
+    const section = state.sections[sectionId]
+    if (!section) return
+    if (!name) {
+      setNotice('Enter a section name.')
+      return
+    }
+    if (name === section.name) {
+      setSectionEditor(null)
+      return
+    }
     const result = appStore.dispatch({
       type: 'section.update',
       sectionId,
       patch: { name },
     })
     if (!result.ok) setNotice(result.message)
-    else setNotice(`Renamed section to ${name}.`)
+    else {
+      setSectionEditor(null)
+      setNotice(`Renamed section to ${name}.`)
+    }
   }
 
   const deleteSection = (sectionId) => {
@@ -2608,21 +2676,30 @@ function App() {
     if (!section) return
     const affectedTasks = Object.values(state.tasks).filter((task) => task.sectionId === sectionId)
     const taskSummary = affectedTasks.length ? ` Its ${affectedTasks.length} task${affectedTasks.length === 1 ? '' : 's'} will move to the unsectioned project list.` : ''
-    if (!window.confirm(`Delete ${section.name}?${taskSummary}`)) return
-    for (const task of affectedTasks) {
-      const taskResult = appStore.dispatch({
-        type: 'task.update',
-        taskId: task.id,
-        patch: { sectionId: null },
-      })
-      if (!taskResult.ok) {
-        setNotice(taskResult.message)
-        return
-      }
-    }
-    const result = appStore.dispatch({ type: 'section.remove', sectionId })
-    if (!result.ok) setNotice(result.message)
-    else setNotice(`Deleted ${section.name}.`)
+    requestConfirmation({
+      actionLabel: 'Delete section',
+      message: `Delete "${section.name}"?${taskSummary}`,
+      onConfirm: () => {
+        for (const task of affectedTasks) {
+          const taskResult = appStore.dispatch({
+            type: 'task.update',
+            taskId: task.id,
+            patch: { sectionId: null },
+          })
+          if (!taskResult.ok) {
+            setNotice(taskResult.message)
+            return
+          }
+        }
+        const result = appStore.dispatch({ type: 'section.remove', sectionId })
+        if (!result.ok) setNotice(result.message)
+        else {
+          setUndoAvailable(true)
+          setNotice(`Deleted ${section.name}.`)
+        }
+      },
+      title: 'Delete section?',
+    })
   }
 
   const moveSectionBy = (sectionId, direction) => {
@@ -3885,6 +3962,11 @@ function App() {
         onCreate={createProject}
         onSave={saveProject}
         project={projectToEdit}
+      />
+      <SectionEditorDialog
+        onCancel={() => setSectionEditor(null)}
+        onSave={saveSection}
+        section={sectionEditor}
       />
       <ConfirmationDialog
         actionLabel={confirmation?.actionLabel ?? 'Confirm'}
