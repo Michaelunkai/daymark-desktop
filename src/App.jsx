@@ -1768,6 +1768,7 @@ function JournalView({
   onNoteDelete,
   onNoteMove,
   onNoteUpdate,
+  onRequestConfirmation,
   route,
 }) {
   const today = toLocalDate(new Date())
@@ -1894,9 +1895,12 @@ function JournalView({
               <button
                 className="danger-button"
                 onClick={() => {
-                  if (window.confirm(`Delete "${selectedNote.title || 'Untitled note'}"?`)) {
-                    onNoteDelete(selectedNote.id)
-                  }
+                  onRequestConfirmation({
+                    actionLabel: 'Delete note',
+                    message: `Delete "${selectedNote.title || 'Untitled note'}"?`,
+                    onConfirm: () => onNoteDelete(selectedNote.id),
+                    title: 'Delete note?',
+                  })
                 }}
                 type="button"
               >
@@ -2216,8 +2220,6 @@ function App() {
   }
 
   const revokeAgentAccessKey = async (keyId) => {
-    const key = agentKeys.find((candidate) => candidate.id === keyId)
-    if (!key || !window.confirm(`Revoke ${key.name}? Any AI client using this key will lose access immediately.`)) return
     setAgentKeyStatus('loading')
     try {
       await revokeAgentKey(syncKey, keyId)
@@ -2228,6 +2230,27 @@ function App() {
       setAgentKeyStatus('unavailable')
       setNotice('Daymark could not revoke that key. Check your connection and try again.')
     }
+  }
+
+  const requestConfirmation = (details) => {
+    setConfirmation({
+      ...details,
+      onConfirm: () => {
+        setConfirmation(null)
+        details.onConfirm()
+      },
+    })
+  }
+
+  const requestRevokeAgentAccessKey = (keyId) => {
+    const key = agentKeys.find((candidate) => candidate.id === keyId)
+    if (!key) return
+    requestConfirmation({
+      actionLabel: 'Revoke access',
+      message: `Revoke ${key.name}? Any AI client using this key will lose access immediately.`,
+      onConfirm: () => revokeAgentAccessKey(keyId),
+      title: 'Revoke Daymark AI key?',
+    })
   }
 
   useEffect(() => {
@@ -2741,18 +2764,21 @@ function App() {
 
   const deleteProject = (project) => {
     const taskCount = Object.values(state.tasks).filter((task) => task.projectId === project.id).length
-    const confirmed = window.confirm(
-      `Delete "${project.name}"?\n\n${taskCount ? `${taskCount} associated task${taskCount === 1 ? '' : 's'} will be moved to Inbox and kept. Project sections will be removed.` : 'Any project sections will be removed.'}\n\nThis can be restored with Undo.`,
-    )
-    if (!confirmed) return
-    const result = appStore.dispatch({ type: 'project.delete', projectId: project.id })
-    if (!result.ok) {
-      setNotice(result.message)
-      return
-    }
-    setUndoAvailable(true)
-    setNotice(`Deleted ${project.name}. Tasks were kept in Inbox.`)
-    if (route === `project:${project.id}`) navigate('inbox')
+    requestConfirmation({
+      actionLabel: 'Delete project',
+      message: `Delete "${project.name}"? ${taskCount ? `${taskCount} associated task${taskCount === 1 ? '' : 's'} will be moved to Inbox and kept. Project sections will be removed.` : 'Any project sections will be removed.'} This can be restored with Undo.`,
+      onConfirm: () => {
+        const result = appStore.dispatch({ type: 'project.delete', projectId: project.id })
+        if (!result.ok) {
+          setNotice(result.message)
+          return
+        }
+        setUndoAvailable(true)
+        setNotice(`Deleted ${project.name}. Tasks were kept in Inbox.`)
+        if (route === `project:${project.id}`) navigate('inbox')
+      },
+      title: 'Delete project?',
+    })
   }
 
   const addOrderItem = (input) => {
@@ -2766,13 +2792,12 @@ function App() {
   }
 
   const deleteOrderItem = (item) => {
-    setConfirmation({
+    requestConfirmation({
       actionLabel: 'Delete from Order',
       message: `Delete "${item.title}" from Order? Related items will lose only this relationship.`,
       onConfirm: () => {
         const result = appStore.dispatch({ type: 'order.delete', itemId: item.id })
         if (!result.ok) setNotice(result.message)
-        setConfirmation(null)
       },
       title: 'Delete Order item?',
     })
@@ -3273,25 +3298,36 @@ function App() {
         return
       }
       const imported = parsed.state
-      const confirmed = window.confirm('Replace this browser workspace with the imported backup?')
-      if (!confirmed) return
-      createBrowserStorage().write(JSON.stringify(imported))
-      appStore.reload()
-      setReorderMode(null)
-      setRoute('today')
-      setNotice('Backup imported.')
+      requestConfirmation({
+        actionLabel: 'Replace workspace',
+        message: 'Replace this browser workspace with the imported backup?',
+        onConfirm: () => {
+          createBrowserStorage().write(JSON.stringify(imported))
+          appStore.reload()
+          setReorderMode(null)
+          setRoute('today')
+          setNotice('Backup imported.')
+        },
+        title: 'Replace current workspace?',
+      })
     } catch {
       setNotice('That backup could not be imported. Choose a Daymark JSON export.')
     }
   }
 
   const resetWorkspace = () => {
-    if (!window.confirm('Reset this local workspace? Export a backup first if you may need this data.')) return
-    createBrowserStorage().remove?.()
-    appStore.reset()
-    setReorderMode(null)
-    setRoute('today')
-    setNotice('Local workspace reset.')
+    requestConfirmation({
+      actionLabel: 'Reset workspace',
+      message: 'Reset this local workspace? Export a backup first if you may need this data.',
+      onConfirm: () => {
+        createBrowserStorage().remove?.()
+        appStore.reset()
+        setReorderMode(null)
+        setRoute('today')
+        setNotice('Local workspace reset.')
+      },
+      title: 'Reset local workspace?',
+    })
   }
 
   const hasActiveAgentKey = agentKeys.some((key) => !key.revokedAt)
@@ -3519,7 +3555,7 @@ function App() {
                 onExport={exportBackup}
                 onImport={importBackup}
                 onReset={resetWorkspace}
-                onRevokeAgentKey={revokeAgentAccessKey}
+                onRevokeAgentKey={requestRevokeAgentAccessKey}
                 onCopySyncLink={copySyncLink}
                 onThemeChange={updateThemePreference}
                 onUiSettingsChange={updateUiSettings}
@@ -3541,6 +3577,7 @@ function App() {
                 onNoteDelete={deleteNote}
                 onNoteMove={moveNoteToTarget}
                 onNoteUpdate={updateNote}
+                onRequestConfirmation={requestConfirmation}
                 route={route}
               />
             ) : route === 'upcoming' ? (
