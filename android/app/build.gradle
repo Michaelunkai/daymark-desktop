@@ -2,6 +2,17 @@ plugins {
     id "com.android.application"
 }
 
+def daymarkSigningStore = System.getenv("DAYMARK_SIGNING_STORE")
+def daymarkSigningStorePassword = System.getenv("DAYMARK_SIGNING_STORE_PASSWORD")
+def daymarkSigningKeyAlias = System.getenv("DAYMARK_SIGNING_KEY_ALIAS")
+def daymarkSigningKeyPassword = System.getenv("DAYMARK_SIGNING_KEY_PASSWORD")
+def hasDaymarkSigning = [
+        daymarkSigningStore,
+        daymarkSigningStorePassword,
+        daymarkSigningKeyAlias,
+        daymarkSigningKeyPassword
+].every { it != null && !it.isEmpty() }
+
 android {
     namespace "com.michaelunkai.daymark"
     compileSdk 34
@@ -14,11 +25,22 @@ android {
         versionName "1.4.9"
     }
 
+    signingConfigs {
+        if (hasDaymarkSigning) {
+            daymarkRelease {
+                storeFile file(daymarkSigningStore)
+                storePassword daymarkSigningStorePassword
+                keyAlias daymarkSigningKeyAlias
+                keyPassword daymarkSigningKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             shrinkResources false
-            signingConfig signingConfigs.debug
+            signingConfig hasDaymarkSigning ? signingConfigs.daymarkRelease : signingConfigs.debug
         }
     }
 
