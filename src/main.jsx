@@ -8,7 +8,7 @@ import './styles/app-shell.css'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ThemeProvider>
+    <ThemeProvider defaultPreference="dark">
       <App />
     </ThemeProvider>
   </StrictMode>,

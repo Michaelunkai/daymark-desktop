@@ -11,10 +11,10 @@
   --editor-accent-strong: var(--color-accent-hover, #a93429);
   --editor-focus: var(--color-focus-ring, #276fbb);
   --editor-danger: var(--color-danger, #b42318);
-  --editor-p1: #cf463c;
-  --editor-p2: #c46d32;
-  --editor-p3: #3379ae;
-  --editor-p4: #9f958f;
+  --editor-p1: var(--color-text-primary);
+  --editor-p2: var(--color-text-secondary);
+  --editor-p3: var(--color-text-tertiary);
+  --editor-p4: var(--color-text-tertiary);
 
   position: fixed;
   z-index: 40;
@@ -331,22 +331,22 @@
 }
 
 .task-editor__priority-mark--p1 {
-  background: #f9e4e1;
+  background: var(--color-surface-selected);
   color: var(--editor-p1);
 }
 
 .task-editor__priority-mark--p2 {
-  background: #f6eadf;
+  background: var(--color-surface-selected);
   color: var(--editor-p2);
 }
 
 .task-editor__priority-mark--p3 {
-  background: #e4eef5;
+  background: var(--color-surface-selected);
   color: var(--editor-p3);
 }
 
 .task-editor__priority-mark--p4 {
-  background: #eeeae7;
+  background: var(--color-surface-selected);
   color: var(--editor-p4);
 }
 
@@ -386,8 +386,8 @@
 }
 
 .task-editor__label-option--selected {
-  border-color: #e9b0a8;
-  background: var(--color-surface-selected, #fff4f1);
+  border-color: var(--editor-border-strong);
+  background: var(--color-surface-selected);
   color: var(--editor-text);
 }
 
@@ -449,7 +449,7 @@
   margin: 16px 30px 0;
   padding: 10px 12px;
   border-left: 3px solid var(--editor-danger);
-  background: #fff1ef;
+  background: var(--color-surface-selected);
 }
 
 .task-editor__footer {
@@ -505,8 +505,8 @@
 
 .task-editor__button--primary {
   background: var(--editor-accent);
-  color: white;
-  box-shadow: 0 4px 12px rgb(201 83 67 / 20%);
+  color: var(--color-accent-contrast);
+  box-shadow: var(--shadow-raised);
 }
 
 .task-editor__button--primary:hover:not(:disabled) {

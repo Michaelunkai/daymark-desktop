@@ -1,8 +1,9 @@
 # Daymark Android Release
 
-`daymark-android-1.4.9.apk` is the current companion shell release. It loads
-the current Daymark web application, including the section task add, edit, and
-delete controls, while retaining the viewport-safe app frame and keyboard resizing.
+`daymark-android-1.4.9.apk` is the current VantaBlack companion shell release.
+The native shell, system bars, launcher icon, offline fallback, and loaded
+Daymark web application use black surfaces with pure white text and controls,
+while retaining the section task add, edit, and delete controls.
 
 `daymark-android-1.4.8.apk` was the previous companion shell release. It loads
 the current Daymark web application, including the section edit and delete

@@ -203,31 +203,31 @@
 }
 
 .project-create-dialog__swatch--coral {
-  --project-swatch-color: #c95d50;
+  --project-swatch-color: #ffffff;
 }
 
 .project-create-dialog__swatch--amber {
-  --project-swatch-color: #b77b28;
+  --project-swatch-color: #d2d2d2;
 }
 
 .project-create-dialog__swatch--olive {
-  --project-swatch-color: #788742;
+  --project-swatch-color: #a7a7a7;
 }
 
 .project-create-dialog__swatch--teal {
-  --project-swatch-color: #347d70;
+  --project-swatch-color: #888888;
 }
 
 .project-create-dialog__swatch--blue {
-  --project-swatch-color: #427ab5;
+  --project-swatch-color: #6f6f6f;
 }
 
 .project-create-dialog__swatch--indigo {
-  --project-swatch-color: #6662a8;
+  --project-swatch-color: #555555;
 }
 
 .project-create-dialog__swatch--plum {
-  --project-swatch-color: #93607f;
+  --project-swatch-color: #3a3a3a;
 }
 
 .project-create-dialog__error {

@@ -20,10 +20,15 @@ test("Android release exposes the shared responsive app with a launcher icon", a
   assert.match(activity, /setDomStorageEnabled\(true\)/);
   assert.match(activity, /addJavascriptInterface/);
   assert.match(activity, /setTheme/);
+  assert.match(activity, /Color\.BLACK/);
+  assert.match(activity, /applyVantaBlackSystemBars/);
+  assert.match(activity, /#000000/);
+  assert.match(activity, /#fff/);
   assert.match(activity, /SharedPreferences/);
   assert.match(activity, /SYNC_KEY_PREF/);
   assert.match(activity, /preferences\.getString\(SYNC_KEY_PREF/);
   assert.match(icon, /android:pathData/);
+  assert.doesNotMatch(icon, /#267553|#C44536|#F4F2EF|#1E2A25/);
   assert.match(manifest, /android:windowSoftInputMode="adjustResize"/);
   assert.match(shellStyles, /--daymark-viewport-height:\s*100dvh/);
   assert.match(shellStyles, /var\(--daymark-viewport-height\)/);
