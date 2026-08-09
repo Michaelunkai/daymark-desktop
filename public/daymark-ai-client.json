@@ -1,0 +1,20 @@
+{
+  "name": "Daymark OpenAPI Connector",
+  "version": "2.0.0",
+  "discovery": "/.well-known/daymark-ai.json",
+  "openapi": "/api/agent/v1/openapi.json",
+  "connector": "/daymark-ai-connector.mjs",
+  "health": "/api/agent/v1/health",
+  "readiness": "/api/agent/v1/ready",
+  "authentication": {
+    "type": "http",
+    "scheme": "bearer",
+    "credential": "DAYMARK_API_KEY"
+  },
+  "reconnect": {
+    "discoveryFirst": true,
+    "checkHealth": true,
+    "checkReadiness": true,
+    "retryConflictWithSameIdempotencyKey": true
+  }
+}

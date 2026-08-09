@@ -89,33 +89,54 @@ future release:
   asset, `main`, and the deployed Sites source revision aligned. A green local
   test or HTTP 200 alone is not deployment proof.
 
-## AI task integrations
+## Daymark AI API
 
-Daymark exposes a narrow, authenticated Task Assistant API for Codex and other
-AI clients. It is an OpenAPI-compatible HTTP surface, not unrestricted browser
-automation or administrative access.
+Daymark exposes a durable, authenticated OpenAPI integration for Codex and
+compatible AI clients. It does not depend on the legacy in-page `DaymarkAI`
+browser bridge, so a fresh client can discover and reconnect after a browser,
+Codex, or device session restart.
 
-1. Open **Settings** in Daymark and generate a **task assistant key**.
-2. Copy the secret when it is shown. Daymark stores only its SHA-256 hash and
-   cannot display the secret again after it is hidden.
-3. Configure a server-side AI client or approved MCP wrapper with a Bearer
-   token and the production OpenAPI document:
-   `https://daymark-desktop.michaelovsky55555.chatgpt.site/api/agent/v1/openapi.json`.
+1. In Daymark **Settings**, generate a **Daymark AI key** and copy the secret
+   when it is shown. Daymark stores only its SHA-256 hash; the secret cannot be
+   shown again after it is hidden.
+2. Start a fresh client from the public discovery document:
+   `https://daymark-desktop.michaelovsky55555.chatgpt.site/.well-known/daymark-ai.json`.
+3. Check `/api/agent/v1/health` and `/api/agent/v1/ready`, then load the
+   versioned OpenAPI document at `/api/agent/v1/openapi.json`. The
+   machine-readable connector configuration is `/daymark-ai-client.json`; the
+   dependency-free connector scaffold is `/daymark-ai-connector.mjs`.
+4. Configure the generated secret as a Bearer token. Do not send the pairing
+   code to AI clients. Revoke a lost or expired key in Settings and generate a
+   replacement.
 
-The supported actions are:
+The full persisted user-level surface covers projects, sections, labels, saved
+filters, tasks, scheduled/calendar tasks, notes, diary entries, Order items,
+safe preferences, and search. Writes require an `Idempotency-Key` and use the
+current D1 workspace revision; a `409` is a conflict signal, not permission to
+blindly repeat a mutation with a new key. Reuse the same idempotency key after a
+transport failure or retryable conflict.
 
-- List projects and tasks
-- Create one task
-- Complete one task
+Task, project, note, diary, and Order-item deletion are deliberately guarded:
+the request must include `{"confirm":"delete"}` and returns a short-lived undo
+token. Undo only succeeds when no later workspace revision has intervened.
 
-The API intentionally cannot access notes, diary entries, backups, raw sync
-state, pairing codes, task deletion, project administration, or bulk actions.
-Every write requires an `Idempotency-Key`; retries after a concurrent sync
-conflict must use that same key. Keys can be revoked immediately in Settings.
+The API intentionally excludes raw sync state, pairing codes, backups,
+database administration, account administration, activity/comments, and
+reminders. Reminders are local presentational scheduler data in this product,
+not a durable shared entity. Scheduled tasks are available through the
+calendar endpoint instead.
 
-The legacy `DaymarkAI` browser object is an in-page compatibility adapter. It
-is not a remotely authenticated integration and must not be treated as a
-production API.
+Production uses the existing D1 binding. The Worker creates its four
+integration tables on first authenticated use, so this release requires no
+separate application secret or manual database migration. A D1 binding failure
+is exposed by `/api/agent/v1/ready`; a network, hosting, device, or credential
+outage remains outside the application’s control.
+
+Existing task-assistant keys remain valid with their original task-only scopes.
+Generate a new Daymark AI key when a client needs the expanded capability set.
+
+The legacy `DaymarkAI` browser object is retained only for local compatibility.
+It is not an authenticated remote API and is never required for new clients.
 
 ## Release verification
 

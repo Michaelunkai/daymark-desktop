@@ -1548,8 +1548,8 @@ function SettingsPanel({
         <section className="settings-section settings-section--wide">
           <div className="settings-section__heading">
             <div>
-              <h3>AI task access</h3>
-              <p>Create a scoped key for Codex or another AI client that needs to work with your tasks.</p>
+              <h3>Daymark AI access</h3>
+              <p>Create a scoped key for Codex or another AI client that needs durable access to this workspace.</p>
             </div>
             <span className={`storage-badge ${agentKeyStatus === 'ready' ? 'is-ready' : agentKeyStatus === 'loading' ? '' : 'is-warning'}`} role="status">
               <span className="storage-badge__dot" />
@@ -1559,14 +1559,14 @@ function SettingsPanel({
           <div className="settings-recovery">
             <span className="settings-recovery__icon"><Icon name="companion" size={16} /></span>
             <span>
-              <strong>Task assistant scope</strong>
-              <small>Can list projects and tasks, create tasks, and complete tasks. It cannot access notes, diary entries, backups, sync data, deletes, or project administration.</small>
+              <strong>Daymark AI scope</strong>
+              <small>Supports the persisted workspace: projects, tasks, calendar, notes, diary, organization, preferences, and search. Deletes require explicit confirmation and provide a short-lived revision-safe undo. Raw sync, pairing codes, backups, and local-only reminders stay unavailable.</small>
             </span>
           </div>
           <div className="settings-actions">
             <button className="secondary-button" disabled={agentKeyStatus === 'loading'} onClick={onCreateAgentKey} type="button">
               <Icon name="companion" size={16} />
-              Generate task assistant key
+              Generate Daymark AI key
             </button>
           </div>
           {agentToken ? (
@@ -1583,7 +1583,7 @@ function SettingsPanel({
             </div>
           ) : null}
           {activeAgentKeys.length ? (
-            <div className="agent-key-list" aria-label="Active AI task assistant keys">
+            <div className="agent-key-list" aria-label="Active Daymark AI keys">
               {activeAgentKeys.map((key) => (
                 <div className="agent-key-list__item" key={key.id}>
                   <span>
@@ -1594,8 +1594,8 @@ function SettingsPanel({
                 </div>
               ))}
             </div>
-          ) : agentKeyStatus === 'ready' ? <p className="settings-help">No AI task assistant keys have been created for this workspace.</p> : null}
-          <p className="settings-help">Use the published Daymark Task Assistant OpenAPI contract with a server-side client or an approved MCP wrapper. Keep each key private and revoke it when no longer needed.</p>
+          ) : agentKeyStatus === 'ready' ? <p className="settings-help">No Daymark AI keys have been created for this workspace.</p> : null}
+          <p className="settings-help">Fresh clients can begin at /.well-known/daymark-ai.json, then check health and readiness before using the published OpenAPI contract or connector. Keep each key private and revoke it when no longer needed.</p>
         </section>
 
         <section className="settings-section settings-section--wide settings-section--danger">
@@ -2121,10 +2121,10 @@ function App() {
       setAgentKeys((current) => [key, ...current.filter((candidate) => candidate.id !== key.id)])
       setAgentToken(token)
       setAgentKeyStatus('ready')
-      setNotice('Task assistant key created. Copy it before hiding it.')
+      setNotice('Daymark AI key created. Copy it before hiding it.')
     } catch {
       setAgentKeyStatus('unavailable')
-      setNotice('Daymark could not create an AI task assistant key. Check your connection and try again.')
+      setNotice('Daymark could not create a Daymark AI key. Check your connection and try again.')
     }
   }
 
@@ -2132,7 +2132,7 @@ function App() {
     if (!agentToken) return
     try {
       await navigator.clipboard.writeText(agentToken)
-      setNotice('Task assistant key copied.')
+      setNotice('Daymark AI key copied.')
     } catch {
       setNotice('Clipboard access is unavailable. Copy the key from Settings before hiding it.')
     }
@@ -2146,7 +2146,7 @@ function App() {
       await revokeAgentKey(syncKey, keyId)
       setAgentKeys((current) => current.map((candidate) => candidate.id === keyId ? { ...candidate, revokedAt: new Date().toISOString() } : candidate))
       setAgentKeyStatus('ready')
-      setNotice('Task assistant key revoked.')
+      setNotice('Daymark AI key revoked.')
     } catch {
       setAgentKeyStatus('unavailable')
       setNotice('Daymark could not revoke that key. Check your connection and try again.')

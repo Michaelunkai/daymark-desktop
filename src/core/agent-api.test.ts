@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { provisionTaskAssistant } from "./agent-api";
+import { DAYMARK_AI_SCOPES, provisionTaskAssistant } from "./agent-api";
 
 test("provisionTaskAssistant keeps the generated secret client-side and sends only its hash", async () => {
   let capturedRequest: Request | null = null;
@@ -13,7 +13,7 @@ test("provisionTaskAssistant keeps the generated secret client-side and sends on
         key: {
           id: "agent-key-12345678-1234-1234-1234-123456789012",
           name: "Codex task assistant",
-          scopes: ["projects:read", "tasks:read", "tasks:write"],
+          scopes: [...DAYMARK_AI_SCOPES],
           createdAt: "2026-08-09T00:00:00.000Z",
           lastUsedAt: null,
           revokedAt: null,
@@ -28,5 +28,5 @@ test("provisionTaskAssistant keeps the generated secret client-side and sends on
   const payload = await capturedRequest.json() as { tokenHash: string; scopes: string[] };
   assert.match(payload.tokenHash, /^[a-f0-9]{64}$/);
   assert.notEqual(payload.tokenHash, response.token);
-  assert.deepEqual(payload.scopes, ["projects:read", "tasks:read", "tasks:write"]);
+  assert.deepEqual(payload.scopes, DAYMARK_AI_SCOPES);
 });

@@ -1,4 +1,20 @@
-export const TASK_ASSISTANT_SCOPES = ["projects:read", "tasks:read", "tasks:write"] as const;
+export const DAYMARK_AI_SCOPES = [
+  "projects:read", "projects:write",
+  "sections:read", "sections:write",
+  "labels:read", "labels:write",
+  "filters:read", "filters:write",
+  "tasks:read", "tasks:write",
+  "calendar:read",
+  "notes:read", "notes:write",
+  "diary:read", "diary:write",
+  "order:read", "order:write",
+  "preferences:read", "preferences:write",
+  "search:read",
+  "undo:write",
+] as const;
+
+// Preserved for callers compiled against the initial task-only integration.
+export const TASK_ASSISTANT_SCOPES = DAYMARK_AI_SCOPES;
 
 export type AgentKey = {
   id: string;
@@ -20,7 +36,7 @@ type ProvisionOptions = {
 
 export async function provisionTaskAssistant({
   syncKey,
-  name = "Codex task assistant",
+  name = "Codex Daymark AI",
   fetchImpl = fetch,
   randomBytes = secureRandomBytes,
 }: ProvisionOptions): Promise<{ key: AgentKey; token: string }> {
@@ -31,7 +47,7 @@ export async function provisionTaskAssistant({
     body: JSON.stringify({
       name,
       tokenHash: await sha256Hex(token),
-      scopes: TASK_ASSISTANT_SCOPES,
+      scopes: DAYMARK_AI_SCOPES,
     }),
   });
   const payload = await readPayload(response);
