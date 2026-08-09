@@ -730,7 +730,7 @@ function SectionHeading({
           <>
             <button
               aria-label={`Add task to ${section.name}`}
-              className="icon-button"
+              className="icon-button section-add-task-button"
               onClick={() => onAddTask?.(section.id)}
               title="Add task to section"
               type="button"
