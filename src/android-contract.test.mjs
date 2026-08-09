@@ -25,6 +25,7 @@ test("Android release exposes the shared responsive app with a launcher icon", a
   assert.match(activity, /preferences\.getString\(SYNC_KEY_PREF/);
   assert.match(icon, /android:pathData/);
   assert.match(manifest, /android:windowSoftInputMode="adjustResize"/);
-  assert.match(shellStyles, /height:\s*100dvh/);
+  assert.match(shellStyles, /--daymark-viewport-height:\s*100dvh/);
+  assert.match(shellStyles, /var\(--daymark-viewport-height\)/);
   assert.match(shellStyles, /\.main-content\s*\{[\s\S]*?min-height:\s*0[\s\S]*?overflow:\s*auto/);
 });

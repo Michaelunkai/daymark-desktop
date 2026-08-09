@@ -1940,6 +1940,27 @@ function App() {
     seedDemoWorkspace()
   }, [])
 
+  useEffect(() => {
+    const root = document.documentElement
+    const viewport = window.visualViewport
+    const updateViewportHeight = () => {
+      root.style.setProperty(
+        '--daymark-viewport-height',
+        `${Math.round(viewport?.height ?? window.innerHeight)}px`,
+      )
+    }
+
+    updateViewportHeight()
+    window.addEventListener('resize', updateViewportHeight)
+    viewport?.addEventListener('resize', updateViewportHeight)
+    viewport?.addEventListener('scroll', updateViewportHeight)
+    return () => {
+      window.removeEventListener('resize', updateViewportHeight)
+      viewport?.removeEventListener('resize', updateViewportHeight)
+      viewport?.removeEventListener('scroll', updateViewportHeight)
+    }
+  }, [])
+
   const replaceFromSync = (nextState, shouldPush = false) => {
     syncSkipNextPushRef.current = !shouldPush
     appStore.replace(nextState)

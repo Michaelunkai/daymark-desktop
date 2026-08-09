@@ -1,4 +1,5 @@
 :root {
+  --daymark-viewport-height: 100dvh;
   font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--color-text-primary);
   background: var(--color-canvas);
@@ -30,14 +31,14 @@
 body {
   margin: 0;
   min-width: 0;
-  min-height: 100vh;
+  min-height: var(--daymark-viewport-height);
   background: var(--canvas);
   font-weight: var(--body-font-weight, 550);
   overflow-x: clip;
 }
 
 #root {
-  min-height: 100vh;
+  min-height: var(--daymark-viewport-height);
 }
 
 .app-shell :where(p, span, label, button, input, textarea, select, small, li) {
@@ -99,8 +100,7 @@ input:focus-visible {
 }
 
 .app-shell {
-  height: 100vh;
-  height: 100dvh;
+  height: var(--daymark-viewport-height);
   min-height: 0;
   overflow: hidden;
   background: var(--canvas);
@@ -263,8 +263,7 @@ kbd {
 .shell-grid {
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr) 286px;
-  height: calc(100vh - 64px);
-  height: calc(100dvh - 64px);
+  height: calc(var(--daymark-viewport-height) - 64px);
   min-height: 0;
 }
 
@@ -2168,8 +2167,7 @@ kbd {
 
   .thought-capture__tray {
     gap: 12px;
-    max-height: calc(100vh - 28px);
-    max-height: calc(100dvh - 28px);
+    max-height: calc(var(--daymark-viewport-height) - 28px);
     overflow: auto;
     padding: 18px;
   }
@@ -2186,8 +2184,7 @@ kbd {
 
   .shell-grid {
     grid-template-columns: minmax(0, 1fr);
-    height: calc(100vh - 112px);
-    height: calc(100dvh - 112px);
+    height: calc(var(--daymark-viewport-height) - 112px);
     min-height: 0;
   }
 
