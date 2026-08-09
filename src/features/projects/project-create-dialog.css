@@ -306,7 +306,7 @@
 @media (max-width: 560px) {
   .project-create-dialog__backdrop {
     align-items: flex-end;
-    padding: 0;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
 
   .project-create-dialog {
@@ -315,7 +315,7 @@
     border-bottom-right-radius: 0;
     border-left: 0;
     border-right: 0;
-    max-height: min(92dvh, 720px);
+    max-height: min(calc(var(--daymark-viewport-height, 100dvh) - env(safe-area-inset-top) - env(safe-area-inset-bottom)), 720px);
     width: 100%;
   }
 

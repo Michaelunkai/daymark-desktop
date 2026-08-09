@@ -1323,6 +1323,47 @@ function ProjectDialog({ draft, error, onChange, onClose, onSubmit }) {
   )
 }
 
+function ConfirmationDialog({ actionLabel, isOpen, message, onCancel, onConfirm, title }) {
+  const cancelButtonRef = useRef(null)
+
+  useEffect(() => {
+    if (!isOpen) return undefined
+    const focusTimer = window.setTimeout(() => cancelButtonRef.current?.focus(), 0)
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onCancel()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.clearTimeout(focusTimer)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [isOpen, onCancel])
+
+  if (!isOpen) return null
+
+  return (
+    <div className="confirmation-overlay" onMouseDown={(event) => event.target === event.currentTarget && onCancel()}>
+      <section aria-describedby="confirmation-dialog-message" aria-labelledby="confirmation-dialog-title" aria-modal="true" className="confirmation-dialog" role="dialog">
+        <span aria-hidden="true" className="confirmation-dialog__icon">
+          <Icon name="trash" size={18} />
+        </span>
+        <div>
+          <span className="section-kicker">CONFIRM ACTION</span>
+          <h2 id="confirmation-dialog-title">{title}</h2>
+          <p id="confirmation-dialog-message">{message}</p>
+        </div>
+        <footer>
+          <button className="secondary-button" onClick={onCancel} ref={cancelButtonRef} type="button">Cancel</button>
+          <button className="danger-button" onClick={onConfirm} type="button">{actionLabel}</button>
+        </footer>
+      </section>
+    </div>
+  )
+}
+
 function IntegrationStyles() {
   return (
     <style>{`
@@ -1339,7 +1380,7 @@ function IntegrationStyles() {
       .upcoming-day__more{padding:2px 5px;color:var(--teal);font-size:10px;font-weight:700}.upcoming-day__add{position:absolute;right:6px;bottom:5px;display:grid;width:24px;height:24px;place-items:center;border-radius:5px;background:transparent;color:var(--ink-muted);cursor:pointer;opacity:0}.upcoming-day:hover .upcoming-day__add,.upcoming-day:focus-within .upcoming-day__add{opacity:1}.upcoming-day__add:hover{color:var(--teal);background:var(--teal-soft)}
       .year-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:18px}.year-month{display:grid;gap:9px;padding:12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);cursor:pointer;text-align:left}.year-month:hover,.year-month.is-selected{border-color:var(--teal);background:var(--teal-soft)}.year-month strong{font-size:11px}.year-month__dots{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}.year-month__dots i{width:100%;aspect-ratio:1;border-radius:2px;background:var(--surface-tint)}.year-month__dots i.is-scheduled{background:var(--teal)}
       .upcoming-calendar__footer{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:0 15px;background:var(--surface-soft);color:var(--ink-muted);font-size:11px}.upcoming-calendar__footer span{display:inline-flex;align-items:center;gap:6px}.upcoming-calendar__footer .text-button{display:inline-flex;align-items:center;gap:5px}.calendar-legend-dot{width:7px;height:7px;border-radius:50%;background:var(--teal)}
-      .integration-modal{position:fixed;z-index:30;inset:0;display:grid;place-items:center;padding:20px;background:rgba(24,32,31,.35);backdrop-filter:blur(3px)}.project-dialog{display:grid;gap:17px;width:min(440px,100%);padding:24px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);box-shadow:var(--shadow)}.project-dialog__header{display:flex;align-items:flex-start;justify-content:space-between}.project-dialog h2{margin:0;color:var(--ink);font-size:20px}.project-dialog label,.project-dialog fieldset{display:grid;gap:7px;padding:0;color:var(--ink-soft);border:0;font-size:12px;font-weight:700}.project-dialog input[type="text"],.project-dialog input:not([type]),.project-dialog textarea{width:100%;padding:10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit}.project-dialog textarea{resize:vertical}.project-color-options{display:flex;gap:8px}.project-color{width:27px;height:27px;border:3px solid var(--surface);border-radius:50%;cursor:pointer}.project-color[aria-pressed="true"]{outline:2px solid var(--focus)}.project-color--teal{background:var(--teal)}.project-color--amber{background:#d99a20}.project-color--indigo{background:var(--indigo)}.project-dialog__checkbox{display:flex!important;align-items:center;gap:8px}.project-dialog__error{margin:0;color:var(--color-danger);font-size:12px}.project-dialog footer{display:flex;justify-content:flex-end;gap:9px;padding-top:3px}
+      .integration-modal,.confirmation-overlay{position:fixed;z-index:30;inset:0;display:grid;place-items:center;padding:20px;background:rgba(24,32,31,.35);backdrop-filter:blur(3px)}.project-dialog{display:grid;gap:17px;width:min(440px,100%);padding:24px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);box-shadow:var(--shadow)}.project-dialog__header{display:flex;align-items:flex-start;justify-content:space-between}.project-dialog h2{margin:0;color:var(--ink);font-size:20px}.project-dialog label,.project-dialog fieldset{display:grid;gap:7px;padding:0;color:var(--ink-soft);border:0;font-size:12px;font-weight:700}.project-dialog input[type="text"],.project-dialog input:not([type]),.project-dialog textarea{width:100%;padding:10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit}.project-dialog textarea{resize:vertical}.project-color-options{display:flex;gap:8px}.project-color{width:27px;height:27px;border:3px solid var(--surface);border-radius:50%;cursor:pointer}.project-color[aria-pressed="true"]{outline:2px solid var(--focus)}.project-color--teal{background:var(--teal)}.project-color--amber{background:#d99a20}.project-color--indigo{background:var(--indigo)}.project-dialog__checkbox{display:flex!important;align-items:center;gap:8px}.project-dialog__error{margin:0;color:var(--color-danger);font-size:12px}.project-dialog footer{display:flex;justify-content:flex-end;gap:9px;padding-top:3px}.confirmation-dialog{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;width:min(420px,100%);padding:24px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);box-shadow:var(--shadow)}.confirmation-dialog__icon{display:grid;width:34px;height:34px;place-items:center;border-radius:50%;background:#fbe5e5;color:var(--color-danger)}.confirmation-dialog h2{margin:3px 0 7px;color:var(--ink);font-size:20px}.confirmation-dialog p{margin:0;color:var(--ink-soft);line-height:1.5}.confirmation-dialog footer{grid-column:1/-1;display:flex;justify-content:flex-end;gap:9px;padding-top:3px}
       @media(max-width:900px){.upcoming-calendar__toolbar{grid-template-columns:1fr auto}.calendar-range-label{grid-column:1/-1;justify-self:start;margin-top:-8px;padding-bottom:12px}.year-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.upcoming-day{min-height:112px}}@media(max-width:620px){.upcoming-calendar__toolbar{gap:8px;padding:10px}.calendar-mode-control button{padding:0 7px}.upcoming-grid--month{overflow:auto;grid-template-columns:repeat(7,minmax(112px,1fr))}.upcoming-day{min-height:118px}.year-grid{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px}.upcoming-calendar__footer{align-items:flex-start;flex-direction:column;padding:10px 14px}.upcoming-task-chip b{font-size:9px}}
     `}</style>
   )
@@ -1705,6 +1746,7 @@ function JournalView({
   onNoteDelete,
   onNoteMove,
   onNoteUpdate,
+  onRequestConfirmation,
   route,
 }) {
   const today = toLocalDate(new Date())
@@ -1831,9 +1873,12 @@ function JournalView({
               <button
                 className="danger-button"
                 onClick={() => {
-                  if (window.confirm(`Delete "${selectedNote.title || 'Untitled note'}"?`)) {
-                    onNoteDelete(selectedNote.id)
-                  }
+                  onRequestConfirmation({
+                    actionLabel: 'Delete note',
+                    message: `Delete "${selectedNote.title || 'Untitled note'}"?`,
+                    onConfirm: () => onNoteDelete(selectedNote.id),
+                    title: 'Delete note?',
+                  })
                 }}
                 type="button"
               >
@@ -1901,6 +1946,7 @@ function App() {
   const [agentKeys, setAgentKeys] = useState([])
   const [agentKeyStatus, setAgentKeyStatus] = useState('loading')
   const [agentToken, setAgentToken] = useState('')
+  const [confirmation, setConfirmation] = useState(null)
   const syncReadyRef = useRef(false)
   const syncRemoteRevisionRef = useRef(0)
   const syncSkipNextPushRef = useRef(false)
@@ -2101,7 +2147,6 @@ function App() {
   }, [syncKey, syncStatus])
 
   useEffect(() => {
-    if (route !== 'settings') return undefined
     let cancelled = false
     setAgentKeyStatus('loading')
     listAgentKeys(syncKey)
@@ -2153,8 +2198,6 @@ function App() {
   }
 
   const revokeAgentAccessKey = async (keyId) => {
-    const key = agentKeys.find((candidate) => candidate.id === keyId)
-    if (!key || !window.confirm(`Revoke ${key.name}? Any AI client using this key will lose access immediately.`)) return
     setAgentKeyStatus('loading')
     try {
       await revokeAgentKey(syncKey, keyId)
@@ -2165,6 +2208,27 @@ function App() {
       setAgentKeyStatus('unavailable')
       setNotice('Daymark could not revoke that key. Check your connection and try again.')
     }
+  }
+
+  const requestConfirmation = (details) => {
+    setConfirmation({
+      ...details,
+      onConfirm: () => {
+        setConfirmation(null)
+        details.onConfirm()
+      },
+    })
+  }
+
+  const requestRevokeAgentAccessKey = (keyId) => {
+    const key = agentKeys.find((candidate) => candidate.id === keyId)
+    if (!key) return
+    requestConfirmation({
+      actionLabel: 'Revoke access',
+      message: `Revoke ${key.name}? Any AI client using this key will lose access immediately.`,
+      onConfirm: () => revokeAgentAccessKey(keyId),
+      title: 'Revoke Daymark AI key?',
+    })
   }
 
   useEffect(() => {
@@ -2709,18 +2773,21 @@ function App() {
 
   const deleteProject = (project) => {
     const taskCount = Object.values(state.tasks).filter((task) => task.projectId === project.id).length
-    const confirmed = window.confirm(
-      `Delete "${project.name}"?\n\n${taskCount ? `${taskCount} associated task${taskCount === 1 ? '' : 's'} will be moved to Inbox and kept. Project sections will be removed.` : 'Any project sections will be removed.'}\n\nThis can be restored with Undo.`,
-    )
-    if (!confirmed) return
-    const result = appStore.dispatch({ type: 'project.delete', projectId: project.id })
-    if (!result.ok) {
-      setNotice(result.message)
-      return
-    }
-    setUndoAvailable(true)
-    setNotice(`Deleted ${project.name}. Tasks were kept in Inbox.`)
-    if (route === `project:${project.id}`) navigate('inbox')
+    requestConfirmation({
+      actionLabel: 'Delete project',
+      message: `Delete "${project.name}"? ${taskCount ? `${taskCount} associated task${taskCount === 1 ? '' : 's'} will be moved to Inbox and kept. Project sections will be removed.` : 'Any project sections will be removed.'} This can be restored with Undo.`,
+      onConfirm: () => {
+        const result = appStore.dispatch({ type: 'project.delete', projectId: project.id })
+        if (!result.ok) {
+          setNotice(result.message)
+          return
+        }
+        setUndoAvailable(true)
+        setNotice(`Deleted ${project.name}. Tasks were kept in Inbox.`)
+        if (route === `project:${project.id}`) navigate('inbox')
+      },
+      title: 'Delete project?',
+    })
   }
 
   const addOrderItem = (input) => {
@@ -2734,9 +2801,15 @@ function App() {
   }
 
   const deleteOrderItem = (item) => {
-    if (!window.confirm(`Delete "${item.title}" from Order? Related items will lose only this relationship.`)) return
-    const result = appStore.dispatch({ type: 'order.delete', itemId: item.id })
-    if (!result.ok) setNotice(result.message)
+    requestConfirmation({
+      actionLabel: 'Delete from Order',
+      message: `Delete "${item.title}" from Order? Related items will lose only this relationship.`,
+      onConfirm: () => {
+        const result = appStore.dispatch({ type: 'order.delete', itemId: item.id })
+        if (!result.ok) setNotice(result.message)
+      },
+      title: 'Delete Order item?',
+    })
   }
 
   const moveOrderItem = (itemId, swapId, laneId = null) => {
@@ -3232,26 +3305,44 @@ function App() {
         return
       }
       const imported = parsed.state
-      const confirmed = window.confirm('Replace this browser workspace with the imported backup?')
-      if (!confirmed) return
-      createBrowserStorage().write(JSON.stringify(imported))
-      appStore.reload()
-      setReorderMode(null)
-      setRoute('today')
-      setNotice('Backup imported.')
+      requestConfirmation({
+        actionLabel: 'Replace workspace',
+        message: 'Replace this browser workspace with the imported backup?',
+        onConfirm: () => {
+          createBrowserStorage().write(JSON.stringify(imported))
+          appStore.reload()
+          setReorderMode(null)
+          setRoute('today')
+          setNotice('Backup imported.')
+        },
+        title: 'Replace current workspace?',
+      })
     } catch {
       setNotice('That backup could not be imported. Choose a Daymark JSON export.')
     }
   }
 
   const resetWorkspace = () => {
-    if (!window.confirm('Reset this local workspace? Export a backup first if you may need this data.')) return
-    createBrowserStorage().remove?.()
-    appStore.reset()
-    setReorderMode(null)
-    setRoute('today')
-    setNotice('Local workspace reset.')
+    requestConfirmation({
+      actionLabel: 'Reset workspace',
+      message: 'Reset this local workspace? Export a backup first if you may need this data.',
+      onConfirm: () => {
+        createBrowserStorage().remove?.()
+        appStore.reset()
+        setReorderMode(null)
+        setRoute('today')
+        setNotice('Local workspace reset.')
+      },
+      title: 'Reset local workspace?',
+    })
   }
+
+  const hasActiveAgentKey = agentKeys.some((key) => !key.revokedAt)
+  const agentAccessText = agentKeyStatus === 'loading'
+    ? 'Checking AI access'
+    : agentKeyStatus === 'ready'
+      ? hasActiveAgentKey ? 'AI access ready' : 'AI access needs key'
+      : 'AI access unavailable'
 
   return (
     <div className={`app-shell density-${uiSettings.density} text-scale-${uiSettings.textScale} ${sidebarOpen ? '' : 'sidebar-is-collapsed'}`}>
@@ -3287,9 +3378,9 @@ function App() {
           <button aria-label="Open command palette" className="icon-button" onClick={() => setCommandOpen(true)} title="Command palette (Ctrl K)" type="button">
             <Icon name="command" size={17} />
           </button>
-          <span aria-label="Daymark agent connection active" className="agent-connection" data-agent-bridge="connected">
+          <span aria-label={`Daymark ${agentAccessText.toLowerCase()}`} className="agent-connection" data-agent-bridge="connected">
             <span aria-hidden="true" className="agent-connection__dot" />
-            Agent connected
+            {agentAccessText}
           </span>
           <button aria-label="Open Codex companion" className="icon-button" onClick={() => setCompanionOpen(true)} title="Codex companion" type="button">
             <Icon name="companion" size={17} />
@@ -3452,7 +3543,7 @@ function App() {
                 onExport={exportBackup}
                 onImport={importBackup}
                 onReset={resetWorkspace}
-                onRevokeAgentKey={revokeAgentAccessKey}
+                onRevokeAgentKey={requestRevokeAgentAccessKey}
                 onCopySyncLink={copySyncLink}
                 onThemeChange={updateThemePreference}
                 onUiSettingsChange={updateUiSettings}
@@ -3474,6 +3565,7 @@ function App() {
                 onNoteDelete={deleteNote}
                 onNoteMove={moveNoteToTarget}
                 onNoteUpdate={updateNote}
+                onRequestConfirmation={requestConfirmation}
                 route={route}
               />
             ) : route === 'upcoming' ? (
@@ -3793,6 +3885,14 @@ function App() {
         onCreate={createProject}
         onSave={saveProject}
         project={projectToEdit}
+      />
+      <ConfirmationDialog
+        actionLabel={confirmation?.actionLabel ?? 'Confirm'}
+        isOpen={Boolean(confirmation)}
+        message={confirmation?.message ?? ''}
+        onCancel={() => setConfirmation(null)}
+        onConfirm={() => confirmation?.onConfirm?.()}
+        title={confirmation?.title ?? 'Confirm action?'}
       />
     </div>
   )
