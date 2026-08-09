@@ -15,6 +15,7 @@ export const DEFAULT_TASK_EDITOR_DRAFT: TaskEditorDraft = {
   recurrenceText: '',
   reminderText: '',
   orderLane: 'now',
+  orderRelationId: null,
 };
 
 export function createTaskEditorDraft(
@@ -56,6 +57,7 @@ export function normalizeTaskEditorDraft(
     orderLane: ['now', 'later', 'after'].includes(draft.orderLane)
       ? draft.orderLane
       : DEFAULT_TASK_EDITOR_DRAFT.orderLane,
+    orderRelationId: normalizeOptionalId(draft.orderRelationId),
   };
 }
 

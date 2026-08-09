@@ -31,6 +31,7 @@ export function TaskEditor({
   mode = 'edit',
   projects = [],
   sections = [],
+  orderItems = [],
   isSaving = false,
   saveError,
   validationErrors = {},
@@ -138,6 +139,7 @@ export function TaskEditor({
     reminder: `${titleId}-reminder`,
     error: `${titleId}-error`,
     orderLane: `${titleId}-order-lane`,
+    orderRelation: `${titleId}-order-relation`,
   };
 
   function changeField<Field extends keyof TaskEditorDraft>(
@@ -378,12 +380,18 @@ export function TaskEditor({
                     <select
                       id={ids.orderLane}
                       value={draft.orderLane}
-                      onChange={(event) =>
-                        changeField(
-                          'orderLane',
-                          event.currentTarget.value as TaskEditorDraft['orderLane'],
-                        )
-                      }
+                      onChange={(event) => {
+                        const nextLane = event.currentTarget.value as TaskEditorDraft['orderLane'];
+                        const nextDraft = updateTaskEditorDraft(
+                          updateTaskEditorDraft(draft, 'orderLane', nextLane),
+                          'orderRelationId',
+                          nextLane === 'after' ? draft.orderRelationId : null,
+                        );
+                        onDraftChange(nextDraft, {
+                          field: 'orderLane',
+                          value: nextLane,
+                        });
+                      }}
                     >
                       <option value="now">Do now</option>
                       <option value="later">Later</option>
@@ -392,6 +400,35 @@ export function TaskEditor({
                     <ChevronDownIcon />
                   </div>
                 </div>
+                {draft.orderLane === 'after' ? (
+                  <div className="task-editor__field">
+                    <label htmlFor={ids.orderRelation}>After which Order item?</label>
+                    <div className="task-editor__select-wrap">
+                      <select
+                        id={ids.orderRelation}
+                        value={draft.orderRelationId ?? ''}
+                        onChange={(event) =>
+                          changeField(
+                            'orderRelationId',
+                            event.currentTarget.value || null,
+                          )
+                        }
+                      >
+                        <option value="">Choose an Order item</option>
+                        {orderItems.map((item) => (
+                          <option
+                            key={item.id}
+                            value={item.id}
+                            disabled={item.disabled}
+                          >
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDownIcon />
+                    </div>
+                  </div>
+                ) : null}
               </section>
             ) : null}
 

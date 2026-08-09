@@ -119,6 +119,19 @@ test('maps a valid draft to TaskInput with parsed date and recurrence', () => {
   assert.equal(result.value.projectId, 'project-inbox');
 });
 
+test('normalizes an Order destination relation for After transfers', () => {
+  const draft = normalizeTaskEditorDraft(
+    createTaskEditorDraft({
+      title: 'Follow the handoff',
+      orderLane: 'after',
+      orderRelationId: 'order-previous',
+    }),
+  );
+
+  assert.equal(draft.orderLane, 'after');
+  assert.equal(draft.orderRelationId, 'order-previous');
+});
+
 test('returns field errors for unsupported schedule text', () => {
   const result = taskEditorDraftToTaskPatch(
     createTaskEditorDraft({

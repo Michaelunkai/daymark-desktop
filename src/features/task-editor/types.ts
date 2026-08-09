@@ -16,6 +16,7 @@ export type TaskEditorDraft = {
   recurrenceText: string;
   reminderText: string;
   orderLane: TaskEditorOrderLane;
+  orderRelationId: string | null;
 };
 
 export type TaskEditorOption = {
@@ -47,6 +48,7 @@ export type TaskEditorProps = {
   mode?: TaskEditorMode;
   projects?: TaskEditorOption[];
   sections?: TaskEditorOption[];
+  orderItems?: TaskEditorOption[];
   isSaving?: boolean;
   saveError?: string;
   validationErrors?: TaskEditorErrors;

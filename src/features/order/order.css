@@ -42,6 +42,7 @@
 .order-editor__transfer > div:first-child { display: grid; gap: 3px; }
 .order-editor__transfer > div:first-child strong { color: var(--ink); font-size: 12px; }
 .order-editor__transfer-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.order-editor__transfer-error { color: var(--accent-strong); font-size: 11px; margin: -4px 0 0; }
 .order-editor__footer { align-items: flex-end; border-top: 1px solid var(--line); display: flex; gap: 12px; justify-content: space-between; margin-top: 3px; padding-top: 15px; }
 .order-editor__transfer-actions, .order-editor__actions { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 980px) { .order-lanes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

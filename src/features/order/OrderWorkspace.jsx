@@ -130,11 +130,13 @@ export function OrderWorkspace({
   onDelete,
   onMove,
   projects = [],
+  sections = [],
   onMoveToTask,
   onCopyToTask,
 }) {
   const [editing, setEditing] = useState(null)
   const [draft, setDraft] = useState(null)
+  const [transferError, setTransferError] = useState('')
   const [draggingId, setDraggingId] = useState(null)
   const orderedItems = useMemo(
     () => [...items]
@@ -143,20 +145,24 @@ export function OrderWorkspace({
     [items],
   )
   const relationOptions = orderedItems.filter((item) => item.id !== draft?.id)
+  const taskSectionOptions = sections.filter((section) => section.projectId === draft?.taskProjectId)
 
   const openCreate = () => {
     setEditing('create')
     setDraft({ title: '', details: '', lane: 'now', relationId: null, priority: 4, status: 'open' })
+    setTransferError('')
   }
 
   const openEdit = (item) => {
     setEditing(item.id)
-    setDraft({ ...item, taskProjectId: null, taskDueText: '' })
+    setDraft({ ...item, taskProjectId: '', taskSectionId: null, taskDueText: '' })
+    setTransferError('')
   }
 
   const closeEditor = () => {
     setEditing(null)
     setDraft(null)
+    setTransferError('')
   }
 
   const save = (event) => {
@@ -164,7 +170,7 @@ export function OrderWorkspace({
     if (!draft?.title.trim()) return
     if (editing === 'create') onAdd(draft)
     else {
-      const { taskProjectId, taskDueText, ...orderDraft } = draft
+      const { taskProjectId, taskSectionId, taskDueText, ...orderDraft } = draft
       onUpdate(editing, orderDraft)
     }
     closeEditor()
@@ -172,6 +178,14 @@ export function OrderWorkspace({
 
   const transferToTask = (callback) => {
     if (!editing || editing === 'create' || !callback) return
+    if (draft.taskProjectId === '') {
+      setTransferError('Choose Inbox or a project before transferring this item.')
+      return
+    }
+    if (draft.taskProjectId && taskSectionOptions.length && !draft.taskSectionId) {
+      setTransferError('Choose a section for the selected project before transferring.')
+      return
+    }
     if (callback(editing, draft)) closeEditor()
   }
 
@@ -281,12 +295,32 @@ export function OrderWorkspace({
               <section className="order-editor__transfer">
                 <div>
                   <span className="section-kicker">TASK DESTINATION</span>
-                  <strong>Project and day</strong>
+                  <strong>Choose where this task belongs</strong>
                 </div>
                 <div className="order-editor__transfer-grid">
-                  <label>Project<select onChange={(event) => setDraft({ ...draft, taskProjectId: event.target.value || null })} value={draft.taskProjectId ?? ''}><option value="">Inbox</option>{projects.map((project) => <option disabled={project.disabled} key={project.id} value={project.id}>{project.label}</option>)}</select></label>
+                  <label>Project<select onChange={(event) => {
+                    const value = event.target.value
+                    setTransferError('')
+                    setDraft({
+                      ...draft,
+                      taskProjectId: value === '__inbox__' ? null : value,
+                      taskSectionId: null,
+                    })
+                  }} value={draft.taskProjectId === null ? '__inbox__' : draft.taskProjectId ?? ''}>
+                    <option value="">Choose a project</option>
+                    <option value="__inbox__">Inbox</option>
+                    {projects.map((project) => <option disabled={project.disabled} key={project.id} value={project.id}>{project.label}</option>)}
+                  </select></label>
+                  <label>Section<select disabled={!draft.taskProjectId || taskSectionOptions.length === 0} onChange={(event) => {
+                    setTransferError('')
+                    setDraft({ ...draft, taskSectionId: event.target.value || null })
+                  }} value={draft.taskSectionId ?? ''}>
+                    <option value="">{draft.taskProjectId ? (taskSectionOptions.length ? 'Choose a section' : 'No sections') : 'Choose a project first'}</option>
+                    {taskSectionOptions.map((section) => <option disabled={section.disabled} key={section.id} value={section.id}>{section.label}</option>)}
+                  </select></label>
                   <label>Due date<input onChange={(event) => setDraft({ ...draft, taskDueText: event.target.value })} placeholder="e.g. tomorrow" value={draft.taskDueText ?? ''} /></label>
                 </div>
+                {transferError ? <p className="order-editor__transfer-error" role="alert">{transferError}</p> : null}
               </section>
             ) : null}
             <footer className="order-editor__footer">

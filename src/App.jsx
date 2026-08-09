@@ -3311,6 +3311,10 @@ function App() {
 
   const transferTaskToOrder = (draft, mode) => {
     if (!taskEditor?.taskId || taskEditor.mode !== 'edit') return
+    if (draft.orderLane === 'after' && !draft.orderRelationId) {
+      setNotice('Choose the Order item this task should follow.')
+      return
+    }
     const adapted = taskEditorDraftToTaskInput(draft, {
       today,
       inboxProjectId: state.preferences.inboxProjectId,
@@ -3326,7 +3330,7 @@ function App() {
       lane: draft.orderLane,
       priority: adapted.value.priority,
       status: 'open',
-      relationId: null,
+      relationId: draft.orderLane === 'after' ? draft.orderRelationId : null,
     }
     const result = mode === 'move'
       ? appStore.dispatch({ type: 'task.transferToOrder', taskId: taskEditor.taskId, input: orderInput })
@@ -3352,6 +3356,7 @@ function App() {
       title: draft.title,
       description: draft.details,
       projectId: draft.taskProjectId ?? null,
+      sectionId: draft.taskSectionId ?? null,
       priority: item.priority,
       dueText: draft.taskDueText ?? '',
     })
@@ -3746,6 +3751,11 @@ function App() {
                 onMoveToTask={moveOrderItemToTask}
                 onUpdate={updateOrderItem}
                 projects={toTaskEditorProjectOptions(Object.values(state.projects))}
+                sections={Object.values(state.sections).map((section) => ({
+                  id: section.id,
+                  label: section.name,
+                  projectId: section.projectId,
+                }))}
               />
             ) : route === 'notes' || route === 'diary' ? (
               <JournalView
@@ -4069,6 +4079,9 @@ function App() {
         onCopyTask={copyTaskFromEditor}
         presentation="dialog"
         projects={toTaskEditorProjectOptions(Object.values(state.projects))}
+        orderItems={Object.values(state.orderItems)
+          .sort((left, right) => left.order - right.order || left.createdAt.localeCompare(right.createdAt))
+          .map((item) => ({ id: item.id, label: item.title }))}
         sections={toTaskEditorSectionOptions(Object.values(state.sections), taskEditor?.draft.projectId ?? null)}
       />
 

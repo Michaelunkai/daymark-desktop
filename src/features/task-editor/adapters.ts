@@ -45,6 +45,7 @@ export function taskToTaskEditorDraft(task: Task): TaskEditorDraft {
     recurrenceText: task.due?.recurrence ?? '',
     reminderText: '',
     orderLane: 'now',
+    orderRelationId: null,
   };
 }
 

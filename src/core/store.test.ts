@@ -313,6 +313,7 @@ const orderToTask = reduce(
       content: "Order item as task",
       description: "Converted from the sequence.",
       projectId: "project-personal",
+      sectionId: "section-next",
       due: {
         date: "2026-08-12",
         time: null,
@@ -330,6 +331,7 @@ assert(
       (task) =>
         task.content === "Order item as task" &&
         task.projectId === "project-personal" &&
+        task.sectionId === "section-next" &&
         task.due?.date === "2026-08-12",
     ),
   "Moving an Order item to tasks should preserve the selected project and day.",
