@@ -2123,7 +2123,6 @@ function App() {
   }, [syncKey, syncStatus])
 
   useEffect(() => {
-    if (route !== 'settings') return undefined
     let cancelled = false
     setAgentKeyStatus('loading')
     listAgentKeys(syncKey)
@@ -3246,6 +3245,13 @@ function App() {
     setNotice('Local workspace reset.')
   }
 
+  const hasActiveAgentKey = agentKeys.some((key) => !key.revokedAt)
+  const agentAccessText = agentKeyStatus === 'loading'
+    ? 'Checking AI access'
+    : agentKeyStatus === 'ready'
+      ? hasActiveAgentKey ? 'AI access ready' : 'AI access needs key'
+      : 'AI access unavailable'
+
   return (
     <div className={`app-shell density-${uiSettings.density} text-scale-${uiSettings.textScale} ${sidebarOpen ? '' : 'sidebar-is-collapsed'}`}>
       <CalendarIntegrationStyle />
@@ -3280,9 +3286,9 @@ function App() {
           <button aria-label="Open command palette" className="icon-button" onClick={() => setCommandOpen(true)} title="Command palette (Ctrl K)" type="button">
             <Icon name="command" size={17} />
           </button>
-          <span aria-label="Daymark agent connection active" className="agent-connection" data-agent-bridge="connected">
+          <span aria-label={`Daymark ${agentAccessText.toLowerCase()}`} className="agent-connection" data-agent-bridge="connected">
             <span aria-hidden="true" className="agent-connection__dot" />
-            Agent connected
+            {agentAccessText}
           </span>
           <button aria-label="Open Codex companion" className="icon-button" onClick={() => setCompanionOpen(true)} title="Codex companion" type="button">
             <Icon name="companion" size={17} />
