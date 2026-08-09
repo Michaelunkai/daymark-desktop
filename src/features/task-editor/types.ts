@@ -53,6 +53,8 @@ export type TaskEditorProps = {
     change: TaskEditorChange,
   ) => void;
   onSave: (draft: TaskEditorDraft) => void;
+  onMoveTask?: (draft: TaskEditorDraft) => void;
+  onCopyTask?: (draft: TaskEditorDraft) => void;
   onCancel?: () => void;
   onClose: () => void;
   onRequestProjectPicker?: () => void;

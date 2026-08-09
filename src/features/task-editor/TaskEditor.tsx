@@ -37,6 +37,8 @@ export function TaskEditor({
   presentation = 'panel',
   onDraftChange,
   onSave,
+  onMoveTask,
+  onCopyTask,
   onCancel,
   onClose,
   onRequestProjectPicker,
@@ -144,6 +146,23 @@ export function TaskEditor({
 
     if (errors[field]) {
       setErrors((current) => ({ ...current, [field]: undefined }));
+    }
+  }
+
+  function changeProject(projectId: string | null) {
+    const nextDraft = updateTaskEditorDraft(
+      updateTaskEditorDraft(draft, 'projectId', projectId),
+      'sectionId',
+      null,
+    );
+    onDraftChange(nextDraft, { field: 'projectId', value: projectId });
+
+    if (errors.projectId || errors.sectionId) {
+      setErrors((current) => ({
+        ...current,
+        projectId: undefined,
+        sectionId: undefined,
+      }));
     }
   }
 
@@ -264,10 +283,7 @@ export function TaskEditor({
                       id={ids.project}
                       value={draft.projectId ?? ''}
                       onChange={(event) =>
-                        changeField(
-                          'projectId',
-                          event.currentTarget.value || null,
-                        )
+                        changeProject(event.currentTarget.value || null)
                       }
                     >
                       <option value="">Inbox</option>
@@ -457,6 +473,32 @@ export function TaskEditor({
           ) : null}
 
           <footer className="task-editor__footer">
+            {mode === 'edit' && (onMoveTask || onCopyTask) ? (
+              <div className="task-editor__transfer-actions">
+                {onMoveTask ? (
+                  <button
+                    type="button"
+                    className="task-editor__button task-editor__button--secondary"
+                    onClick={() => onMoveTask(draft)}
+                    disabled={isSaving}
+                  >
+                    <MoveIcon />
+                    Move task
+                  </button>
+                ) : null}
+                {onCopyTask ? (
+                  <button
+                    type="button"
+                    className="task-editor__button task-editor__button--secondary"
+                    onClick={() => onCopyTask(draft)}
+                    disabled={isSaving}
+                  >
+                    <CopyIcon />
+                    Copy task
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
             <div className="task-editor__actions">
               <button
                 type="button"
@@ -583,6 +625,26 @@ function PlusIcon() {
   return (
     <Icon size={15}>
       <path d="M12 5v14M5 12h14" />
+    </Icon>
+  );
+}
+
+function MoveIcon() {
+  return (
+    <Icon size={16}>
+      <path d="M5 7h10" />
+      <path d="m12 4 3 3-3 3" />
+      <path d="M19 17H9" />
+      <path d="m12 14-3 3 3 3" />
+    </Icon>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <Icon size={16}>
+      <rect x="8" y="8" width="11" height="11" rx="1.5" />
+      <path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8" />
     </Icon>
   );
 }

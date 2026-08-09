@@ -3236,12 +3236,16 @@ function App() {
     }
   }, [])
 
-  const saveTaskEditor = (draft) => {
-    if (!taskEditor) return
+  const adaptTaskEditorDraft = (draft, mode = taskEditor?.mode) => {
     const context = { today, inboxProjectId: state.preferences.inboxProjectId }
-    const adapted = taskEditor.mode === 'edit'
+    return mode === 'edit'
       ? taskEditorDraftToTaskPatch(draft, context)
       : taskEditorDraftToTaskInput(draft, context)
+  }
+
+  const saveTaskEditor = (draft) => {
+    if (!taskEditor) return
+    const adapted = adaptTaskEditorDraft(draft)
     if (!adapted.ok) {
       setNotice(Object.values(adapted.errors).find(Boolean) ?? 'Check the task details and try again.')
       return
@@ -3255,6 +3259,53 @@ function App() {
     }
     setNotice('')
     setUndoAvailable(false)
+    setTaskEditor(null)
+  }
+
+  const moveTaskFromEditor = (draft) => {
+    if (!taskEditor?.taskId || taskEditor.mode !== 'edit') return
+    const adapted = adaptTaskEditorDraft(draft, 'edit')
+    if (!adapted.ok) {
+      setNotice(Object.values(adapted.errors).find(Boolean) ?? 'Check the task details and try again.')
+      return
+    }
+
+    const result = appStore.dispatch({
+      type: 'task.update',
+      taskId: taskEditor.taskId,
+      patch: adapted.value,
+    })
+    if (!result.ok) {
+      setNotice(result.message)
+      setUndoAvailable(false)
+      return
+    }
+
+    setNotice('Task moved.')
+    setUndoAvailable(true)
+    setTaskEditor(null)
+  }
+
+  const copyTaskFromEditor = (draft) => {
+    if (!taskEditor?.taskId || taskEditor.mode !== 'edit') return
+    const adapted = adaptTaskEditorDraft(draft, 'create')
+    if (!adapted.ok) {
+      setNotice(Object.values(adapted.errors).find(Boolean) ?? 'Check the task details and try again.')
+      return
+    }
+
+    const result = appStore.dispatch({
+      type: 'task.add',
+      input: adapted.value,
+    })
+    if (!result.ok) {
+      setNotice(result.message)
+      setUndoAvailable(false)
+      return
+    }
+
+    setNotice('Task copied.')
+    setUndoAvailable(true)
     setTaskEditor(null)
   }
 
@@ -3931,6 +3982,8 @@ function App() {
         onDraftChange={(draft) => setTaskEditor((editor) => editor ? { ...editor, draft } : editor)}
         onRequestProjectPicker={() => setProjectDialogOpen(true)}
         onSave={saveTaskEditor}
+        onMoveTask={moveTaskFromEditor}
+        onCopyTask={copyTaskFromEditor}
         presentation="dialog"
         projects={toTaskEditorProjectOptions(Object.values(state.projects))}
         sections={toTaskEditorSectionOptions(Object.values(state.sections), taskEditor?.draft.projectId ?? null)}
