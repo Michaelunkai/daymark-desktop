@@ -1,5 +1,10 @@
 import { createSampleState } from "./sample-data";
-import { mergeSyncStates, syncStatesMatch } from "./sync";
+import {
+  consumeRemoteAdoption,
+  getSyncKey,
+  mergeSyncStates,
+  syncStatesMatch,
+} from "./sync";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -68,3 +73,33 @@ assert(
   !syncStatesMatch(local, { ...local, tasks: { ...local.tasks, "task-extra": local.tasks["task-welcome"] } }),
   "Different entity content must remain detectable.",
 );
+
+const pairingCode = "MIPPAd7gqrVglM_FQyqwAA";
+const storageEntries = new Map<string, string>([["daymark.sync-key", "old-desktop-sync-key"]]);
+const pairingStorage = {
+  getItem: (key: string) => storageEntries.get(key) ?? null,
+  setItem: (key: string, value: string) => storageEntries.set(key, value),
+  removeItem: (key: string) => storageEntries.delete(key),
+};
+const priorWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+Object.defineProperty(globalThis, "window", {
+  configurable: true,
+  value: { location: { search: `?sync=${pairingCode}` } },
+});
+try {
+  assert(
+    getSyncKey(pairingStorage) === pairingCode,
+    "An accepted pairing URL must become the active sync workspace.",
+  );
+  assert(
+    consumeRemoteAdoption(pairingCode, pairingStorage),
+    "Joining a different existing workspace must explicitly adopt its remote data first.",
+  );
+  assert(
+    !consumeRemoteAdoption(pairingCode, pairingStorage),
+    "Remote adoption must be consumed once so ordinary later reloads merge normally.",
+  );
+} finally {
+  if (priorWindow) Object.defineProperty(globalThis, "window", priorWindow);
+  else delete (globalThis as { window?: unknown }).window;
+}
