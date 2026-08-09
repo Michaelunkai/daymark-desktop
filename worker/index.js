@@ -9,6 +9,15 @@ const worker = {
   async fetch(request, env) {
     const url = new URL(request.url)
     const pathname = url.pathname
+    if (pathname === "/api/health") {
+      return json({
+        service: "daymark",
+        status: env.DB ? "ready" : "degraded",
+        protocolVersion: 3,
+        transport: "same-origin-browser-bridge",
+        serverTime: new Date().toISOString(),
+      }, env.DB ? 200 : 503)
+    }
     const syncMatch = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})$/)
     if (pathname === "/.well-known/daymark-ai.json" && request.method === "GET") {
       return json(agentDiscovery(url.origin))

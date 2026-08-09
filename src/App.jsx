@@ -78,7 +78,7 @@ const TAGS = [
 
 const GITHUB_URL = 'https://github.com/Michaelunkai/daymark-desktop'
 const UI_SETTINGS_KEY = 'daymark.ui-settings'
-const AGENT_BRIDGE_VERSION = 2
+const AGENT_BRIDGE_VERSION = 3
 const AGENT_CONNECTION_INFO = {
   bridge: 'DaymarkAI',
   alias: 'DaymarkAgent',

@@ -69,3 +69,18 @@ test('Sites worker behavior preserves assets, serves SPA routes, and keeps missi
     '/workspace/order',
   ])
 })
+
+test('Sites worker exposes non-sensitive Daymark health diagnostics', async () => {
+  const response = await worker.fetch(
+    new Request('https://daymark.test/api/health'),
+    { DB: {} },
+  )
+  const payload = await response.json()
+  assert.equal(response.status, 200)
+  assert.equal(payload.service, 'daymark')
+  assert.equal(payload.status, 'ready')
+  assert.equal(payload.protocolVersion, 3)
+  assert.equal(payload.transport, 'same-origin-browser-bridge')
+  assert.equal('state' in payload, false)
+  assert.equal('syncKey' in payload, false)
+})

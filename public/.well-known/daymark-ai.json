@@ -1,0 +1,22 @@
+{
+  "name": "Daymark AI",
+  "version": 3,
+  "agentManifest": "/daymark-agent.json",
+  "health": "/api/health",
+  "bootstrap": {
+    "transport": "same-origin-browser-bridge",
+    "readyEvent": "daymark:agent-ready",
+    "global": "window.DaymarkAI",
+    "reconnect": "Open the paired Daymark workspace and wait for the ready event."
+  },
+  "authorization": {
+    "boundary": "The agent operates only inside the already authorized Daymark document.",
+    "workspaceCredential": "The private pairing code remains inside browser or Android storage and is never returned by discovery or health endpoints.",
+    "revocation": "Remove the authorized browser session or rotate the workspace pairing from Daymark settings."
+  },
+  "dataHandling": {
+    "publicEndpoints": "Discovery and health expose no workspace contents.",
+    "workspaceReads": "Use DaymarkAI.getState from the authorized document.",
+    "workspaceMutations": "Use documented DaymarkAI operations so local-first validation, sync conflict handling, and tombstones remain in effect."
+  }
+}
