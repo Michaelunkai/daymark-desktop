@@ -25,6 +25,7 @@ export type {
   TaskEditorField,
   TaskEditorMode,
   TaskEditorOption,
+  TaskEditorOrderLane,
   TaskEditorProps,
   TaskEditorValidationResult,
   TaskPriority,

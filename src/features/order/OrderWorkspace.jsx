@@ -123,7 +123,16 @@ function onMoveBy(item, direction, siblings, onMove) {
   if (next) onMove(item.id, next.id, item.lane)
 }
 
-export function OrderWorkspace({ items, onAdd, onUpdate, onDelete, onMove }) {
+export function OrderWorkspace({
+  items,
+  onAdd,
+  onUpdate,
+  onDelete,
+  onMove,
+  projects = [],
+  onMoveToTask,
+  onCopyToTask,
+}) {
   const [editing, setEditing] = useState(null)
   const [draft, setDraft] = useState(null)
   const [draggingId, setDraggingId] = useState(null)
@@ -142,7 +151,7 @@ export function OrderWorkspace({ items, onAdd, onUpdate, onDelete, onMove }) {
 
   const openEdit = (item) => {
     setEditing(item.id)
-    setDraft({ ...item })
+    setDraft({ ...item, taskProjectId: null, taskDueText: '' })
   }
 
   const closeEditor = () => {
@@ -154,8 +163,16 @@ export function OrderWorkspace({ items, onAdd, onUpdate, onDelete, onMove }) {
     event.preventDefault()
     if (!draft?.title.trim()) return
     if (editing === 'create') onAdd(draft)
-    else onUpdate(editing, draft)
+    else {
+      const { taskProjectId, taskDueText, ...orderDraft } = draft
+      onUpdate(editing, orderDraft)
+    }
     closeEditor()
+  }
+
+  const transferToTask = (callback) => {
+    if (!editing || editing === 'create' || !callback) return
+    if (callback(editing, draft)) closeEditor()
   }
 
   const moveBy = (item, direction) => {
@@ -260,7 +277,30 @@ export function OrderWorkspace({ items, onAdd, onUpdate, onDelete, onMove }) {
             {draft.lane === 'after' ? (
               <label>After item<select onChange={(event) => setDraft({ ...draft, relationId: event.target.value || null })} value={draft.relationId ?? ''}><option value="">Choose a related item</option>{relationOptions.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
             ) : null}
-            <footer className="order-editor__actions"><button className="secondary-button" onClick={closeEditor} type="button">Cancel</button><button className="primary-button" type="submit">Save item</button></footer>
+            {editing !== 'create' && (onMoveToTask || onCopyToTask) ? (
+              <section className="order-editor__transfer">
+                <div>
+                  <span className="section-kicker">TASK DESTINATION</span>
+                  <strong>Project and day</strong>
+                </div>
+                <div className="order-editor__transfer-grid">
+                  <label>Project<select onChange={(event) => setDraft({ ...draft, taskProjectId: event.target.value || null })} value={draft.taskProjectId ?? ''}><option value="">Inbox</option>{projects.map((project) => <option disabled={project.disabled} key={project.id} value={project.id}>{project.label}</option>)}</select></label>
+                  <label>Due date<input onChange={(event) => setDraft({ ...draft, taskDueText: event.target.value })} placeholder="e.g. tomorrow" value={draft.taskDueText ?? ''} /></label>
+                </div>
+              </section>
+            ) : null}
+            <footer className="order-editor__footer">
+              {editing !== 'create' && (onMoveToTask || onCopyToTask) ? (
+                <div className="order-editor__transfer-actions">
+                  {onMoveToTask ? <button className="secondary-button" onClick={() => transferToTask(onMoveToTask)} type="button">Move to task</button> : null}
+                  {onCopyToTask ? <button className="secondary-button" onClick={() => transferToTask(onCopyToTask)} type="button">Copy to task</button> : null}
+                </div>
+              ) : null}
+              <div className="order-editor__actions">
+                <button className="secondary-button" onClick={closeEditor} type="button">Cancel</button>
+                <button className="primary-button" type="submit">Save item</button>
+              </div>
+            </footer>
           </form>
         </div>
       ) : null}

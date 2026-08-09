@@ -14,6 +14,7 @@ export const DEFAULT_TASK_EDITOR_DRAFT: TaskEditorDraft = {
   dueText: '',
   recurrenceText: '',
   reminderText: '',
+  orderLane: 'now',
 };
 
 export function createTaskEditorDraft(
@@ -52,6 +53,9 @@ export function normalizeTaskEditorDraft(
     dueText: draft.dueText.trim(),
     recurrenceText: draft.recurrenceText.trim(),
     reminderText: draft.reminderText.trim(),
+    orderLane: ['now', 'later', 'after'].includes(draft.orderLane)
+      ? draft.orderLane
+      : DEFAULT_TASK_EDITOR_DRAFT.orderLane,
   };
 }
 

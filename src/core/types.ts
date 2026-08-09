@@ -236,6 +236,7 @@ export type UserAction =
   | { type: "task.uncomplete"; taskId: EntityId }
   | { type: "task.reorder"; input: TaskReorderInput }
   | { type: "task.delete"; taskId: EntityId }
+  | { type: "task.transferToOrder"; taskId: EntityId; input: OrderItemInput }
   | { type: "project.add"; input: ProjectInput }
   | { type: "project.update"; projectId: EntityId; patch: Partial<Omit<Project, "id" | "createdAt" | "updatedAt">> }
   | { type: "project.archive"; projectId: EntityId; archived: boolean }
@@ -243,6 +244,7 @@ export type UserAction =
   | { type: "order.add"; input: OrderItemInput }
   | { type: "order.update"; itemId: EntityId; patch: OrderItemPatch }
   | { type: "order.delete"; itemId: EntityId }
+  | { type: "order.transferToTask"; itemId: EntityId; input: TaskInput }
   | { type: "note.add"; input: NoteInput }
   | { type: "note.update"; noteId: EntityId; patch: NotePatch }
   | { type: "note.complete"; noteId: EntityId }
@@ -261,6 +263,7 @@ export type UndoAction =
   | { type: "task.restore"; task: Task }
   | { type: "task.remove"; taskId: EntityId }
   | { type: "task.update"; taskId: EntityId; patch: TaskPatch }
+  | { type: "task.transfer.restore"; task: Task; orderItemId: EntityId }
   | { type: "project.restore"; project: Project }
   | { type: "project.remove"; projectId: EntityId }
   | { type: "project.update"; projectId: EntityId; patch: Partial<Omit<Project, "id" | "createdAt" | "updatedAt">> }
@@ -274,6 +277,7 @@ export type UndoAction =
   | { type: "order.add"; input: OrderItemInput }
   | { type: "order.update"; itemId: EntityId; patch: OrderItemPatch }
   | { type: "order.delete"; itemId: EntityId }
+  | { type: "order.transfer.restore"; orderItem: OrderItem; taskId: EntityId }
   | { type: "note.restore"; note: Note }
   | { type: "note.remove"; noteId: EntityId }
   | { type: "note.update"; noteId: EntityId; patch: NotePatch }

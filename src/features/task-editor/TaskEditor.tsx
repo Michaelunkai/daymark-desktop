@@ -39,6 +39,8 @@ export function TaskEditor({
   onSave,
   onMoveTask,
   onCopyTask,
+  onMoveTaskToOrder,
+  onCopyTaskToOrder,
   onCancel,
   onClose,
   onRequestProjectPicker,
@@ -135,6 +137,7 @@ export function TaskEditor({
     recurrence: `${titleId}-recurrence`,
     reminder: `${titleId}-reminder`,
     error: `${titleId}-error`,
+    orderLane: `${titleId}-order-lane`,
   };
 
   function changeField<Field extends keyof TaskEditorDraft>(
@@ -360,6 +363,38 @@ export function TaskEditor({
               ) : null}
             </section>
 
+            {mode === 'edit' && (onMoveTaskToOrder || onCopyTaskToOrder) ? (
+              <section className="task-editor__section">
+                <div className="task-editor__section-heading">
+                  <div>
+                    <p className="task-editor__eyebrow">Transfer</p>
+                    <h3>Order destination</h3>
+                  </div>
+                  <MoveIcon />
+                </div>
+                <div className="task-editor__field">
+                  <label htmlFor={ids.orderLane}>Order group</label>
+                  <div className="task-editor__select-wrap">
+                    <select
+                      id={ids.orderLane}
+                      value={draft.orderLane}
+                      onChange={(event) =>
+                        changeField(
+                          'orderLane',
+                          event.currentTarget.value as TaskEditorDraft['orderLane'],
+                        )
+                      }
+                    >
+                      <option value="now">Do now</option>
+                      <option value="later">Later</option>
+                      <option value="after">After</option>
+                    </select>
+                    <ChevronDownIcon />
+                  </div>
+                </div>
+              </section>
+            ) : null}
+
             <section className="task-editor__section">
               <div className="task-editor__section-heading">
                 <div>
@@ -495,6 +530,28 @@ export function TaskEditor({
                   >
                     <CopyIcon />
                     Copy task
+                  </button>
+                ) : null}
+                {onMoveTaskToOrder ? (
+                  <button
+                    type="button"
+                    className="task-editor__button task-editor__button--secondary"
+                    onClick={() => onMoveTaskToOrder(draft)}
+                    disabled={isSaving}
+                  >
+                    <MoveIcon />
+                    Move to Order
+                  </button>
+                ) : null}
+                {onCopyTaskToOrder ? (
+                  <button
+                    type="button"
+                    className="task-editor__button task-editor__button--secondary"
+                    onClick={() => onCopyTaskToOrder(draft)}
+                    disabled={isSaving}
+                  >
+                    <CopyIcon />
+                    Copy to Order
                   </button>
                 ) : null}
               </div>

@@ -2,6 +2,8 @@ export type TaskPriority = 1 | 2 | 3 | 4;
 
 export type TaskEditorMode = 'create' | 'edit';
 
+export type TaskEditorOrderLane = 'now' | 'later' | 'after';
+
 export type TaskEditorField = keyof TaskEditorDraft;
 
 export type TaskEditorDraft = {
@@ -13,6 +15,7 @@ export type TaskEditorDraft = {
   dueText: string;
   recurrenceText: string;
   reminderText: string;
+  orderLane: TaskEditorOrderLane;
 };
 
 export type TaskEditorOption = {
@@ -55,6 +58,8 @@ export type TaskEditorProps = {
   onSave: (draft: TaskEditorDraft) => void;
   onMoveTask?: (draft: TaskEditorDraft) => void;
   onCopyTask?: (draft: TaskEditorDraft) => void;
+  onMoveTaskToOrder?: (draft: TaskEditorDraft) => void;
+  onCopyTaskToOrder?: (draft: TaskEditorDraft) => void;
   onCancel?: () => void;
   onClose: () => void;
   onRequestProjectPicker?: () => void;

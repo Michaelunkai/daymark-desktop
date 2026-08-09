@@ -470,6 +470,7 @@
 
 .task-editor__transfer-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 9px;
   margin-right: auto;
 }

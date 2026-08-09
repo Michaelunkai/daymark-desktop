@@ -6,12 +6,14 @@ import type {
   DiaryEntry,
   Note,
   OrderItem,
+  OrderItemInput,
   Project,
   SavedFilter,
   Section,
   StateStorage,
   StoreAction,
   Task,
+  TaskInput,
   UndoAction,
   UndoEntry,
   UserAction,
@@ -149,6 +151,44 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       delete state.tasks[action.taskId];
       markTombstone(state, "tasks", action.taskId, now);
       return { ok: true, inverse: { type: "task.restore", task: structuredClone(task) } };
+    }
+    case "task.transferToOrder": {
+      const task = state.tasks[action.taskId];
+      if (!task) return invalid("The task no longer exists.");
+      const orderItemResult = createOrderItem(state, action.input, now);
+      if (!orderItemResult.ok) return orderItemResult;
+
+      state.orderItems[orderItemResult.item.id] = orderItemResult.item;
+      clearTombstone(state, "orderItems", orderItemResult.item.id);
+      delete state.tasks[action.taskId];
+      markTombstone(state, "tasks", action.taskId, now);
+      return {
+        ok: true,
+        inverse: {
+          type: "task.transfer.restore",
+          task: structuredClone(task),
+          orderItemId: orderItemResult.item.id,
+        },
+      };
+    }
+    case "task.transfer.restore": {
+      const orderItem = state.orderItems[action.orderItemId];
+      if (!orderItem) return invalid("The transferred Order item no longer exists.");
+      if (state.tasks[action.task.id]) return invalid("The original task already exists.");
+
+      delete state.orderItems[action.orderItemId];
+      markTombstone(state, "orderItems", action.orderItemId, now);
+      clearOrderRelations(state, action.orderItemId);
+      state.tasks[action.task.id] = structuredClone(action.task);
+      clearTombstone(state, "tasks", action.task.id);
+      return {
+        ok: true,
+        inverse: {
+          type: "task.transfer.restore",
+          task: structuredClone(action.task),
+          orderItemId: action.orderItemId,
+        },
+      };
     }
     case "task.update": {
       const task = state.tasks[action.taskId];
@@ -375,10 +415,46 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       if (!item) return invalid("The Order item no longer exists.");
       delete state.orderItems[action.itemId];
       markTombstone(state, "orderItems", action.itemId, now);
-      Object.values(state.orderItems).forEach((candidate) => {
-        if (candidate.relationId === item.id) candidate.relationId = null;
-      });
+      clearOrderRelations(state, item.id);
       return { ok: true, inverse: { type: "order.add", input: structuredClone(item) } };
+    }
+    case "order.transferToTask": {
+      const item = state.orderItems[action.itemId];
+      if (!item) return invalid("The Order item no longer exists.");
+      const taskResult = createTask(state, action.input, now);
+      if (!taskResult.ok) return taskResult;
+
+      state.tasks[taskResult.task.id] = taskResult.task;
+      clearTombstone(state, "tasks", taskResult.task.id);
+      delete state.orderItems[action.itemId];
+      markTombstone(state, "orderItems", action.itemId, now);
+      clearOrderRelations(state, action.itemId);
+      return {
+        ok: true,
+        inverse: {
+          type: "order.transfer.restore",
+          orderItem: structuredClone(item),
+          taskId: taskResult.task.id,
+        },
+      };
+    }
+    case "order.transfer.restore": {
+      const task = state.tasks[action.taskId];
+      if (!task) return invalid("The transferred task no longer exists.");
+      if (state.orderItems[action.orderItem.id]) return invalid("The original Order item already exists.");
+
+      delete state.tasks[action.taskId];
+      markTombstone(state, "tasks", action.taskId, now);
+      state.orderItems[action.orderItem.id] = structuredClone(action.orderItem);
+      clearTombstone(state, "orderItems", action.orderItem.id);
+      return {
+        ok: true,
+        inverse: {
+          type: "order.transfer.restore",
+          orderItem: structuredClone(action.orderItem),
+          taskId: action.taskId,
+        },
+      };
     }
     case "note.add": {
       const id = action.input.id ?? createId("note");
@@ -579,6 +655,68 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
 
 function isUserAction(action: StoreAction): action is UserAction {
   return !action.type.endsWith(".restore") && !action.type.endsWith(".remove");
+}
+
+function createTask(
+  state: AppState,
+  input: TaskInput,
+  now: string,
+): { ok: true; task: Task } | InvalidResult {
+  if (!input.content.trim()) return invalid("A task needs a name.");
+  const id = input.id ?? createId("task");
+  if (state.tasks[id]) return invalid("That task already exists.");
+  const task: Task = {
+    id,
+    content: input.content.trim(),
+    description: input.description ?? "",
+    projectId: input.projectId ?? state.preferences.inboxProjectId,
+    sectionId: input.sectionId ?? null,
+    parentId: input.parentId ?? null,
+    priority: input.priority ?? 4,
+    due: input.due ?? null,
+    completedAt: null,
+    completionContext: null,
+    order: input.order ?? nextOrder(state.tasks),
+    createdAt: now,
+    updatedAt: now,
+  };
+  if (!isValidTaskLocation(state, task.projectId, task.sectionId)) {
+    return invalid("The task section does not belong to its project.");
+  }
+  return { ok: true, task };
+}
+
+function createOrderItem(
+  state: AppState,
+  input: OrderItemInput,
+  now: string,
+): { ok: true; item: OrderItem } | InvalidResult {
+  if (!input.title.trim()) return invalid("An Order item needs a title.");
+  const id = input.id ?? createId("order");
+  if (state.orderItems[id]) return invalid("That Order item already exists.");
+  const relationId = input.relationId ?? null;
+  if (relationId && !state.orderItems[relationId]) {
+    return invalid("The related Order item does not exist.");
+  }
+  const item: OrderItem = {
+    id,
+    title: input.title.trim(),
+    details: input.details?.trim() ?? "",
+    lane: input.lane ?? "now",
+    relationId,
+    priority: input.priority ?? 4,
+    status: input.status ?? "open",
+    order: input.order ?? nextOrder(state.orderItems),
+    createdAt: now,
+    updatedAt: now,
+  };
+  return { ok: true, item };
+}
+
+function clearOrderRelations(state: AppState, itemId: string): void {
+  Object.values(state.orderItems).forEach((candidate) => {
+    if (candidate.relationId === itemId) candidate.relationId = null;
+  });
 }
 
 function createUndoEntry(inverse: UndoAction, createdAt: string): UndoEntry {

@@ -267,4 +267,83 @@ assert(
   "Reset should clear the live workspace even when storage is unavailable.",
 );
 
+const taskToOrder = reduce(
+  base,
+  {
+    type: "task.transferToOrder",
+    taskId: "task-welcome",
+    input: {
+      title: "Welcome in Order",
+      details: "Keep the task context.",
+      lane: "later",
+      priority: 2,
+    },
+  },
+  timestamp,
+);
+assert(
+  taskToOrder.ok &&
+    !taskToOrder.state.tasks["task-welcome"] &&
+    Object.values(taskToOrder.state.orderItems).some(
+      (item) =>
+        item.title === "Welcome in Order" &&
+        item.lane === "later" &&
+        item.priority === 2,
+    ),
+  "Moving a task to Order should remove the task and create the requested Order item.",
+);
+const taskToOrderUndone = taskToOrder.ok
+  ? reduce(taskToOrder.state, { type: "undo" }, timestamp)
+  : taskToOrder;
+assert(
+  taskToOrderUndone.ok &&
+    taskToOrderUndone.state.tasks["task-welcome"] &&
+    !Object.values(taskToOrderUndone.state.orderItems).some(
+      (item) => item.title === "Welcome in Order",
+    ),
+  "Undo should restore a task moved into Order without leaving the converted item behind.",
+);
+
+const orderToTask = reduce(
+  base,
+  {
+    type: "order.transferToTask",
+    itemId: "order-welcome",
+    input: {
+      content: "Order item as task",
+      description: "Converted from the sequence.",
+      projectId: "project-personal",
+      due: {
+        date: "2026-08-12",
+        time: null,
+        timezone: null,
+        recurrence: null,
+      },
+    },
+  },
+  timestamp,
+);
+assert(
+  orderToTask.ok &&
+    !orderToTask.state.orderItems["order-welcome"] &&
+    Object.values(orderToTask.state.tasks).some(
+      (task) =>
+        task.content === "Order item as task" &&
+        task.projectId === "project-personal" &&
+        task.due?.date === "2026-08-12",
+    ),
+  "Moving an Order item to tasks should preserve the selected project and day.",
+);
+const orderToTaskUndone = orderToTask.ok
+  ? reduce(orderToTask.state, { type: "undo" }, timestamp)
+  : orderToTask;
+assert(
+  orderToTaskUndone.ok &&
+    orderToTaskUndone.state.orderItems["order-welcome"] &&
+    !Object.values(orderToTaskUndone.state.tasks).some(
+      (task) => task.content === "Order item as task",
+    ),
+  "Undo should restore an Order item moved into tasks without leaving the converted task behind.",
+);
+
 console.log("CORE_STATE_TESTS_OK");

@@ -3309,6 +3309,78 @@ function App() {
     setTaskEditor(null)
   }
 
+  const transferTaskToOrder = (draft, mode) => {
+    if (!taskEditor?.taskId || taskEditor.mode !== 'edit') return
+    const adapted = taskEditorDraftToTaskInput(draft, {
+      today,
+      inboxProjectId: state.preferences.inboxProjectId,
+    })
+    if (!adapted.ok) {
+      setNotice(Object.values(adapted.errors).find(Boolean) ?? 'Check the task details and try again.')
+      return
+    }
+
+    const orderInput = {
+      title: adapted.value.content,
+      details: adapted.value.description,
+      lane: draft.orderLane,
+      priority: adapted.value.priority,
+      status: 'open',
+      relationId: null,
+    }
+    const result = mode === 'move'
+      ? appStore.dispatch({ type: 'task.transferToOrder', taskId: taskEditor.taskId, input: orderInput })
+      : appStore.dispatch({ type: 'order.add', input: orderInput })
+    if (!result.ok) {
+      setNotice(result.message)
+      setUndoAvailable(false)
+      return
+    }
+
+    setNotice(mode === 'move' ? 'Task moved to Order.' : 'Task copied to Order.')
+    setUndoAvailable(true)
+    setTaskEditor(null)
+  }
+
+  const moveTaskToOrder = (draft) => transferTaskToOrder(draft, 'move')
+  const copyTaskToOrder = (draft) => transferTaskToOrder(draft, 'copy')
+
+  const transferOrderItemToTask = (itemId, draft, mode) => {
+    const item = state.orderItems[itemId]
+    if (!item) return false
+    const taskDraft = createTaskEditorDraft({
+      title: draft.title,
+      description: draft.details,
+      projectId: draft.taskProjectId ?? null,
+      priority: item.priority,
+      dueText: draft.taskDueText ?? '',
+    })
+    const adapted = taskEditorDraftToTaskInput(taskDraft, {
+      today,
+      inboxProjectId: state.preferences.inboxProjectId,
+    })
+    if (!adapted.ok) {
+      setNotice(Object.values(adapted.errors).find(Boolean) ?? 'Check the task destination and try again.')
+      return false
+    }
+
+    const result = mode === 'move'
+      ? appStore.dispatch({ type: 'order.transferToTask', itemId, input: adapted.value })
+      : appStore.dispatch({ type: 'task.add', input: adapted.value })
+    if (!result.ok) {
+      setNotice(result.message)
+      setUndoAvailable(false)
+      return false
+    }
+
+    setNotice(mode === 'move' ? 'Order item moved to tasks.' : 'Order item copied to tasks.')
+    setUndoAvailable(true)
+    return true
+  }
+
+  const moveOrderItemToTask = (itemId, draft) => transferOrderItemToTask(itemId, draft, 'move')
+  const copyOrderItemToTask = (itemId, draft) => transferOrderItemToTask(itemId, draft, 'copy')
+
   const moveTaskToDate = (taskId, date) => {
     const task = state.tasks[taskId]
     if (!task) return
@@ -3665,7 +3737,16 @@ function App() {
                 syncStatus={syncStatus}
               />
             ) : route === 'order' ? (
-              <OrderWorkspace items={orderItems} onAdd={addOrderItem} onDelete={deleteOrderItem} onMove={moveOrderItem} onUpdate={updateOrderItem} />
+              <OrderWorkspace
+                items={orderItems}
+                onAdd={addOrderItem}
+                onCopyToTask={copyOrderItemToTask}
+                onDelete={deleteOrderItem}
+                onMove={moveOrderItem}
+                onMoveToTask={moveOrderItemToTask}
+                onUpdate={updateOrderItem}
+                projects={toTaskEditorProjectOptions(Object.values(state.projects))}
+              />
             ) : route === 'notes' || route === 'diary' ? (
               <JournalView
                 journal={journal}
@@ -3982,6 +4063,8 @@ function App() {
         onDraftChange={(draft) => setTaskEditor((editor) => editor ? { ...editor, draft } : editor)}
         onRequestProjectPicker={() => setProjectDialogOpen(true)}
         onSave={saveTaskEditor}
+        onMoveTaskToOrder={moveTaskToOrder}
+        onCopyTaskToOrder={copyTaskToOrder}
         onMoveTask={moveTaskFromEditor}
         onCopyTask={copyTaskFromEditor}
         presentation="dialog"
