@@ -1,5 +1,9 @@
 # Daymark Android Release
 
+`daymark-android-1.4.8.apk` is the VantaBlack release: the native shell,
+system bars, launcher icon, offline fallback, and loaded Daymark web client
+use black surfaces with pure white text and controls.
+
 `daymark-android-1.4.7.apk` is the viewport-safe companion shell release. It
 uses the live Android viewport for the app frame, keeps each workspace view in
 its own vertical scroll region, and resizes around the Android keyboard so

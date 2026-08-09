@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.webkit.JavascriptInterface;
 import android.view.View;
@@ -22,7 +23,7 @@ public final class MainActivity extends Activity {
             "https://daymark-desktop.michaelovsky55555.chatgpt.site/";
     private static final String PREFS_NAME = "daymark";
     private static final String SYNC_KEY_PREF = "sync_key";
-    private static final int SURFACE_COLOR = Color.rgb(247, 249, 247);
+    private static final int SURFACE_COLOR = Color.BLACK;
     private WebView webView;
     private SharedPreferences preferences;
     private View loadingCover;
@@ -34,9 +35,7 @@ public final class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        getWindow().setStatusBarColor(SURFACE_COLOR);
-        getWindow().setNavigationBarColor(SURFACE_COLOR);
-        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        applyVantaBlackSystemBars();
 
         webView = new WebView(this);
         webView.setBackgroundColor(SURFACE_COLOR);
@@ -126,6 +125,16 @@ public final class MainActivity extends Activity {
         }
     }
 
+    private void applyVantaBlackSystemBars() {
+        getWindow().setStatusBarColor(Color.BLACK);
+        getWindow().setNavigationBarColor(Color.BLACK);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            getWindow().setStatusBarContrastEnforced(false);
+            getWindow().setNavigationBarContrastEnforced(false);
+        }
+        getWindow().getDecorView().setSystemUiVisibility(0);
+    }
+
     private final class DaymarkWebViewClient extends WebViewClient {
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -146,8 +155,9 @@ public final class MainActivity extends Activity {
                 view.loadDataWithBaseURL(
                         START_URL,
                         "<!doctype html><meta name='viewport' content='width=device-width,initial-scale=1'>"
-                                + "<style>body{font:16px sans-serif;padding:24px;color:#26312b;background:#f7f9f7}"
-                                + "button{padding:12px 16px;border:0;background:#267553;color:white;border-radius:8px}</style>"
+                                + "<meta name='theme-color' content='#000000'>"
+                                + "<style>html,body{font:16px sans-serif;padding:24px;color:#fff;background:#000}"
+                                + "button{padding:12px 16px;border:1px solid #fff;background:#000;color:#fff;border-radius:8px}</style>"
                                 + "<h1>Daymark is offline</h1><p>Reconnect to the internet and try again.</p>"
                                 + "<button onclick='location.reload()'>Retry</button>",
                         "text/html",
@@ -173,16 +183,9 @@ public final class MainActivity extends Activity {
 
     private final class ThemeBridge {
         @JavascriptInterface
-        public void setTheme(String theme) {
-            final boolean dark = "dark".equals(theme);
+        public void setTheme(String ignoredTheme) {
             runOnUiThread(() -> {
-                getWindow().setStatusBarColor(dark ? Color.rgb(25, 34, 30) : SURFACE_COLOR);
-                getWindow().setNavigationBarColor(dark ? Color.rgb(25, 34, 30) : SURFACE_COLOR);
-                int flags = dark ? 0 : View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && !dark) {
-                    flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-                }
-                getWindow().getDecorView().setSystemUiVisibility(flags);
+                applyVantaBlackSystemBars();
             });
         }
 
