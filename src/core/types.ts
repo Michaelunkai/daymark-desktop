@@ -1,4 +1,4 @@
-export const CURRENT_SCHEMA_VERSION = 4 as const;
+export const CURRENT_SCHEMA_VERSION = 5 as const;
 
 export type EntityId = string;
 export type Priority = 1 | 2 | 3 | 4;
@@ -26,16 +26,6 @@ export interface Section {
   name: string;
   order: number;
   isCollapsed: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Label {
-  id: EntityId;
-  name: string;
-  color: string;
-  order: number;
-  isFavorite: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -71,7 +61,6 @@ export interface Task {
   projectId: EntityId;
   sectionId: EntityId | null;
   parentId: EntityId | null;
-  labelIds: EntityId[];
   priority: Priority;
   due: TaskDue | null;
   completedAt: string | null;
@@ -140,7 +129,6 @@ export interface AppState {
   updatedAt: string;
   projects: Record<EntityId, Project>;
   sections: Record<EntityId, Section>;
-  labels: Record<EntityId, Label>;
   filters: Record<EntityId, SavedFilter>;
   tasks: Record<EntityId, Task>;
   orderItems: Record<EntityId, OrderItem>;
@@ -158,7 +146,6 @@ export type TaskInput = {
   projectId?: EntityId;
   sectionId?: EntityId | null;
   parentId?: EntityId | null;
-  labelIds?: EntityId[];
   priority?: Priority;
   due?: TaskDue | null;
   order?: number;
@@ -172,7 +159,6 @@ export type TaskPatch = Partial<
     | "projectId"
     | "sectionId"
     | "parentId"
-    | "labelIds"
     | "priority"
     | "due"
     | "completedAt"
@@ -234,14 +220,6 @@ export type SectionInput = {
   isCollapsed?: boolean;
 };
 
-export type LabelInput = {
-  id?: EntityId;
-  name: string;
-  color?: string;
-  order?: number;
-  isFavorite?: boolean;
-};
-
 export type FilterInput = {
   id?: EntityId;
   name: string;
@@ -274,8 +252,6 @@ export type UserAction =
   | { type: "diary.update"; date: string; patch: DiaryPatch }
   | { type: "section.add"; input: SectionInput }
   | { type: "section.update"; sectionId: EntityId; patch: Partial<Pick<Section, "name" | "order" | "isCollapsed">> }
-  | { type: "label.add"; input: LabelInput }
-  | { type: "label.update"; labelId: EntityId; patch: Partial<Pick<Label, "name" | "color" | "order" | "isFavorite">> }
   | { type: "filter.add"; input: FilterInput }
   | { type: "filter.update"; filterId: EntityId; patch: Partial<Pick<SavedFilter, "name" | "color" | "query" | "order" | "isFavorite">> }
   | { type: "preferences.update"; patch: Partial<AppPreferences> }
@@ -309,9 +285,6 @@ export type UndoAction =
   | { type: "section.restore"; section: Section }
   | { type: "section.remove"; sectionId: EntityId }
   | { type: "section.update"; sectionId: EntityId; patch: Partial<Pick<Section, "name" | "order" | "isCollapsed">> }
-  | { type: "label.restore"; label: Label }
-  | { type: "label.remove"; labelId: EntityId }
-  | { type: "label.update"; labelId: EntityId; patch: Partial<Pick<Label, "name" | "color" | "order" | "isFavorite">> }
   | { type: "filter.restore"; filter: SavedFilter }
   | { type: "filter.remove"; filterId: EntityId }
   | { type: "filter.update"; filterId: EntityId; patch: Partial<Pick<SavedFilter, "name" | "color" | "query" | "order" | "isFavorite">> }

@@ -4,7 +4,6 @@ import {
   type LocalDate,
 } from '../../core/dates';
 import type {
-  Label,
   Project,
   Section,
   Task,
@@ -41,7 +40,6 @@ export function taskToTaskEditorDraft(task: Task): TaskEditorDraft {
     description: task.description,
     projectId: task.projectId,
     sectionId: task.sectionId,
-    labelIds: [...task.labelIds],
     priority: task.priority,
     dueText: task.due ? formatDueText(task.due) : '',
     recurrenceText: task.due?.recurrence ?? '',
@@ -62,7 +60,6 @@ export function taskEditorDraftToTaskInput(
     content: normalized.value.title,
     description: normalized.value.description,
     sectionId: normalized.value.sectionId,
-    labelIds: [...normalized.value.labelIds],
     priority: normalized.value.priority,
     due: normalized.value.due,
   };
@@ -88,7 +85,6 @@ export function taskEditorDraftToTaskPatch(
     content: normalized.value.title,
     description: normalized.value.description,
     sectionId: normalized.value.sectionId,
-    labelIds: [...normalized.value.labelIds],
     priority: normalized.value.priority,
     due: normalized.value.due,
   };
@@ -128,18 +124,6 @@ export function toTaskEditorSectionOptions(
     .map((section) => ({
       id: section.id,
       label: section.name,
-    }));
-}
-
-export function toTaskEditorLabelOptions(
-  labels: readonly Label[],
-): TaskEditorOption[] {
-  return [...labels]
-    .sort((left, right) => left.order - right.order)
-    .map((label) => ({
-      id: label.id,
-      label: label.name,
-      color: label.color,
     }));
 }
 

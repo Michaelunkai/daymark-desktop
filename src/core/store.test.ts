@@ -63,12 +63,14 @@ assert(!saveState(storage, right.state, base.revision).ok, "Stale writer must be
 
 const migrated = migrate({ ...base, schemaVersion: 1, sections: undefined, filters: undefined, orderItems: undefined });
 assert(
-  migrated.schemaVersion === 4 &&
+  migrated.schemaVersion === 5 &&
     Object.keys(migrated.sections).length === 0 &&
     Object.keys(migrated.notes).length === 0 &&
     Object.keys(migrated.diaryEntries).length === 0 &&
-    migrated.tasks["task-welcome"].completionContext === null,
-  "Legacy state should migrate to schema v4.",
+    migrated.tasks["task-welcome"].completionContext === null &&
+    !("labels" in migrated) &&
+    !("labelIds" in migrated.tasks["task-welcome"]),
+  "Legacy state should migrate to schema v5 without tags.",
 );
 
 const legacyCompleted = migrate({

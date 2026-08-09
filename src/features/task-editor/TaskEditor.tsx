@@ -31,7 +31,6 @@ export function TaskEditor({
   mode = 'edit',
   projects = [],
   sections = [],
-  labels = [],
   isSaving = false,
   saveError,
   validationErrors = {},
@@ -41,7 +40,6 @@ export function TaskEditor({
   onCancel,
   onClose,
   onRequestProjectPicker,
-  onRequestLabelPicker,
   onRequestReminderPicker,
 }: TaskEditorProps) {
   const titleId = useId().replace(/:/g, '');
@@ -169,13 +167,6 @@ export function TaskEditor({
   function handleCancel() {
     onCancel?.();
     onClose();
-  }
-
-  function handleLabelToggle(labelId: string, checked: boolean) {
-    const nextLabelIds = checked
-      ? [...draft.labelIds, labelId]
-      : draft.labelIds.filter((id) => id !== labelId);
-    changeField('labelIds', nextLabelIds);
   }
 
   return (
@@ -357,9 +348,8 @@ export function TaskEditor({
               <div className="task-editor__section-heading">
                 <div>
                   <p className="task-editor__eyebrow">Signal</p>
-                  <h3>Priority and labels</h3>
+                  <h3>Priority</h3>
                 </div>
-                <TagIcon />
               </div>
 
               <div className="task-editor__field">
@@ -386,61 +376,6 @@ export function TaskEditor({
                 </div>
               </div>
 
-              <fieldset className="task-editor__labels">
-                <legend>Labels</legend>
-                {labels.length ? (
-                  <div className="task-editor__label-list">
-                    {labels.map((label) => {
-                      const checkboxId = `${titleId}-label-${label.id}`;
-                      return (
-                        <label
-                          key={label.id}
-                          className={`task-editor__label-option ${
-                            draft.labelIds.includes(label.id)
-                              ? 'task-editor__label-option--selected'
-                              : ''
-                          }`}
-                          htmlFor={checkboxId}
-                        >
-                          <input
-                            id={checkboxId}
-                            type="checkbox"
-                            checked={draft.labelIds.includes(label.id)}
-                            onChange={(event) =>
-                              handleLabelToggle(
-                                label.id,
-                                event.currentTarget.checked,
-                              )
-                            }
-                            disabled={label.disabled}
-                          />
-                          <span
-                            className="task-editor__label-dot"
-                            style={{ backgroundColor: label.color ?? '#b8aaa4' }}
-                            aria-hidden="true"
-                          />
-                          <span>{label.label}</span>
-                          {label.hint ? (
-                            <small>{label.hint}</small>
-                          ) : null}
-                        </label>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="task-editor__empty">No labels available.</p>
-                )}
-                {onRequestLabelPicker ? (
-                  <button
-                    type="button"
-                    className="task-editor__text-button"
-                    onClick={onRequestLabelPicker}
-                  >
-                    <PlusIcon />
-                    Manage labels
-                  </button>
-                ) : null}
-              </fieldset>
             </section>
 
             <section className="task-editor__section">

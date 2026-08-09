@@ -9,7 +9,6 @@ export type TaskEditorDraft = {
   description: string;
   projectId: string | null;
   sectionId: string | null;
-  labelIds: string[];
   priority: TaskPriority;
   dueText: string;
   recurrenceText: string;
@@ -45,7 +44,6 @@ export type TaskEditorProps = {
   mode?: TaskEditorMode;
   projects?: TaskEditorOption[];
   sections?: TaskEditorOption[];
-  labels?: TaskEditorOption[];
   isSaving?: boolean;
   saveError?: string;
   validationErrors?: TaskEditorErrors;
@@ -58,6 +56,5 @@ export type TaskEditorProps = {
   onCancel?: () => void;
   onClose: () => void;
   onRequestProjectPicker?: () => void;
-  onRequestLabelPicker?: () => void;
   onRequestReminderPicker?: () => void;
 };

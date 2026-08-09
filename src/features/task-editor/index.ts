@@ -3,7 +3,6 @@ export {
   taskEditorDraftToTaskInput,
   taskEditorDraftToTaskPatch,
   taskToTaskEditorDraft,
-  toTaskEditorLabelOptions,
   toTaskEditorProjectOptions,
   toTaskEditorSectionOptions,
 } from './adapters';

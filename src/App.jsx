@@ -39,7 +39,6 @@ import {
   taskEditorDraftToTaskInput,
   taskEditorDraftToTaskPatch,
   taskToTaskEditorDraft,
-  toTaskEditorLabelOptions,
   toTaskEditorProjectOptions,
   toTaskEditorSectionOptions,
 } from './features/task-editor'
@@ -69,12 +68,6 @@ const PROJECT_COLORS = {
   indigo: 'indigo',
   blue: 'indigo',
 }
-
-const TAGS = [
-  { id: 'label:label-focus', label: 'Focus', count: 5 },
-  { id: 'label:label-waiting', label: 'Waiting', count: 2 },
-  { id: 'label:label-someday', label: 'Someday', count: 6 },
-]
 
 const GITHUB_URL = 'https://github.com/Michaelunkai/daymark-desktop'
 const UI_SETTINGS_KEY = 'daymark.ui-settings'
@@ -116,8 +109,6 @@ const AGENT_ACTION_TYPES = [
   'section.add',
   'section.remove',
   'section.update',
-  'label.add',
-  'label.update',
   'filter.add',
   'filter.update',
   'preferences.update',
@@ -209,10 +200,6 @@ function seedDemoWorkspace() {
     { id: 'section-home', projectId: 'project-home', name: 'Other tasks' },
     { id: 'section-learning', projectId: 'project-learning', name: 'Other tasks' },
   ]
-  const demoLabels = [
-    { id: 'label-waiting', name: 'Waiting', color: 'amber' },
-    { id: 'label-someday', name: 'Someday', color: 'indigo' },
-  ]
 
   demoProjects.forEach((project, index) => {
     appStore.dispatch({
@@ -223,21 +210,18 @@ function seedDemoWorkspace() {
   demoSections.forEach((section, index) => {
     appStore.dispatch({ type: 'section.add', input: { ...section, order: index } })
   })
-  demoLabels.forEach((label, index) => {
-    appStore.dispatch({ type: 'label.add', input: { ...label, order: index + 2 } })
-  })
 
   const demoTasks = [
-    ['task-report', 'Finish the quarterly report', 'project-work', 'section-focus', 'label-focus', today, '10:00', 2, 'Summarize the latest numbers and add the final recommendation.'],
-    ['task-updates', 'Send design team updates', 'project-work', 'section-focus', 'label-focus', today, '11:30', 4, 'Share the revised milestones and ask for open questions.'],
-    ['task-marcus', 'Call with Marcus', 'project-work', 'section-focus', 'label-waiting', today, '13:30', 4, 'Confirm the handoff plan for the next release.'],
-    ['task-groceries', 'Buy groceries', 'project-home', 'section-home', 'label-someday', today, null, 4, 'Fruit, greens, coffee, and something easy for dinner.'],
-    ['task-prd', 'Review the PRD draft', 'project-work', 'section-focus', 'label-focus', addDays(today, 1), null, 4, 'Leave comments on the scope and first-run experience.'],
-    ['task-chapter', 'Read chapter four', 'project-learning', 'section-learning', 'label-someday', addDays(today, 1), null, 4, 'Capture three ideas to try in the next study session.'],
-    ['task-hike', 'Plan weekend hike', 'project-home', 'section-home', 'label-someday', addDays(today, 7), null, 3, 'Pick a route and check the weather before Friday.'],
+    ['task-report', 'Finish the quarterly report', 'project-work', 'section-focus', today, '10:00', 2, 'Summarize the latest numbers and add the final recommendation.'],
+    ['task-updates', 'Send design team updates', 'project-work', 'section-focus', today, '11:30', 4, 'Share the revised milestones and ask for open questions.'],
+    ['task-marcus', 'Call with Marcus', 'project-work', 'section-focus', today, '13:30', 4, 'Confirm the handoff plan for the next release.'],
+    ['task-groceries', 'Buy groceries', 'project-home', 'section-home', today, null, 4, 'Fruit, greens, coffee, and something easy for dinner.'],
+    ['task-prd', 'Review the PRD draft', 'project-work', 'section-focus', addDays(today, 1), null, 4, 'Leave comments on the scope and first-run experience.'],
+    ['task-chapter', 'Read chapter four', 'project-learning', 'section-learning', addDays(today, 1), null, 4, 'Capture three ideas to try in the next study session.'],
+    ['task-hike', 'Plan weekend hike', 'project-home', 'section-home', addDays(today, 7), null, 3, 'Pick a route and check the weather before Friday.'],
   ]
 
-  demoTasks.forEach(([id, content, projectId, sectionId, labelId, date, time, priority, description], index) => {
+  demoTasks.forEach(([id, content, projectId, sectionId, date, time, priority, description], index) => {
     appStore.dispatch({
       type: 'task.add',
       input: {
@@ -246,7 +230,6 @@ function seedDemoWorkspace() {
         description,
         projectId,
         sectionId,
-        labelIds: [labelId],
         priority,
         due: makeDue(date, time),
         order: index,
@@ -265,7 +248,6 @@ function formatTime(value) {
 
 function toViewTask(task, state) {
   const project = state.projects[task.projectId]
-  const label = task.labelIds.map((labelId) => state.labels[labelId]).find(Boolean)
   const date = task.due?.date
   const today = toLocalDate(new Date())
   const dueTone = date === today ? 'teal' : date && date < today ? 'coral' : date ? 'indigo' : 'muted'
@@ -281,8 +263,6 @@ function toViewTask(task, state) {
     project: task.projectId,
     projectName: project?.name ?? 'Inbox',
     projectColor: PROJECT_COLORS[project?.color] ?? 'teal',
-    tag: label?.id ?? '',
-    tagName: label?.name ?? '',
     due,
     dueTone,
     priority: task.priority === 1 ? 'Urgent' : task.priority === 2 ? 'High' : task.priority === 3 ? 'Low' : 'Normal',
@@ -690,6 +670,8 @@ function SectionHeading({
   onReorderEnd,
   onMoveEarlier,
   onMoveLater,
+  onEdit,
+  onDelete,
 }) {
   const callbacksRef = useRef({ onLongPressReorder, onReorderEnd, onReorderMove, sectionId: section.id })
   callbacksRef.current = { onLongPressReorder, onReorderEnd, onReorderMove, sectionId: section.id }
@@ -742,6 +724,28 @@ function SectionHeading({
           >
             <Icon name={collapsed ? 'chevronRight' : 'chevronDown'} size={16} />
           </button>
+        ) : null}
+        {section.id ? (
+          <>
+            <button
+              aria-label={`Edit ${section.name}`}
+              className="icon-button"
+              onClick={() => onEdit?.(section.id)}
+              title="Edit section"
+              type="button"
+            >
+              <Icon name="edit" size={14} />
+            </button>
+            <button
+              aria-label={`Delete ${section.name}`}
+              className="icon-button"
+              onClick={() => onDelete?.(section.id)}
+              title="Delete section"
+              type="button"
+            >
+              <Icon name="trash" size={14} />
+            </button>
+          </>
         ) : null}
         {onLongPressReorder ? (
           <>
@@ -907,28 +911,6 @@ function UtilityPanel({ onAction }) {
               <strong>{label}</strong>
               <small>{date}</small>
             </span>
-          </button>
-        ))}
-      </div>
-
-      <div className="utility-divider" />
-
-      <div className="utility-panel__heading">
-        <div>
-          <span className="section-kicker">TAGS</span>
-          <h2>Tags</h2>
-        </div>
-        <button className="text-button" onClick={() => onAction('label:label-focus')} type="button">
-          Browse
-        </button>
-      </div>
-
-      <div className="tag-cloud">
-        {TAGS.map((tag) => (
-          <button className="tag-chip" key={tag.id} onClick={() => onAction(tag.id)} type="button">
-            <Icon name="tag" size={14} />
-            <span>{tag.label}</span>
-            <b>{tag.count}</b>
           </button>
         ))}
       </div>
@@ -1126,10 +1108,6 @@ function getRouteInfo(route, state) {
       kicker: 'PROJECT VIEW',
       subtitle: project?.description?.trim() || 'No project details yet. Edit this project to add context.',
     }
-  }
-  if (route.startsWith('label:')) {
-    const tag = state.labels[route.slice('label:'.length)]
-    return { title: tag?.name ?? 'Tag', kicker: 'SAVED VIEW', subtitle: 'A focused lens across your work.' }
   }
   const today = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date()).toUpperCase()
   return { title: 'Today', kicker: today, subtitle: 'A clear view of what matters now.' }
@@ -2243,10 +2221,6 @@ function App() {
     () => Object.values(state.orderItems ?? {}).sort((left, right) => left.order - right.order),
     [state.orderItems],
   )
-  const labelItems = useMemo(
-    () => Object.values(state.labels).sort((left, right) => left.order - right.order),
-    [state],
-  )
   const routeInfo = getRouteInfo(route, state)
   const visibleTasks = useMemo(() => {
     const availableTasks = route === 'completed' || state.preferences.showCompleted
@@ -2254,13 +2228,12 @@ function App() {
       : tasks.filter((task) => !task.completed)
     if (searchTerm.trim()) {
       const query = searchTerm.trim().toLowerCase()
-      return availableTasks.filter((task) => `${task.title} ${task.note} ${task.priority} ${task.projectName} ${task.tagName}`.toLowerCase().includes(query))
+      return availableTasks.filter((task) => `${task.title} ${task.note} ${task.priority} ${task.projectName}`.toLowerCase().includes(query))
     }
     let scoped = availableTasks
     if (route === 'inbox') scoped = availableTasks.filter((task) => task.project === state.preferences.inboxProjectId)
     if (route === 'upcoming') scoped = availableTasks.filter((task) => state.tasks[task.id]?.due?.date >= today)
     if (route.startsWith('project:')) scoped = availableTasks.filter((task) => task.project === route.slice('project:'.length))
-    if (route.startsWith('label:')) scoped = availableTasks.filter((task) => task.tag === route.slice('label:'.length))
     if (route === 'today') scoped = availableTasks.filter((task) => state.tasks[task.id]?.due?.date === today)
     if (route === 'completed') scoped = tasks.filter((task) => task.completed)
     if (route !== 'completed' && !state.preferences.showCompleted) scoped = scoped.filter((task) => !task.completed)
@@ -2552,6 +2525,42 @@ function App() {
     if (!result.ok) setNotice(result.message)
   }
 
+  const editSection = (sectionId) => {
+    const section = state.sections[sectionId]
+    if (!section) return
+    const name = window.prompt('Section name', section.name)?.trim()
+    if (!name || name === section.name) return
+    const result = appStore.dispatch({
+      type: 'section.update',
+      sectionId,
+      patch: { name },
+    })
+    if (!result.ok) setNotice(result.message)
+    else setNotice(`Renamed section to ${name}.`)
+  }
+
+  const deleteSection = (sectionId) => {
+    const section = state.sections[sectionId]
+    if (!section) return
+    const affectedTasks = Object.values(state.tasks).filter((task) => task.sectionId === sectionId)
+    const taskSummary = affectedTasks.length ? ` Its ${affectedTasks.length} task${affectedTasks.length === 1 ? '' : 's'} will move to the unsectioned project list.` : ''
+    if (!window.confirm(`Delete ${section.name}?${taskSummary}`)) return
+    for (const task of affectedTasks) {
+      const taskResult = appStore.dispatch({
+        type: 'task.update',
+        taskId: task.id,
+        patch: { sectionId: null },
+      })
+      if (!taskResult.ok) {
+        setNotice(taskResult.message)
+        return
+      }
+    }
+    const result = appStore.dispatch({ type: 'section.remove', sectionId })
+    if (!result.ok) setNotice(result.message)
+    else setNotice(`Deleted ${section.name}.`)
+  }
+
   const moveSectionBy = (sectionId, direction) => {
     const current = state.sections[sectionId]
     if (!current) return
@@ -2838,7 +2847,6 @@ function App() {
         : 'project-work'
     const projectId = state.projects[requestedProjectId] ? requestedProjectId : state.preferences.inboxProjectId
     const sectionId = Object.values(state.sections).find((section) => section.projectId === projectId)?.id ?? null
-    const labelId = state.labels['label-focus'] ? 'label-focus' : undefined
     const result = appStore.dispatch({
       type: 'task.add',
       input: {
@@ -2846,7 +2854,6 @@ function App() {
         description: 'Newly captured in the Daymark shell.',
         projectId,
         sectionId,
-        labelIds: labelId ? [labelId] : [],
         priority: 4,
         due: route === 'today' ? makeDue(toLocalDate(new Date())) : null,
       },
@@ -3351,25 +3358,6 @@ function App() {
               ))}
             </SidebarSection>
 
-            <SidebarSection
-              title="TAGS"
-              action={
-                <button aria-label="Add tag" className="section-action" title="Add tag" type="button">
-                  <Icon name="plus" size={15} />
-                </button>
-              }
-            >
-              {labelItems.map((label) => (
-                <SidebarRow
-                  active={route === `label:${label.id}`}
-                  count={tasks.filter((task) => task.tag === label.id && !task.completed).length}
-                  icon="tag"
-                  key={label.id}
-                  label={label.name}
-                  onClick={() => navigate(`label:${label.id}`)}
-                />
-              ))}
-            </SidebarSection>
           </div>
           <div className="sidebar__footer">
             <SidebarRow icon="companion" label="Codex companion" onClick={() => setCompanionOpen(true)} />
@@ -3504,9 +3492,8 @@ function App() {
                     if (!task.due?.date) return false
                     if (!searchTerm.trim()) return true
                     const project = state.projects[task.projectId]
-                    const labels = task.labelIds.map((labelId) => state.labels[labelId]?.name ?? '').join(' ')
                     const query = searchTerm.trim().toLowerCase()
-                    return `${task.content} ${task.description} ${project?.name ?? ''} ${labels}`.toLowerCase().includes(query)
+                    return `${task.content} ${task.description} ${project?.name ?? ''}`.toLowerCase().includes(query)
                   })
                   .map((task) => ({
                     id: task.id,
@@ -3604,6 +3591,8 @@ function App() {
                           count={section.tasks.length}
                           isReordering={reorderMode?.kind === 'section' && reorderMode.id === section.id}
                           onLongPressReorder={route.startsWith('project:') && section.id ? () => enterReorderMode('section', section.id) : undefined}
+                          onDelete={deleteSection}
+                          onEdit={editSection}
                           onMoveEarlier={() => moveSectionBy(section.id, -1)}
                           onMoveLater={() => moveSectionBy(section.id, 1)}
                           onReorderEnd={finishPointerReorder}
@@ -3680,6 +3669,8 @@ function App() {
                         count={section.tasks.length}
                         isReordering={reorderMode?.kind === 'section' && reorderMode.id === section.id}
                         onLongPressReorder={route.startsWith('project:') && section.id ? () => enterReorderMode('section', section.id) : undefined}
+                        onDelete={deleteSection}
+                        onEdit={editSection}
                         onMoveEarlier={() => moveSectionBy(section.id, -1)}
                         onMoveLater={() => moveSectionBy(section.id, 1)}
                         onReorderEnd={finishPointerReorder}
@@ -3741,7 +3732,6 @@ function App() {
           <div className="task-preview__meta">
             <span className="meta-pill"><Icon name="calendar" size={14} />{selectedTask.due}</span>
             <span className="meta-pill"><Icon name="folder" size={14} />{selectedTask.projectName}</span>
-            <span className="meta-pill"><Icon name="tag" size={14} />{selectedTask.tagName || 'No tag'}</span>
           </div>
           <button className="secondary-button task-preview__complete" onClick={() => { toggleTask(selectedTask.id); setSelectedTask(null) }} type="button">
             <Icon name="focus" size={16} />
@@ -3784,7 +3774,6 @@ function App() {
       <TaskEditor
         draft={taskEditor?.draft ?? createTaskEditorDraft()}
         isOpen={Boolean(taskEditor)}
-        labels={toTaskEditorLabelOptions(Object.values(state.labels))}
         mode={taskEditor?.mode ?? 'create'}
         onClose={() => setTaskEditor(null)}
         onDraftChange={(draft) => setTaskEditor((editor) => editor ? { ...editor, draft } : editor)}

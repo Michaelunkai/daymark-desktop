@@ -1,6 +1,10 @@
 # Daymark Android Release
 
-`daymark-android-1.4.7.apk` is the viewport-safe companion shell release. It
+`daymark-android-1.4.8.apk` is the current companion shell release. It loads
+the current Daymark web application, including the section edit and delete
+controls, while retaining the viewport-safe app frame and keyboard resizing.
+
+`daymark-android-1.4.7.apk` was the viewport-safe companion shell release. It
 uses the live Android viewport for the app frame, keeps each workspace view in
 its own vertical scroll region, and resizes around the Android keyboard so
 content is not clipped behind it.

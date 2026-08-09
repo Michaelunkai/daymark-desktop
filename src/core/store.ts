@@ -4,7 +4,6 @@ import type {
   AppState,
   DispatchResult,
   DiaryEntry,
-  Label,
   Note,
   OrderItem,
   Project,
@@ -126,7 +125,6 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
         projectId: action.input.projectId ?? state.preferences.inboxProjectId,
         sectionId: action.input.sectionId ?? null,
         parentId: action.input.parentId ?? null,
-        labelIds: unique(action.input.labelIds ?? []),
         priority: action.input.priority ?? 4,
         due: action.input.due ?? null,
         completedAt: null,
@@ -136,7 +134,6 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
         updatedAt: now,
       };
       if (!isValidTaskLocation(state, task.projectId, task.sectionId)) return invalid("The task section does not belong to its project.");
-      if (!hasKnownLabels(state, task.labelIds)) return invalid("One or more task labels do not exist.");
       state.tasks[id] = task;
       clearTombstone(state, "tasks", id);
       return { ok: true, inverse: { type: "task.remove", taskId: id } };
@@ -159,10 +156,8 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       const nextProjectId = action.patch.projectId ?? task.projectId;
       const nextSectionId = action.patch.sectionId === undefined ? task.sectionId : action.patch.sectionId;
       if (!isValidTaskLocation(state, nextProjectId, nextSectionId)) return invalid("The task section does not belong to its project.");
-      if (action.patch.labelIds && !hasKnownLabels(state, action.patch.labelIds)) return invalid("One or more task labels do not exist.");
       const before = pick(task, action.patch);
       Object.assign(task, action.patch, {
-        labelIds: action.patch.labelIds ? unique(action.patch.labelIds) : task.labelIds,
         updatedAt: now,
       });
       return { ok: true, inverse: { type: "task.update", taskId: task.id, patch: before } };
@@ -544,36 +539,6 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       Object.assign(section, action.patch, { updatedAt: now });
       return { ok: true, inverse: { type: "section.update", sectionId: section.id, patch: before } };
     }
-    case "label.add": {
-      if (!action.input.name.trim()) return invalid("A label needs a name.");
-      const id = action.input.id ?? createId("label");
-      if (state.labels[id]) return invalid("That label already exists.");
-      const label: Label = {
-        id, name: action.input.name.trim(), color: action.input.color ?? "charcoal", order: action.input.order ?? nextOrder(state.labels),
-        isFavorite: action.input.isFavorite ?? false, createdAt: now, updatedAt: now,
-      };
-      state.labels[id] = label;
-      clearTombstone(state, "labels", id);
-      return { ok: true, inverse: { type: "label.remove", labelId: id } };
-    }
-    case "label.restore":
-      state.labels[action.label.id] = structuredClone(action.label);
-      clearTombstone(state, "labels", action.label.id);
-      return { ok: true, inverse: { type: "label.remove", labelId: action.label.id } };
-    case "label.remove": {
-      const label = state.labels[action.labelId];
-      if (!label) return invalid("The label no longer exists.");
-      delete state.labels[action.labelId];
-      markTombstone(state, "labels", action.labelId, now);
-      return { ok: true, inverse: { type: "label.restore", label: structuredClone(label) } };
-    }
-    case "label.update": {
-      const label = state.labels[action.labelId];
-      if (!label) return invalid("The label no longer exists.");
-      const before = pick(label, action.patch);
-      Object.assign(label, action.patch, { updatedAt: now });
-      return { ok: true, inverse: { type: "label.update", labelId: label.id, patch: before } };
-    }
     case "filter.add": {
       if (!action.input.name.trim() || !action.input.query.trim()) return invalid("A filter needs a name and query.");
       const id = action.input.id ?? createId("filter");
@@ -634,10 +599,6 @@ function clearTombstone(state: AppState, collection: string, id: string): void {
 
 function isValidTaskLocation(state: AppState, projectId: string, sectionId: string | null): boolean {
   return Boolean(state.projects[projectId]) && (!sectionId || state.sections[sectionId]?.projectId === projectId);
-}
-
-function hasKnownLabels(state: AppState, labelIds: string[]): boolean {
-  return labelIds.every((labelId) => Boolean(state.labels[labelId]));
 }
 
 function unique(values: string[]): string[] {

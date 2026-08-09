@@ -49,10 +49,6 @@ export function createSampleState(
     updatedAt: now,
     projects: { [inbox.id]: inbox, [personal.id]: personal },
     sections: { [next.id]: next },
-    labels: {
-      "label-home": { id: "label-home", name: "Home", color: "green", order: 0, isFavorite: false, createdAt: now, updatedAt: now },
-      "label-focus": { id: "label-focus", name: "Focus", color: "blue", order: 1, isFavorite: true, createdAt: now, updatedAt: now },
-    },
     filters: {
       "filter-priority": {
         id: "filter-priority",
@@ -73,7 +69,6 @@ export function createSampleState(
         projectId: personal.id,
         sectionId: next.id,
         parentId: null,
-        labelIds: ["label-focus"],
         priority: 2,
         due: null,
         completedAt: null,

@@ -109,12 +109,13 @@ export function migrate(value: unknown): AppState {
   if (!isRecord(value)) throw new Error("Stored state is not an object.");
   if (value.schemaVersion === CURRENT_SCHEMA_VERSION) return validateCurrentState(value);
   if (
+    value.schemaVersion === 4 ||
     value.schemaVersion === 3 ||
     value.schemaVersion === 2 ||
     value.schemaVersion === 1 ||
     value.schemaVersion === 0
   ) {
-    return validateCurrentState(migrateTasks({
+    return validateCurrentState(removeTags(migrateTasks({
       ...value,
       schemaVersion: CURRENT_SCHEMA_VERSION,
       sections: isRecord(value.sections) ? value.sections : {},
@@ -130,7 +131,7 @@ export function migrate(value: unknown): AppState {
       orderItems: isRecord(value.orderItems) ? value.orderItems : {},
       notes: isRecord(value.notes) ? value.notes : {},
       diaryEntries: isRecord(value.diaryEntries) ? value.diaryEntries : {},
-    }));
+    })));
   }
   throw new Error("Stored state schema is unsupported.");
 }
@@ -142,7 +143,6 @@ function validateCurrentState(value: Record<string, unknown>): AppState {
     typeof value.updatedAt !== "string" ||
     !isRecord(value.projects) ||
     !isRecord(value.sections) ||
-    !isRecord(value.labels) ||
     !isRecord(value.filters) ||
     !isRecord(value.tasks) ||
     !isRecord(value.orderItems) ||
@@ -153,7 +153,20 @@ function validateCurrentState(value: Record<string, unknown>): AppState {
   ) {
     throw new Error("Stored state is incomplete.");
   }
-  return migrateDiaryEntries(migrateNotes(migrateTasks(value))) as unknown as AppState;
+  return removeTags(migrateDiaryEntries(migrateNotes(migrateTasks(value)))) as unknown as AppState;
+}
+
+function removeTags(value: Record<string, unknown>): Record<string, unknown> {
+  const { labels: _labels, ...withoutLabels } = value;
+  if (!isRecord(withoutLabels.tasks)) return withoutLabels;
+  const tasks = Object.fromEntries(
+    Object.entries(withoutLabels.tasks).map(([id, rawTask]) => {
+      if (!isRecord(rawTask)) throw new Error(`Stored task ${id} is invalid.`);
+      const { labelIds: _labelIds, ...task } = rawTask;
+      return [id, task];
+    }),
+  );
+  return { ...withoutLabels, tasks };
 }
 
 function getBrowserStorage(): Pick<Storage, "getItem" | "setItem" | "removeItem"> | undefined {

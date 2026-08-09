@@ -114,7 +114,6 @@ export function mergeSyncStates(local: AppState, remote: AppState): AppState {
     clientId: local.clientId,
     projects: newerRecord(local.projects, remote.projects),
     sections: newerRecord(local.sections, remote.sections),
-    labels: newerRecord(local.labels, remote.labels),
     filters: newerRecord(local.filters, remote.filters),
     tasks: newerRecord(local.tasks, remote.tasks),
     orderItems: newerRecord(local.orderItems, remote.orderItems),
@@ -178,7 +177,6 @@ function applyTombstones(state: AppState): void {
   const collections: Record<string, Record<string, { updatedAt: string }>> = {
     projects: state.projects,
     sections: state.sections,
-    labels: state.labels,
     filters: state.filters,
     tasks: state.tasks,
     orderItems: state.orderItems,

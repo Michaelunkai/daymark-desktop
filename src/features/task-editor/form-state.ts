@@ -10,7 +10,6 @@ export const DEFAULT_TASK_EDITOR_DRAFT: TaskEditorDraft = {
   description: '',
   projectId: null,
   sectionId: null,
-  labelIds: [],
   priority: 4,
   dueText: '',
   recurrenceText: '',
@@ -23,7 +22,6 @@ export function createTaskEditorDraft(
   return {
     ...DEFAULT_TASK_EDITOR_DRAFT,
     ...overrides,
-    labelIds: [...(overrides.labelIds ?? DEFAULT_TASK_EDITOR_DRAFT.labelIds)],
   };
 }
 
@@ -50,7 +48,6 @@ export function normalizeTaskEditorDraft(
     description: draft.description.trim(),
     projectId: normalizeOptionalId(draft.projectId),
     sectionId: normalizeOptionalId(draft.sectionId),
-    labelIds: [...new Set(draft.labelIds.filter(Boolean))],
     priority: priority as TaskPriority,
     dueText: draft.dueText.trim(),
     recurrenceText: draft.recurrenceText.trim(),
