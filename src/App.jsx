@@ -1798,7 +1798,6 @@ function JournalView({
   onNoteDelete,
   onNoteMove,
   onNoteUpdate,
-  onRequestConfirmation,
   route,
 }) {
   const today = toLocalDate(new Date())
@@ -1924,14 +1923,7 @@ function JournalView({
               </button>
               <button
                 className="danger-button"
-                onClick={() => {
-                  onRequestConfirmation({
-                    actionLabel: 'Delete note',
-                    message: `Delete "${selectedNote.title || 'Untitled note'}"?`,
-                    onConfirm: () => onNoteDelete(selectedNote.id),
-                    title: 'Delete note?',
-                  })
-                }}
+                onClick={() => onNoteDelete(selectedNote.id)}
                 type="button"
               >
                 Delete note
@@ -2685,31 +2677,23 @@ function App() {
     const section = state.sections[sectionId]
     if (!section) return
     const affectedTasks = Object.values(state.tasks).filter((task) => task.sectionId === sectionId)
-    const taskSummary = affectedTasks.length ? ` Its ${affectedTasks.length} task${affectedTasks.length === 1 ? '' : 's'} will move to the unsectioned project list.` : ''
-    requestConfirmation({
-      actionLabel: 'Delete section',
-      message: `Delete "${section.name}"?${taskSummary}`,
-      onConfirm: () => {
-        for (const task of affectedTasks) {
-          const taskResult = appStore.dispatch({
-            type: 'task.update',
-            taskId: task.id,
-            patch: { sectionId: null },
-          })
-          if (!taskResult.ok) {
-            setNotice(taskResult.message)
-            return
-          }
-        }
-        const result = appStore.dispatch({ type: 'section.remove', sectionId })
-        if (!result.ok) setNotice(result.message)
-        else {
-          setUndoAvailable(true)
-          setNotice(`Deleted ${section.name}.`)
-        }
-      },
-      title: 'Delete section?',
-    })
+    for (const task of affectedTasks) {
+      const taskResult = appStore.dispatch({
+        type: 'task.update',
+        taskId: task.id,
+        patch: { sectionId: null },
+      })
+      if (!taskResult.ok) {
+        setNotice(taskResult.message)
+        return
+      }
+    }
+    const result = appStore.dispatch({ type: 'section.remove', sectionId })
+    if (!result.ok) setNotice(result.message)
+    else {
+      setUndoAvailable(true)
+      setNotice(`Deleted ${section.name}.`)
+    }
   }
 
   const moveSectionBy = (sectionId, direction) => {
@@ -2859,22 +2843,14 @@ function App() {
   }
 
   const deleteProject = (project) => {
-    const taskCount = Object.values(state.tasks).filter((task) => task.projectId === project.id).length
-    requestConfirmation({
-      actionLabel: 'Delete project',
-      message: `Delete "${project.name}"? ${taskCount ? `${taskCount} associated task${taskCount === 1 ? '' : 's'} will be moved to Inbox and kept. Project sections will be removed.` : 'Any project sections will be removed.'} This can be restored with Undo.`,
-      onConfirm: () => {
-        const result = appStore.dispatch({ type: 'project.delete', projectId: project.id })
-        if (!result.ok) {
-          setNotice(result.message)
-          return
-        }
-        setUndoAvailable(true)
-        setNotice(`Deleted ${project.name}. Tasks were kept in Inbox.`)
-        if (route === `project:${project.id}`) navigate('inbox')
-      },
-      title: 'Delete project?',
-    })
+    const result = appStore.dispatch({ type: 'project.delete', projectId: project.id })
+    if (!result.ok) {
+      setNotice(result.message)
+      return
+    }
+    setUndoAvailable(true)
+    setNotice(`Deleted ${project.name}. Tasks were kept in Inbox.`)
+    if (route === `project:${project.id}`) navigate('inbox')
   }
 
   const addOrderItem = (input) => {
@@ -2888,15 +2864,8 @@ function App() {
   }
 
   const deleteOrderItem = (item) => {
-    requestConfirmation({
-      actionLabel: 'Delete from Order',
-      message: `Delete "${item.title}" from Order? Related items will lose only this relationship.`,
-      onConfirm: () => {
-        const result = appStore.dispatch({ type: 'order.delete', itemId: item.id })
-        if (!result.ok) setNotice(result.message)
-      },
-      title: 'Delete Order item?',
-    })
+    const result = appStore.dispatch({ type: 'order.delete', itemId: item.id })
+    if (!result.ok) setNotice(result.message)
   }
 
   const moveOrderItem = (itemId, swapId, laneId = null) => {
@@ -3655,7 +3624,6 @@ function App() {
                 onNoteDelete={deleteNote}
                 onNoteMove={moveNoteToTarget}
                 onNoteUpdate={updateNote}
-                onRequestConfirmation={requestConfirmation}
                 route={route}
               />
             ) : route === 'upcoming' ? (
