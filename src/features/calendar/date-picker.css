@@ -114,7 +114,7 @@
 
 .date-picker__day--selected {
   background: var(--accent, #c74739);
-  color: #fff;
+  color: var(--color-accent-contrast, #ffffff);
 }
 
 .date-picker__day--selected:hover:not(:disabled) {

@@ -1,24 +1,24 @@
 @import "./tokens.css";
 
 :root {
-  color-scheme: light;
-  --color-canvas: #f7f7f6;
-  --color-surface: #ffffff;
-  --color-surface-raised: #ffffff;
-  --color-surface-hover: #f0f0ef;
-  --color-surface-selected: #fce9e5;
-  --color-text-primary: #080808;
-  --color-text-secondary: #1d1d1b;
-  --color-text-tertiary: #383834;
-  --color-border: #e4e1dd;
-  --color-border-strong: #cac5bf;
-  --color-accent: #c44536;
-  --color-accent-hover: #a93429;
-  --color-accent-contrast: #ffffff;
-  --color-danger: #b42318;
-  --color-success: #267553;
-  --color-focus-ring: #276fbb;
-  --shadow-raised: 0 1px 2px rgb(35 31 28 / 0.08), 0 4px 12px rgb(35 31 28 / 0.05);
+  color-scheme: dark;
+  --color-canvas: #000000;
+  --color-surface: #000000;
+  --color-surface-raised: #000000;
+  --color-surface-hover: #111111;
+  --color-surface-selected: #1a1a1a;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #ffffff;
+  --color-text-tertiary: #ffffff;
+  --color-border: #262626;
+  --color-border-strong: #4a4a4a;
+  --color-accent: #ffffff;
+  --color-accent-hover: #ffffff;
+  --color-accent-contrast: #000000;
+  --color-danger: #ffffff;
+  --color-success: #ffffff;
+  --color-focus-ring: #ffffff;
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.6), 0 12px 28px rgb(0 0 0 / 0.5);
   --body-font-weight: 620;
 
   /*
@@ -54,9 +54,9 @@
   --accentHover: var(--color-accent-hover);
   --teal: var(--color-success);
   --teal-soft: var(--color-surface-hover);
-  --amber: #8a5a00;
-  --amber-soft: #fff3d6;
-  --indigo: #505caa;
+  --amber: #ffffff;
+  --amber-soft: #111111;
+  --indigo: #ffffff;
   --focus: var(--color-focus-ring);
   --focus-ring: var(--color-focus-ring);
   --focusRing: var(--color-focus-ring);
@@ -65,49 +65,52 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-canvas: #1d1e20;
-  --color-surface: #26272a;
-  --color-surface-raised: #303135;
-  --color-surface-hover: #38393d;
-  --color-surface-selected: #4a2e2c;
-  --color-text-primary: #f4f2ef;
-  --color-text-secondary: #d5d1ca;
-  --color-text-tertiary: #b1aca5;
-  --color-border: #424348;
-  --color-border-strong: #595b60;
-  --color-accent: #f07867;
-  --color-accent-hover: #ff9587;
-  --color-accent-contrast: #251d1b;
-  --color-danger: #ff928a;
-  --color-success: #73c9a5;
-  --color-focus-ring: #78b7f5;
-  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.24), 0 8px 18px rgb(0 0 0 / 0.2);
+  --color-canvas: #000000;
+  --color-surface: #000000;
+  --color-surface-raised: #000000;
+  --color-surface-hover: #111111;
+  --color-surface-selected: #1a1a1a;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #ffffff;
+  --color-text-tertiary: #ffffff;
+  --color-border: #262626;
+  --color-border-strong: #4a4a4a;
+  --color-accent: #ffffff;
+  --color-accent-hover: #ffffff;
+  --color-accent-contrast: #000000;
+  --color-danger: #ffffff;
+  --color-success: #ffffff;
+  --color-focus-ring: #ffffff;
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.48), 0 12px 28px rgb(0 0 0 / 0.32);
   --body-font-weight: 620;
-  --amber: #ffd075;
-  --amber-soft: #4a3917;
-  --indigo: #adbaff;
+  --amber: #ffffff;
+  --amber-soft: #111111;
+  --indigo: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
   :root[data-theme="system"] {
     color-scheme: dark;
-    --color-canvas: #1d1e20;
-    --color-surface: #26272a;
-    --color-surface-raised: #303135;
-    --color-surface-hover: #38393d;
-    --color-surface-selected: #4a2e2c;
-    --color-text-primary: #f4f2ef;
-    --color-text-secondary: #d5d1ca;
-    --color-text-tertiary: #b1aca5;
-    --color-border: #424348;
-    --color-border-strong: #595b60;
-    --color-accent: #f07867;
-    --color-accent-hover: #ff9587;
-    --color-accent-contrast: #251d1b;
-    --color-danger: #ff928a;
-    --color-success: #73c9a5;
-    --color-focus-ring: #78b7f5;
-    --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.24), 0 8px 18px rgb(0 0 0 / 0.2);
+    --color-canvas: #000000;
+    --color-surface: #000000;
+    --color-surface-raised: #000000;
+    --color-surface-hover: #111111;
+    --color-surface-selected: #1a1a1a;
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #ffffff;
+    --color-text-tertiary: #ffffff;
+    --color-border: #262626;
+    --color-border-strong: #4a4a4a;
+    --color-accent: #ffffff;
+    --color-accent-hover: #ffffff;
+    --color-accent-contrast: #000000;
+    --color-danger: #ffffff;
+    --color-success: #ffffff;
+    --color-focus-ring: #ffffff;
+    --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.48), 0 12px 28px rgb(0 0 0 / 0.32);
+    --amber: #ffffff;
+    --amber-soft: #111111;
+    --indigo: #ffffff;
   }
 }
 

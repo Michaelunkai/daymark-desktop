@@ -322,7 +322,7 @@
 .task-row__due[data-tone='tomorrow'],
 .task-row__due[data-tone='soon'],
 .task-row__due[data-tone='upcoming'] {
-  color: #775ea6;
+  color: var(--task-list-text);
 }
 
 .task-row__meta-icon {
@@ -337,15 +337,15 @@
 }
 
 .task-row__priority--1 {
-  color: #d14343;
+  color: var(--task-list-text);
 }
 
 .task-row__priority--2 {
-  color: #c97828;
+  color: var(--task-list-text);
 }
 
 .task-row__priority--3 {
-  color: #4f7db8;
+  color: var(--task-list-text-muted);
 }
 
 .task-row__label {

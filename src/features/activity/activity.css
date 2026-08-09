@@ -131,7 +131,7 @@
   background: var(--accent, #d1453b);
   border: 0;
   border-radius: 5px;
-  color: #ffffff;
+  color: var(--color-accent-contrast, #000000);
   cursor: pointer;
   font: inherit;
   font-size: 0.875rem;
