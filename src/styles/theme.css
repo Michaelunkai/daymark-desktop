@@ -5,8 +5,8 @@
   --color-canvas: #000000;
   --color-surface: #000000;
   --color-surface-raised: #000000;
-  --color-surface-hover: #111111;
-  --color-surface-selected: #1a1a1a;
+  --color-surface-hover: #000000;
+  --color-surface-selected: #000000;
   --color-text-primary: #ffffff;
   --color-text-secondary: #ffffff;
   --color-text-tertiary: #ffffff;
@@ -55,7 +55,7 @@
   --teal: var(--color-success);
   --teal-soft: var(--color-surface-hover);
   --amber: #ffffff;
-  --amber-soft: #111111;
+  --amber-soft: #000000;
   --indigo: #ffffff;
   --focus: var(--color-focus-ring);
   --focus-ring: var(--color-focus-ring);
@@ -68,8 +68,8 @@
   --color-canvas: #000000;
   --color-surface: #000000;
   --color-surface-raised: #000000;
-  --color-surface-hover: #111111;
-  --color-surface-selected: #1a1a1a;
+  --color-surface-hover: #000000;
+  --color-surface-selected: #000000;
   --color-text-primary: #ffffff;
   --color-text-secondary: #ffffff;
   --color-text-tertiary: #ffffff;
@@ -84,7 +84,7 @@
   --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.48), 0 12px 28px rgb(0 0 0 / 0.32);
   --body-font-weight: 620;
   --amber: #ffffff;
-  --amber-soft: #111111;
+  --amber-soft: #000000;
   --indigo: #ffffff;
 }
 
@@ -94,8 +94,8 @@
     --color-canvas: #000000;
     --color-surface: #000000;
     --color-surface-raised: #000000;
-    --color-surface-hover: #111111;
-    --color-surface-selected: #1a1a1a;
+    --color-surface-hover: #000000;
+    --color-surface-selected: #000000;
     --color-text-primary: #ffffff;
     --color-text-secondary: #ffffff;
     --color-text-tertiary: #ffffff;
@@ -109,7 +109,7 @@
     --color-focus-ring: #ffffff;
     --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.48), 0 12px 28px rgb(0 0 0 / 0.32);
     --amber: #ffffff;
-    --amber-soft: #111111;
+    --amber-soft: #000000;
     --indigo: #ffffff;
   }
 }

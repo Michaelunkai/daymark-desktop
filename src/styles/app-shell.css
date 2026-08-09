@@ -2832,7 +2832,7 @@ kbd {
 [data-theme="dark"] .task-board-add-column:hover,
 [data-theme="dark"] .task-card:hover,
 [data-theme="dark"] .task-card:focus-within {
-  background: #111;
+  background: #000;
 }
 
 [data-theme="dark"] .view-task-row,
@@ -2871,12 +2871,12 @@ kbd {
 [data-theme="dark"] .task-view-empty-action,
 [data-theme="dark"] .app-sidebar__identity-mark,
 [data-theme="dark"] .app-sidebar__quick-add {
-  background: #fff;
-  color: #000;
+  background: #000;
+  color: #fff;
 }
 
 [data-theme="dark"] .task-view-empty-action:hover {
-  background: #fff;
+  background: #000;
 }
 
 [data-theme="dark"] .task-board-drop-hint,
@@ -2934,21 +2934,21 @@ kbd {
 [data-theme="dark"] .upcoming-calendar__task:hover,
 [data-theme="dark"] .upcoming-calendar__month-button:hover,
 [data-theme="dark"] .upcoming-agenda__edit:hover {
-  background: #111;
+  background: #000;
 }
 
 [data-theme="dark"] .date-picker__day--selected,
 [data-theme="dark"] .upcoming-calendar__day--today .upcoming-calendar__day-number,
 [data-theme="dark"] .upcoming-calendar__add-button,
 [data-theme="dark"] .comment-composer button {
-  color: #000;
-  background: #fff;
+  color: #fff;
+  background: #000;
 }
 
 [data-theme="dark"] .calendar-task-chip,
 [data-theme="dark"] .upcoming-calendar__task,
 [data-theme="dark"] .upcoming-calendar__day--droppable {
-  background: #111;
+  background: #000;
   border-color: var(--line);
 }
 
@@ -2997,7 +2997,7 @@ kbd {
 [data-theme="dark"] .app-shell .is-selected,
 [data-theme="dark"] .app-shell .is-active {
   color: #fff !important;
-  background-color: #111 !important;
+  background-color: #000 !important;
 }
 
 [data-theme="dark"] .brand-mark,
@@ -3056,7 +3056,7 @@ kbd {
 [data-theme] .app-shell .is-selected,
 [data-theme] .app-shell .is-active {
   color: #fff !important;
-  background-color: #111 !important;
+  background-color: #000 !important;
 }
 
 [data-theme] .brand-mark,
@@ -3105,7 +3105,7 @@ kbd {
 [data-theme] body .is-selected,
 [data-theme] body .is-active {
   color: #fff !important;
-  background-color: #111 !important;
+  background-color: #000 !important;
 }
 
 [data-theme] body .brand-mark span,
@@ -3115,4 +3115,11 @@ kbd {
 [data-theme] body .upcoming-calendar__more-tasks::before,
 [data-theme] body .app-sidebar__color-dot {
   background: #fff !important;
+}
+
+[data-theme] body [aria-selected="true"],
+[data-theme] body [aria-pressed="true"],
+[data-theme] body .is-selected,
+[data-theme] body .is-active {
+  border-color: #fff !important;
 }
