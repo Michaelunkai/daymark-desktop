@@ -1,6 +1,7 @@
 import type { AppState } from "./types";
 
 const SYNC_KEY = "daymark.sync-key";
+const SYNC_ADOPT_REMOTE_KEY = "daymark.sync-adopt-remote";
 const SYNC_PATTERN = /^[A-Za-z0-9_-]{22}$/;
 
 export type SyncStatus = "starting" | "synced" | "syncing" | "offline" | "conflict";
@@ -15,6 +16,8 @@ export function getSyncKey(storage?: Pick<Storage, "getItem" | "setItem"> | null
   const fromUrl = params.get("sync") ?? "";
   if (SYNC_PATTERN.test(fromUrl)) {
     try {
+      const previous = storage?.getItem(SYNC_KEY) ?? "";
+      if (previous !== fromUrl) storage?.setItem(SYNC_ADOPT_REMOTE_KEY, fromUrl);
       storage?.setItem(SYNC_KEY, fromUrl);
     } catch {
       // The URL remains a valid source when local storage is unavailable.
@@ -36,6 +39,20 @@ export function getSyncKey(storage?: Pick<Storage, "getItem" | "setItem"> | null
     // Sync can still work for the current session.
   }
   return key;
+}
+
+export function consumeRemoteAdoption(
+  key: string,
+  storage?: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null,
+): boolean {
+  try {
+    const pendingKey = storage?.getItem(SYNC_ADOPT_REMOTE_KEY) ?? "";
+    if (pendingKey !== key) return false;
+    storage?.removeItem(SYNC_ADOPT_REMOTE_KEY);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function getSyncLink(key: string): string {

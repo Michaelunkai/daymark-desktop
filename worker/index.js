@@ -35,6 +35,9 @@ async function handleSync(request, db, syncKey) {
   await db.prepare(
     "CREATE TABLE IF NOT EXISTS daymark_sync_states (sync_key TEXT PRIMARY KEY, revision INTEGER NOT NULL, state_json TEXT NOT NULL, updated_at TEXT NOT NULL)",
   ).run()
+  await db.prepare(
+    "CREATE TABLE IF NOT EXISTS daymark_sync_history (sync_key TEXT NOT NULL, revision INTEGER NOT NULL, state_json TEXT NOT NULL, archived_at TEXT NOT NULL, PRIMARY KEY (sync_key, revision))",
+  ).run()
 
   if (request.method === "GET") {
     const row = await db
@@ -91,6 +94,10 @@ async function handleSync(request, db, syncKey) {
   mergedState.updatedAt = updatedAt
   const stateJson = JSON.stringify(mergedState)
   if (current) {
+    await db
+      .prepare("INSERT OR IGNORE INTO daymark_sync_history (sync_key, revision, state_json, archived_at) VALUES (?1, ?2, ?3, ?4)")
+      .bind(syncKey, current.revision, current.state_json, updatedAt)
+      .run()
     const result = await db
       .prepare("UPDATE daymark_sync_states SET revision = ?1, state_json = ?2, updated_at = ?3 WHERE sync_key = ?4 AND revision = ?5")
       .bind(nextRevision, stateJson, updatedAt, syncKey, expectedRevision)

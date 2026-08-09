@@ -4,6 +4,7 @@ import { createId } from './core/sample-data'
 import { createAppStore } from './core/store'
 import { createBrowserStorage, loadState } from './core/storage'
 import {
+  consumeRemoteAdoption,
   createSyncChannel,
   getAndroidSyncLink,
   getSyncKey,
@@ -1840,6 +1841,7 @@ function App() {
   const [companionOpen, setCompanionOpen] = useState(false)
   const [uiSettings, setUiSettings] = useState(() => readUiSettings())
   const [syncKey] = useState(() => getSyncKey(getBrowserStorage()))
+  const [adoptRemoteOnJoin] = useState(() => consumeRemoteAdoption(syncKey, getBrowserStorage()))
   const [syncStatus, setSyncStatus] = useState('starting')
   const syncReadyRef = useRef(false)
   const syncRemoteRevisionRef = useRef(0)
@@ -1890,6 +1892,17 @@ function App() {
           const pushed = await pushSyncState(syncKey, local, remote.revision)
           if (cancelled) return
           syncRemoteRevisionRef.current = pushed.revision
+        } else if (adoptRemoteOnJoin) {
+          try {
+            window.localStorage.setItem(
+              `daymark.sync-join-backup.${new Date().toISOString()}`,
+              JSON.stringify(local),
+            )
+          } catch {
+            // The server copy remains the pairing authority if local backup storage is unavailable.
+          }
+          syncRemoteRevisionRef.current = remote.revision
+          replaceFromSync(remote.state)
         } else {
           const merged = mergeSyncStates(local, remote.state)
           syncRemoteRevisionRef.current = remote.revision
@@ -1926,7 +1939,7 @@ function App() {
       syncChannelRef.current?.close()
       syncChannelRef.current = null
     }
-  }, [syncKey])
+  }, [adoptRemoteOnJoin, syncKey])
 
   useEffect(() => {
     if (!syncReadyRef.current) return
