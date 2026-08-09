@@ -29,10 +29,15 @@
 
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
   min-height: 100vh;
   background: var(--canvas);
   font-weight: var(--body-font-weight, 550);
+  overflow-x: clip;
+}
+
+#root {
+  min-height: 100vh;
 }
 
 .app-shell :where(p, span, label, button, input, textarea, select, small, li) {
@@ -94,7 +99,9 @@ input:focus-visible {
 }
 
 .app-shell {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
   overflow: hidden;
   background: var(--canvas);
   transition: background-color 160ms ease;
@@ -256,7 +263,9 @@ kbd {
 .shell-grid {
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr) 286px;
-  min-height: calc(100vh - 64px);
+  height: calc(100vh - 64px);
+  height: calc(100dvh - 64px);
+  min-height: 0;
 }
 
 .app-shell.sidebar-is-collapsed .topbar {
@@ -299,8 +308,11 @@ kbd {
 
 .sidebar__scroll {
   flex: 1;
+  min-height: 0;
   overflow: auto;
   padding: 22px 12px 18px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sidebar-section {
@@ -511,9 +523,12 @@ kbd {
 }
 
 .main-content {
+  min-height: 0;
   min-width: 0;
   overflow: auto;
   background: var(--canvas);
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .content-frame {
@@ -2154,6 +2169,8 @@ kbd {
   .thought-capture__tray {
     gap: 12px;
     max-height: calc(100vh - 28px);
+    max-height: calc(100dvh - 28px);
+    overflow: auto;
     padding: 18px;
   }
 
@@ -2169,7 +2186,9 @@ kbd {
 
   .shell-grid {
     grid-template-columns: minmax(0, 1fr);
-    min-height: calc(100vh - 112px);
+    height: calc(100vh - 112px);
+    height: calc(100dvh - 112px);
+    min-height: 0;
   }
 
   .app-shell.sidebar-is-collapsed .shell-grid {

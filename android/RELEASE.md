@@ -1,6 +1,11 @@
 # Daymark Android Release
 
-`daymark-android-1.4.6.apk` is the companion-enabled shell release. It loads
+`daymark-android-1.4.7.apk` is the viewport-safe companion shell release. It
+uses the live Android viewport for the app frame, keeps each workspace view in
+its own vertical scroll region, and resizes around the Android keyboard so
+content is not clipped behind it.
+
+`daymark-android-1.4.6.apk` is the previous companion-enabled shell release. It loads
 the current Daymark web application and exposes the same live `DaymarkAI`
 bridge used by Codex sessions, including workspace reads, task/project
 updates, ordered actions, and reversible agent sessions.

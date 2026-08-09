@@ -38,6 +38,7 @@ test('Sites worker behavior preserves assets, serves SPA routes, and keeps missi
   )
   assert.equal(routeResponse.status, 200)
   assert.equal(await routeResponse.text(), 'DAYMARK')
+  assert.equal(routeResponse.headers.get('Cache-Control'), 'no-store')
 
   const defaultAcceptRouteResponse = await worker.fetch(
     new Request('https://daymark.test/workspace/order'),
@@ -68,6 +69,29 @@ test('Sites worker behavior preserves assets, serves SPA routes, and keeps missi
     '/assets/missing.js',
     '/workspace/order',
   ])
+})
+
+test('Sites worker serves AI discovery dynamically without stale static assets', async () => {
+  const env = {
+    ASSETS: {
+      async fetch() {
+        return new Response('stale asset', { status: 200 })
+      },
+    },
+  }
+
+  const manifestResponse = await worker.fetch(new Request('https://daymark.test/daymark-agent.json'), env)
+  const manifest = await manifestResponse.json()
+  assert.equal(manifestResponse.headers.get('Cache-Control'), 'no-store')
+  assert.equal(manifest.version, 4)
+  assert.equal(manifest.integration, 'openapi-http')
+  assert.equal(manifest.openapi, 'https://daymark.test/api/agent/v1/openapi.json')
+
+  const discoveryResponse = await worker.fetch(new Request('https://daymark.test/.well-known/daymark-ai.json'), env)
+  const discovery = await discoveryResponse.json()
+  assert.equal(discoveryResponse.headers.get('Cache-Control'), 'no-store')
+  assert.equal(discovery.version, 4)
+  assert.equal(discovery.manifest, 'https://daymark.test/daymark-agent.json')
 })
 
 test('Sites worker exposes non-sensitive Daymark health diagnostics', async () => {

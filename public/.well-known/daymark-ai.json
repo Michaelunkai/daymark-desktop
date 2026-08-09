@@ -1,22 +1,24 @@
 {
-  "name": "Daymark AI",
-  "version": 3,
-  "agentManifest": "/daymark-agent.json",
-  "health": "/api/health",
-  "bootstrap": {
-    "transport": "same-origin-browser-bridge",
-    "readyEvent": "daymark:agent-ready",
-    "global": "window.DaymarkAI",
-    "reconnect": "Open the paired Daymark workspace and wait for the ready event."
+  "name": "Daymark AI API",
+  "version": 4,
+  "apiVersion": "2.0.0",
+  "integration": "openapi-http",
+  "manifest": "/daymark-agent.json",
+  "discovery": "/.well-known/daymark-ai.json",
+  "openapi": "/api/agent/v1/openapi.json",
+  "clientConfiguration": "/daymark-ai-client.json",
+  "connector": "/daymark-ai-connector.mjs",
+  "health": "/api/agent/v1/health",
+  "readiness": "/api/agent/v1/ready",
+  "authentication": {
+    "scheme": "bearer",
+    "provisioning": "Generate a scoped Daymark AI key in Settings. The secret is shown once and can be revoked from Settings."
   },
-  "authorization": {
-    "boundary": "The agent operates only inside the already authorized Daymark document.",
-    "workspaceCredential": "The private pairing code remains inside browser or Android storage and is never returned by discovery or health endpoints.",
-    "revocation": "Remove the authorized browser session or rotate the workspace pairing from Daymark settings."
-  },
-  "dataHandling": {
-    "publicEndpoints": "Discovery and health expose no workspace contents.",
-    "workspaceReads": "Use DaymarkAI.getState from the authorized document.",
-    "workspaceMutations": "Use documented DaymarkAI operations so local-first validation, sync conflict handling, and tombstones remain in effect."
-  }
+  "excludedData": [
+    "rawSync", "pairingCodes", "backups", "databaseAdministration",
+    "localOnlyReminders", "activityComments"
+  ],
+  "excludedActions": [
+    "backup.import", "backup.export", "sync.manage", "key.administration.byAgent"
+  ]
 }

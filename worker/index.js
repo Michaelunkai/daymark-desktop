@@ -22,6 +22,9 @@ const worker = {
     if (pathname === "/.well-known/daymark-ai.json" && request.method === "GET") {
       return json(agentDiscovery(url.origin))
     }
+    if (pathname === "/daymark-agent.json" && request.method === "GET") {
+      return json(agentManifest(url.origin))
+    }
     if (pathname === "/api/agent/v1/openapi.json" && request.method === "GET") {
       return json(agentOpenApi(url.origin))
     }
@@ -56,7 +59,7 @@ const worker = {
         method: request.method,
         headers,
       })
-      return env.ASSETS.fetch(fallbackRequest)
+      return noStoreAssetResponse(await env.ASSETS.fetch(fallbackRequest))
     }
 
     return env.ASSETS.fetch(request)
@@ -1409,7 +1412,11 @@ function createRecordId(prefix) {
 function agentDiscovery(origin) {
   return {
     name: "Daymark AI API",
+    version: 4,
     apiVersion: "2.0.0",
+    integration: "openapi-http",
+    manifest: `${origin}/daymark-agent.json`,
+    discovery: `${origin}/.well-known/daymark-ai.json`,
     openapi: `${origin}/api/agent/v1/openapi.json`,
     clientConfiguration: `${origin}/daymark-ai-client.json`,
     connector: `${origin}/daymark-ai-connector.mjs`,
@@ -1420,7 +1427,18 @@ function agentDiscovery(origin) {
       provisioning: "Generate a scoped AI key in Daymark Settings. The secret is shown once and can be revoked there.",
     },
     persistence: "D1-backed Daymark workspace state with optimistic revision conflicts and idempotency receipts.",
-    excluded: ["rawSync", "pairingCodes", "backups", "databaseAdministration", "localOnlyReminders", "activityComments"],
+    excludedData: ["rawSync", "pairingCodes", "backups", "databaseAdministration", "localOnlyReminders", "activityComments"],
+    excludedActions: ["backup.import", "backup.export", "sync.manage", "key.administration.byAgent"],
+  }
+}
+
+function agentManifest(origin) {
+  return {
+    ...agentDiscovery(origin),
+    scopes: AGENT_SCOPES,
+    idempotency: "Every write requires an Idempotency-Key. Reuse the same key after a retryable conflict or transport failure.",
+    deletion: "Deletion requires confirm=delete and returns a short-lived undo token. Restore only succeeds when no later workspace revision has intervened.",
+    legacyBrowserBridge: "DaymarkAI remains an in-page compatibility adapter only. It is not required for, and is not the authority for, the authenticated remote API.",
   }
 }
 
@@ -1588,6 +1606,16 @@ function json(value, status = 200) {
       "Cache-Control": "no-store",
       "Content-Type": "application/json; charset=utf-8",
     },
+  })
+}
+
+async function noStoreAssetResponse(response) {
+  const headers = new Headers(response.headers)
+  headers.set("Cache-Control", "no-store")
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
   })
 }
 
