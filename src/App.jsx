@@ -670,6 +670,7 @@ function SectionHeading({
   onReorderEnd,
   onMoveEarlier,
   onMoveLater,
+  onAddTask,
   onEdit,
   onDelete,
 }) {
@@ -727,6 +728,15 @@ function SectionHeading({
         ) : null}
         {section.id ? (
           <>
+            <button
+              aria-label={`Add task to ${section.name}`}
+              className="icon-button"
+              onClick={() => onAddTask?.(section.id)}
+              title="Add task to section"
+              type="button"
+            >
+              <Icon name="plus" size={15} />
+            </button>
             <button
               aria-label={`Edit ${section.name}`}
               className="icon-button"
@@ -3018,16 +3028,19 @@ function App() {
     setComposerOpen(false)
   }
 
-  const openTaskEditor = (mode = 'create', task = null, scheduledDate = null) => {
+  const openTaskEditor = (mode = 'create', task = null, scheduledDate = null, sectionId = null) => {
     const fallbackProjectId = route.startsWith('project:')
       ? route.slice('project:'.length)
       : route === 'inbox'
         ? state.preferences.inboxProjectId
         : null
+    const section = sectionId ? state.sections[sectionId] : null
+    const targetSectionId = section?.projectId === fallbackProjectId ? section.id : null
     const draft = task
       ? taskToTaskEditorDraft(task)
       : createTaskEditorDraft({
         projectId: fallbackProjectId,
+        sectionId: targetSectionId,
         dueText: scheduledDate ?? (route === 'today' ? today : ''),
       })
     setComposerOpen(false)
@@ -3759,6 +3772,7 @@ function App() {
                           collapsed={Boolean(section.id && state.sections[section.id]?.isCollapsed)}
                           count={section.tasks.length}
                           isReordering={reorderMode?.kind === 'section' && reorderMode.id === section.id}
+                          onAddTask={() => openTaskEditor('create', null, null, section.id)}
                           onLongPressReorder={route.startsWith('project:') && section.id ? () => enterReorderMode('section', section.id) : undefined}
                           onDelete={deleteSection}
                           onEdit={editSection}
@@ -3837,6 +3851,7 @@ function App() {
                         })())}
                         count={section.tasks.length}
                         isReordering={reorderMode?.kind === 'section' && reorderMode.id === section.id}
+                        onAddTask={() => openTaskEditor('create', null, null, section.id)}
                         onLongPressReorder={route.startsWith('project:') && section.id ? () => enterReorderMode('section', section.id) : undefined}
                         onDelete={deleteSection}
                         onEdit={editSection}
@@ -3861,7 +3876,7 @@ function App() {
                              task={task}
                            />
                          ))}
-                        <button className="board-add" onClick={() => openTaskEditor('create')} type="button">
+                        <button className="board-add" onClick={() => openTaskEditor('create', null, null, section.id)} type="button">
                           <Icon name="plus" size={15} />
                           Add task
                         </button>
