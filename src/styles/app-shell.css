@@ -2511,6 +2511,66 @@ kbd {
   background: var(--teal-soft);
 }
 
+.agent-key-reveal,
+.agent-key-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-soft);
+}
+
+.agent-key-reveal > span,
+.agent-key-list__item > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.agent-key-reveal strong,
+.agent-key-list__item strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.agent-key-reveal small,
+.agent-key-list__item small {
+  color: var(--ink-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.agent-key-reveal code {
+  display: block;
+  overflow-wrap: anywhere;
+  padding: 9px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+}
+
+.agent-key-list {
+  padding: 0;
+  overflow: hidden;
+}
+
+.agent-key-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+}
+
+.agent-key-list__item + .agent-key-list__item {
+  border-top: 1px solid var(--line);
+}
+
 .danger-button {
   min-height: 34px;
   padding: 0 11px;

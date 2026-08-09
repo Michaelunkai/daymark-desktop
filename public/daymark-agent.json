@@ -1,27 +1,35 @@
 {
-  "name": "Daymark",
-  "bridge": "DaymarkAI",
-  "alias": "DaymarkAgent",
-  "version": 2,
-  "channel": "daymark-agent",
+  "name": "Daymark Task Assistant",
+  "version": 3,
+  "integration": "openapi-http",
   "manifest": "/daymark-agent.json",
-  "readyEvent": "daymark:agent-ready",
-  "requestEvent": "daymark:agent-request",
-  "responseEvent": "daymark:agent-response",
-  "stateEvent": "daymark:agent-state",
-  "sessionEvent": "daymark:agent-session",
-  "messageEvent": "window.postMessage",
+  "openapi": "/api/agent/v1/openapi.json",
+  "authentication": {
+    "scheme": "bearer",
+    "provisioning": "Generate a task assistant key in Daymark Settings. The secret is shown once and can be revoked from Settings."
+  },
   "operations": [
-    "getState",
-    "getViewState",
-    "dispatch",
-    "navigate",
-    "openTask",
+    "listProjects",
+    "listTasks",
     "createTask",
-    "openProject",
-    "openOrder",
-    "startSession",
-    "stopSession",
-    "listSessions"
-  ]
+    "completeTask"
+  ],
+  "excludedData": [
+    "notes",
+    "diary",
+    "backups",
+    "syncState",
+    "pairingCodes"
+  ],
+  "excludedActions": [
+    "task.delete",
+    "project.create",
+    "project.update",
+    "project.delete",
+    "backup.import",
+    "backup.export",
+    "sync.manage"
+  ],
+  "idempotency": "All write operations require an Idempotency-Key header. Retry a conflict with the same key.",
+  "legacyBrowserBridge": "DaymarkAI remains an in-page compatibility adapter only. It is not an authenticated remote API."
 }

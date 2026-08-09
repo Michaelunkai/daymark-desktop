@@ -3,6 +3,7 @@ import { addDays, addMonths, addYears, fromLocalDate, startOfMonth, startOfWeek,
 import { createId } from './core/sample-data'
 import { createAppStore } from './core/store'
 import { createBrowserStorage, loadState } from './core/storage'
+import { listAgentKeys, provisionTaskAssistant, revokeAgentKey } from './core/agent-api'
 import {
   consumeRemoteAdoption,
   createSyncChannel,
@@ -1362,9 +1363,16 @@ function CalendarIntegrationStyle() {
 }
 
 function SettingsPanel({
+  agentKeyStatus,
+  agentKeys,
+  agentToken,
+  onCopyAgentToken,
+  onCreateAgentKey,
+  onDismissAgentToken,
   onExport,
   onImport,
   onReset,
+  onRevokeAgentKey,
   onCopySyncLink,
   onThemeChange,
   onUiSettingsChange,
@@ -1377,6 +1385,7 @@ function SettingsPanel({
 }) {
   const fileInputRef = useRef(null)
   const storageAvailable = canUseBrowserStorage()
+  const activeAgentKeys = agentKeys.filter((key) => !key.revokedAt)
   const stateSize = (() => {
     try {
       return new Blob([JSON.stringify(state)]).size
@@ -1534,6 +1543,59 @@ function SettingsPanel({
             </a>
           </div>
           <p className="settings-help">The link contains a private, randomly generated workspace code. Keep it private.</p>
+        </section>
+
+        <section className="settings-section settings-section--wide">
+          <div className="settings-section__heading">
+            <div>
+              <h3>AI task access</h3>
+              <p>Create a scoped key for Codex or another AI client that needs to work with your tasks.</p>
+            </div>
+            <span className={`storage-badge ${agentKeyStatus === 'ready' ? 'is-ready' : agentKeyStatus === 'loading' ? '' : 'is-warning'}`} role="status">
+              <span className="storage-badge__dot" />
+              {agentKeyStatus === 'ready' ? 'Ready' : agentKeyStatus === 'loading' ? 'Loading' : 'Unavailable'}
+            </span>
+          </div>
+          <div className="settings-recovery">
+            <span className="settings-recovery__icon"><Icon name="companion" size={16} /></span>
+            <span>
+              <strong>Task assistant scope</strong>
+              <small>Can list projects and tasks, create tasks, and complete tasks. It cannot access notes, diary entries, backups, sync data, deletes, or project administration.</small>
+            </span>
+          </div>
+          <div className="settings-actions">
+            <button className="secondary-button" disabled={agentKeyStatus === 'loading'} onClick={onCreateAgentKey} type="button">
+              <Icon name="companion" size={16} />
+              Generate task assistant key
+            </button>
+          </div>
+          {agentToken ? (
+            <div className="agent-key-reveal">
+              <span>
+                <strong>Copy this key now</strong>
+                <small>Daymark will not store or show the secret again after you hide it.</small>
+              </span>
+              <code>{agentToken}</code>
+              <div className="settings-actions">
+                <button className="secondary-button" onClick={onCopyAgentToken} type="button">Copy key</button>
+                <button className="text-button" onClick={onDismissAgentToken} type="button">Hide key</button>
+              </div>
+            </div>
+          ) : null}
+          {activeAgentKeys.length ? (
+            <div className="agent-key-list" aria-label="Active AI task assistant keys">
+              {activeAgentKeys.map((key) => (
+                <div className="agent-key-list__item" key={key.id}>
+                  <span>
+                    <strong>{key.name}</strong>
+                    <small>{key.scopes.join(', ')}{key.lastUsedAt ? ` · used ${new Date(key.lastUsedAt).toLocaleDateString()}` : ' · not used yet'}</small>
+                  </span>
+                  <button className="danger-button" onClick={() => onRevokeAgentKey(key.id)} type="button">Revoke</button>
+                </div>
+              ))}
+            </div>
+          ) : agentKeyStatus === 'ready' ? <p className="settings-help">No AI task assistant keys have been created for this workspace.</p> : null}
+          <p className="settings-help">Use the published Daymark Task Assistant OpenAPI contract with a server-side client or an approved MCP wrapper. Keep each key private and revoke it when no longer needed.</p>
         </section>
 
         <section className="settings-section settings-section--wide settings-section--danger">
@@ -1843,6 +1905,9 @@ function App() {
   const [syncKey] = useState(() => getSyncKey(getBrowserStorage()))
   const [adoptRemoteOnJoin] = useState(() => consumeRemoteAdoption(syncKey, getBrowserStorage()))
   const [syncStatus, setSyncStatus] = useState('starting')
+  const [agentKeys, setAgentKeys] = useState([])
+  const [agentKeyStatus, setAgentKeyStatus] = useState('loading')
+  const [agentToken, setAgentToken] = useState('')
   const syncReadyRef = useRef(false)
   const syncRemoteRevisionRef = useRef(0)
   const syncSkipNextPushRef = useRef(false)
@@ -2021,6 +2086,24 @@ function App() {
     }
   }, [syncKey, syncStatus])
 
+  useEffect(() => {
+    if (route !== 'settings') return undefined
+    let cancelled = false
+    setAgentKeyStatus('loading')
+    listAgentKeys(syncKey)
+      .then((keys) => {
+        if (cancelled) return
+        setAgentKeys(keys)
+        setAgentKeyStatus('ready')
+      })
+      .catch(() => {
+        if (!cancelled) setAgentKeyStatus('unavailable')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [route, syncKey, syncStatus])
+
   const copySyncLink = async () => {
     const link = getSyncLink(syncKey)
     try {
@@ -2028,6 +2111,45 @@ function App() {
       setNotice('Sync link copied. Open it on Android to pair this workspace.')
     } catch {
       setNotice(link)
+    }
+  }
+
+  const createAgentKey = async () => {
+    setAgentKeyStatus('loading')
+    try {
+      const { key, token } = await provisionTaskAssistant({ syncKey })
+      setAgentKeys((current) => [key, ...current.filter((candidate) => candidate.id !== key.id)])
+      setAgentToken(token)
+      setAgentKeyStatus('ready')
+      setNotice('Task assistant key created. Copy it before hiding it.')
+    } catch {
+      setAgentKeyStatus('unavailable')
+      setNotice('Daymark could not create an AI task assistant key. Check your connection and try again.')
+    }
+  }
+
+  const copyAgentToken = async () => {
+    if (!agentToken) return
+    try {
+      await navigator.clipboard.writeText(agentToken)
+      setNotice('Task assistant key copied.')
+    } catch {
+      setNotice('Clipboard access is unavailable. Copy the key from Settings before hiding it.')
+    }
+  }
+
+  const revokeAgentAccessKey = async (keyId) => {
+    const key = agentKeys.find((candidate) => candidate.id === keyId)
+    if (!key || !window.confirm(`Revoke ${key.name}? Any AI client using this key will lose access immediately.`)) return
+    setAgentKeyStatus('loading')
+    try {
+      await revokeAgentKey(syncKey, keyId)
+      setAgentKeys((current) => current.map((candidate) => candidate.id === keyId ? { ...candidate, revokedAt: new Date().toISOString() } : candidate))
+      setAgentKeyStatus('ready')
+      setNotice('Task assistant key revoked.')
+    } catch {
+      setAgentKeyStatus('unavailable')
+      setNotice('Daymark could not revoke that key. Check your connection and try again.')
     }
   }
 
@@ -3297,9 +3419,16 @@ function App() {
 
             {route === 'settings' ? (
               <SettingsPanel
+                agentKeyStatus={agentKeyStatus}
+                agentKeys={agentKeys}
+                agentToken={agentToken}
+                onCopyAgentToken={copyAgentToken}
+                onCreateAgentKey={createAgentKey}
+                onDismissAgentToken={() => setAgentToken('')}
                 onExport={exportBackup}
                 onImport={importBackup}
                 onReset={resetWorkspace}
+                onRevokeAgentKey={revokeAgentAccessKey}
                 onCopySyncLink={copySyncLink}
                 onThemeChange={updateThemePreference}
                 onUiSettingsChange={updateUiSettings}

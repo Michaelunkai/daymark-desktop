@@ -89,6 +89,34 @@ future release:
   asset, `main`, and the deployed Sites source revision aligned. A green local
   test or HTTP 200 alone is not deployment proof.
 
+## AI task integrations
+
+Daymark exposes a narrow, authenticated Task Assistant API for Codex and other
+AI clients. It is an OpenAPI-compatible HTTP surface, not unrestricted browser
+automation or administrative access.
+
+1. Open **Settings** in Daymark and generate a **task assistant key**.
+2. Copy the secret when it is shown. Daymark stores only its SHA-256 hash and
+   cannot display the secret again after it is hidden.
+3. Configure a server-side AI client or approved MCP wrapper with a Bearer
+   token and the production OpenAPI document:
+   `https://daymark-desktop.michaelovsky55555.chatgpt.site/api/agent/v1/openapi.json`.
+
+The supported actions are:
+
+- List projects and tasks
+- Create one task
+- Complete one task
+
+The API intentionally cannot access notes, diary entries, backups, raw sync
+state, pairing codes, task deletion, project administration, or bulk actions.
+Every write requires an `Idempotency-Key`; retries after a concurrent sync
+conflict must use that same key. Keys can be revoked immediately in Settings.
+
+The legacy `DaymarkAI` browser object is an in-page compatibility adapter. It
+is not a remotely authenticated integration and must not be treated as a
+production API.
+
 ## Release verification
 
 For each release, record the exact Git commit, Sites saved version/deployment,
