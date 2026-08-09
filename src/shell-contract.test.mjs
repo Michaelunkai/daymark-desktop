@@ -62,4 +62,7 @@ test('shell styles include keyboard focus, mobile layout, and dark theme coverag
   assert.match(styles, /\.app-shell\.sidebar-is-collapsed \.topbar/)
   assert.match(styles, /\.app-shell\.sidebar-is-collapsed \.topbar__brand > :not\(\.topbar__menu\)/)
   assert.match(styles, /\.main-content \{\s*grid-column: 1 \/ -1;/)
+  assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) repeat\(4, 34px\)/)
+  assert.match(styles, /\.topbar__controls \.agent-connection \{[\s\S]*?font-size: 0;/)
+  assert.match(styles, /\.topbar__controls \.topbar__divider \{[\s\S]*?display: none;/)
 })
