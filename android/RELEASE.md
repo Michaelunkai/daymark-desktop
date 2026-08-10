@@ -1,5 +1,12 @@
 # Daymark Android Release
 
+`daymark-android-1.4.13.apk` fixes the Android black-screen failure: a
+transient WebView load error can no longer replace a visible Daymark workspace
+with a blank fallback. A genuine first-load failure stays visible as an
+explicit retry screen instead. It uses package `com.michaelunkai.daymark`,
+version code `17`, and version name `1.4.13`. The tracked APK SHA-256 is
+`D9D878535F58945C7EAAC1AE7D493BB92AD07DE35D4F7233D0F2281FFE3C9E8C`.
+
 `daymark-android-1.4.12.apk` protects an open task and Order transfer from
 incoming workspace replacement. Remote sync changes are deferred until the
 transfer closes, then merged, while background refresh uses a stable interval

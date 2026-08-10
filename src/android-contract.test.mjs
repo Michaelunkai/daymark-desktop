@@ -15,15 +15,15 @@ test("Android release exposes the shared responsive app with a launcher icon", a
 
   assert.match(manifest, /android:icon="@drawable\/ic_daymark"/);
   assert.match(manifest, /android:roundIcon="@drawable\/ic_daymark"/);
-  assert.match(gradle, /versionName "1\.4\.12"/);
+  assert.match(gradle, /versionName "1\.4\.13"/);
   assert.match(activity, /daymark-desktop\.michaelovsky55555\.chatgpt\.site/);
   assert.match(activity, /setDomStorageEnabled\(true\)/);
   assert.match(activity, /addJavascriptInterface/);
   assert.match(activity, /setTheme/);
   assert.match(activity, /Color\.BLACK/);
   assert.match(activity, /applyVantaBlackSystemBars/);
-  assert.match(activity, /#000000/);
-  assert.match(activity, /#fff/);
+  assert.match(activity, /Color\.BLACK/);
+  assert.match(activity, /Color\.WHITE/);
   assert.match(activity, /SharedPreferences/);
   assert.match(activity, /SYNC_KEY_PREF/);
   assert.match(activity, /preferences\.getString\(SYNC_KEY_PREF/);
@@ -31,6 +31,9 @@ test("Android release exposes the shared responsive app with a launcher icon", a
   assert.match(activity, /recoverWebView/);
   assert.match(activity, /onPageCommitVisible/);
   assert.match(activity, /Loading Daymark/);
+  assert.match(activity, /Daymark could not load/);
+  assert.match(activity, /retryCurrentPage/);
+  assert.doesNotMatch(activity, /loadDataWithBaseURL/);
   assert.match(icon, /android:pathData/);
   assert.doesNotMatch(icon, /#267553|#C44536|#F4F2EF|#1E2A25/);
   assert.match(manifest, /android:windowSoftInputMode="adjustResize"/);

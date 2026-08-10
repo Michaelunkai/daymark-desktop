@@ -34,6 +34,8 @@ public final class MainActivity extends Activity {
     private TextView loadingMessage;
     private String lastRequestedUrl;
     private boolean destroying;
+    private boolean hasVisibleDocument;
+    private boolean loadingFailed;
     private int rootBackPresses;
     private long lastRootBackAt;
 
@@ -60,6 +62,8 @@ public final class MainActivity extends Activity {
         loadingMessage.setTextColor(Color.WHITE);
         loadingMessage.setTextSize(16);
         loadingMessage.setGravity(android.view.Gravity.CENTER);
+        loadingMessage.setOnClickListener(view -> retryCurrentPage());
+        loadingCover.setOnClickListener(view -> retryCurrentPage());
         root.addView(
                 loadingMessage,
                 new FrameLayout.LayoutParams(
@@ -140,11 +144,28 @@ public final class MainActivity extends Activity {
 
     private void loadDaymarkUrl(String url) {
         lastRequestedUrl = url;
+        hasVisibleDocument = false;
+        loadingFailed = false;
         showLoading();
         if (webView != null) webView.loadUrl(url);
     }
 
     private void showLoading() {
+        if (loadingMessage != null) {
+            loadingMessage.setText("Loading Daymark");
+            loadingMessage.setClickable(false);
+        }
+        if (loadingCover != null) loadingCover.setClickable(false);
+        if (loadingCover != null) loadingCover.setVisibility(View.VISIBLE);
+        if (loadingMessage != null) loadingMessage.setVisibility(View.VISIBLE);
+    }
+
+    private void showOffline() {
+        if (loadingMessage != null) {
+            loadingMessage.setText("Daymark could not load.\nTap to retry");
+            loadingMessage.setClickable(true);
+        }
+        if (loadingCover != null) loadingCover.setClickable(true);
         if (loadingCover != null) loadingCover.setVisibility(View.VISIBLE);
         if (loadingMessage != null) loadingMessage.setVisibility(View.VISIBLE);
     }
@@ -152,6 +173,10 @@ public final class MainActivity extends Activity {
     private void hideLoading() {
         if (loadingCover != null) loadingCover.setVisibility(View.GONE);
         if (loadingMessage != null) loadingMessage.setVisibility(View.GONE);
+    }
+
+    private void retryCurrentPage() {
+        loadDaymarkUrl(lastRequestedUrl == null ? urlForIntent(getIntent()) : lastRequestedUrl);
     }
 
     private void recoverWebView(WebView failedWebView) {
@@ -207,12 +232,18 @@ public final class MainActivity extends Activity {
 
         @Override
         public void onPageFinished(WebView view, String url) {
-            if (view == webView) hideLoading();
+            if (view == webView && !loadingFailed) {
+                hasVisibleDocument = true;
+                hideLoading();
+            }
         }
 
         @Override
         public void onPageCommitVisible(WebView view, String url) {
-            if (view == webView) hideLoading();
+            if (view == webView && !loadingFailed) {
+                hasVisibleDocument = true;
+                hideLoading();
+            }
         }
 
         @Override
@@ -228,20 +259,15 @@ public final class MainActivity extends Activity {
                 WebView view,
                 WebResourceRequest request,
                 WebResourceError error) {
-            if (view == webView && request.isForMainFrame()) {
-                hideLoading();
-                view.loadDataWithBaseURL(
-                        START_URL,
-                        "<!doctype html><meta name='viewport' content='width=device-width,initial-scale=1'>"
-                                + "<meta name='theme-color' content='#000000'>"
-                                + "<style>html,body{font:16px sans-serif;padding:24px;color:#fff;background:#000}"
-                                + "button{padding:12px 16px;border:1px solid #fff;background:#000;color:#fff;border-radius:8px}</style>"
-                                + "<h1>Daymark is offline</h1><p>Reconnect to the internet and try again.</p>"
-                                + "<button onclick='location.reload()'>Retry</button>",
-                        "text/html",
-                        "UTF-8",
-                        null);
+            if (view != webView || !request.isForMainFrame()) {
+                return;
             }
+            if (hasVisibleDocument) {
+                hideLoading();
+                return;
+            }
+            loadingFailed = true;
+            showOffline();
         }
     }
 
