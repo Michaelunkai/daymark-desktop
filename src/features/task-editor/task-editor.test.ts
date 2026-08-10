@@ -25,7 +25,8 @@ test('keeps Order transfers in the explicit destination flow', () => {
   assert.match(source, /startTransfer\('copyToOrder'\)/);
   assert.match(source, /Choose the Order section/);
   assert.match(source, /getOrderTransferDestinationError/);
-  assert.match(source, /After which Order item\?/);
+  assert.doesNotMatch(source, /After which Order item\?/);
+  assert.doesNotMatch(source, /Choose an Order item/);
   assert.match(source, /onMoveTaskToOrder\?\.\(nextDraft\)/);
   assert.match(source, /onCopyTaskToOrder\?\.\(nextDraft\)/);
 });

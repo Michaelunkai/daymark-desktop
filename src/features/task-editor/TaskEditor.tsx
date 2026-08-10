@@ -35,7 +35,6 @@ export function TaskEditor({
   mode = 'edit',
   projects = [],
   sections = [],
-  orderItems = [],
   isSaving = false,
   saveError,
   validationErrors = {},
@@ -174,7 +173,6 @@ export function TaskEditor({
     reminder: `${titleId}-reminder`,
     error: `${titleId}-error`,
     orderLane: `${titleId}-order-lane`,
-    orderRelation: `${titleId}-order-relation`,
   };
 
   function changeField<Field extends keyof TaskEditorDraft>(
@@ -286,9 +284,7 @@ export function TaskEditor({
           transferTarget.orderLane as TaskEditorDraft['orderLane'],
         ),
         'orderRelationId',
-        transferTarget.orderLane === 'after'
-          ? transferTarget.orderRelationId
-          : null,
+        null,
       );
       if (transferAction === 'moveToOrder') {
         onMoveTaskToOrder?.(nextDraft);
@@ -523,16 +519,9 @@ export function TaskEditor({
                             setTransferTarget((current) => ({
                               ...current,
                               orderLane,
-                              orderRelationId:
-                                orderLane === 'after'
-                                  ? current.orderRelationId
-                                  : '',
+                              orderRelationId: '',
                             }));
-                            if (orderLane === 'after') {
-                              setTransferReady(false);
-                            } else {
-                              armTransferAction();
-                            }
+                            armTransferAction();
                           }}
                         >
                           <option value="">Choose an Order section</option>
@@ -543,41 +532,6 @@ export function TaskEditor({
                         <ChevronDownIcon />
                       </div>
                     </div>
-                    {transferTarget.orderLane === 'after' ? (
-                      <div className="task-editor__field">
-                        <label htmlFor={ids.orderRelation}>
-                          After which Order item?
-                        </label>
-                        <div className="task-editor__select-wrap">
-                          <select
-                            id={ids.orderRelation}
-                            value={transferTarget.orderRelationId}
-                            onChange={(event) => {
-                              const orderRelationId =
-                                event.currentTarget.value;
-                              setTransferError('');
-                              setTransferTarget((current) => ({
-                                ...current,
-                                orderRelationId,
-                              }));
-                              armTransferAction();
-                            }}
-                          >
-                            <option value="">Choose an Order item</option>
-                            {orderItems.map((item) => (
-                              <option
-                                key={item.id}
-                                value={item.id}
-                                disabled={item.disabled}
-                              >
-                                {item.label}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDownIcon />
-                        </div>
-                      </div>
-                    ) : null}
                   </>
                 ) : (
                   <div className="task-editor__field-grid">

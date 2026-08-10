@@ -99,17 +99,10 @@ export function getTaskTransferDestinationError(destination: {
 
 export function getOrderTransferDestinationError(destination: {
   orderLane: string | null;
-  orderRelationId: string | null;
+  orderRelationId?: string | null;
 }): string {
   if (!destination.orderLane) {
     return 'Choose an Order section before transferring.';
-  }
-
-  if (
-    destination.orderLane === 'after' &&
-    !destination.orderRelationId
-  ) {
-    return 'Choose the Order item this task should follow.';
   }
 
   return '';

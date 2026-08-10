@@ -129,7 +129,7 @@ export function taskEditorDraftToOrderItemInput(
       title: value.title,
       details: value.description,
       lane: value.orderLane,
-      relationId: value.orderLane === 'after' ? value.orderRelationId : null,
+      relationId: null,
       priority: value.priority,
       status: 'open',
     },

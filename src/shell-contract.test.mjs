@@ -96,10 +96,9 @@ test('shell styles include keyboard focus, mobile layout, and dark theme coverag
 
 test('transfer selects capture WebView values before scheduling state updates', () => {
   assert.match(taskEditor, /const orderLane = event\.currentTarget\.value;/)
-  assert.match(
-    taskEditor,
-    /const orderRelationId =\s+event\.currentTarget\.value;/,
-  )
+  assert.doesNotMatch(taskEditor, /After which Order item\?/)
+  assert.doesNotMatch(taskEditor, /Choose an Order item/)
+  assert.doesNotMatch(taskEditor, /const orderRelationId =/)
   assert.match(taskEditor, /const projectId = event\.currentTarget\.value;/)
   assert.match(taskEditor, /const sectionId = event\.currentTarget\.value;/)
   assert.doesNotMatch(

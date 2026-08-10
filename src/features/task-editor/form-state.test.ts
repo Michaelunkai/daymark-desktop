@@ -164,7 +164,7 @@ test('requires an explicit project and section for every task destination', () =
   );
 });
 
-test('requires an explicit Order section and relation for every Order destination', () => {
+test('requires only an explicit Order section for every Order destination', () => {
   assert.equal(
     getOrderTransferDestinationError({
       orderLane: '',
@@ -177,7 +177,7 @@ test('requires an explicit Order section and relation for every Order destinatio
       orderLane: 'after',
       orderRelationId: '',
     }),
-    'Choose the Order item this task should follow.',
+    '',
   );
   assert.equal(
     getOrderTransferDestinationError({
@@ -218,6 +218,22 @@ test('adapts a task for Order without depending on its schedule or task location
     priority: 4,
     status: 'open',
   });
+});
+
+test('treats After as an Order section without creating an item relation', () => {
+  const result = taskEditorDraftToOrderItemInput(
+    createTaskEditorDraft({
+      title: 'Continue after the current work',
+      orderLane: 'after',
+      orderRelationId: 'legacy-order-item',
+    }),
+  );
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+
+  assert.equal(result.value.lane, 'after');
+  assert.equal(result.value.relationId, null);
 });
 
 test('returns field errors for unsupported schedule text', () => {
