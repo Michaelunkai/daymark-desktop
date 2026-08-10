@@ -1,5 +1,12 @@
 # Daymark Android Release
 
+`daymark-android-1.4.19.apk` removes the unnecessary Order-item choice from
+task-to-Order moves and copies. Choosing Do now, Later, or After is now a
+complete destination, and After no longer creates an item relation. It uses
+package `com.michaelunkai.daymark`, version code `23`, and version name
+`1.4.19`. The tracked APK SHA-256 is
+`84DD15CF5289747038A0246E52C1A30A9FC6B2133DB85F1A35CD309A319F7B3A`.
+
 `daymark-android-1.4.18.apk` is the verified transfer and launcher-icon
 release. Android transfer dropdowns retain their selected project, section,
 Order lane, and related item values before React schedules state updates, and
