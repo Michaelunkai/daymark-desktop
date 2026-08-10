@@ -1,6 +1,7 @@
 import { createSampleState } from "./sample-data";
 import {
   consumeRemoteAdoption,
+  createInteractionSyncGate,
   getSyncKey,
   mergeSyncStates,
   syncStatesMatch,
@@ -72,6 +73,29 @@ assert(
 assert(
   !syncStatesMatch(local, { ...local, tasks: { ...local.tasks, "task-extra": local.tasks["task-welcome"] } }),
   "Different entity content must remain detectable.",
+);
+
+const interactionGate = createInteractionSyncGate<string>();
+assert(
+  interactionGate.setInteractionOpen(true) === null,
+  "Opening a protected interaction must not flush state.",
+);
+assert(
+  interactionGate.defer("remote-during-transfer", 12),
+  "Remote state must be deferred while a transfer interaction is open.",
+);
+assert(
+  interactionGate.defer("newer-remote-during-transfer", 13),
+  "The newest remote state must replace an older deferred state.",
+);
+const deferredRemote = interactionGate.setInteractionOpen(false);
+assert(
+  deferredRemote?.state === "newer-remote-during-transfer" && deferredRemote.revision === 13,
+  "Closing a protected interaction must flush its newest deferred remote state.",
+);
+assert(
+  interactionGate.setInteractionOpen(false) === null,
+  "A deferred remote state must flush only once.",
 );
 
 const pairingCode = "MIPPAd7gqrVglM_FQyqwAA";

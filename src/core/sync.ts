@@ -11,6 +11,31 @@ type SyncMessage = {
   state: AppState;
 };
 
+export type DeferredRemoteState<T> = {
+  state: T;
+  revision: number;
+};
+
+export function createInteractionSyncGate<T>() {
+  let interactionOpen = false;
+  let deferred: DeferredRemoteState<T> | null = null;
+
+  return {
+    setInteractionOpen(isOpen: boolean): DeferredRemoteState<T> | null {
+      interactionOpen = isOpen;
+      if (isOpen || !deferred) return null;
+      const next = deferred;
+      deferred = null;
+      return next;
+    },
+    defer(state: T, revision: number): boolean {
+      if (!interactionOpen) return false;
+      deferred = { state, revision };
+      return true;
+    },
+  };
+}
+
 export function getSyncKey(storage?: Pick<Storage, "getItem" | "setItem"> | null): string {
   const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
   const fromUrl = params.get("sync") ?? "";

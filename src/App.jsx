@@ -7,6 +7,7 @@ import { listAgentKeys, provisionTaskAssistant, revokeAgentKey } from './core/ag
 import {
   consumeRemoteAdoption,
   createSyncChannel,
+  createInteractionSyncGate,
   getAndroidSyncLink,
   getSyncKey,
   getSyncLink,
@@ -1989,6 +1990,7 @@ function App() {
   const [syncKey] = useState(() => getSyncKey(getBrowserStorage()))
   const [adoptRemoteOnJoin] = useState(() => consumeRemoteAdoption(syncKey, getBrowserStorage()))
   const [syncStatus, setSyncStatus] = useState('starting')
+  const [syncReady, setSyncReady] = useState(false)
   const [agentKeys, setAgentKeys] = useState([])
   const [agentKeyStatus, setAgentKeyStatus] = useState('loading')
   const [agentToken, setAgentToken] = useState('')
@@ -1999,6 +2001,8 @@ function App() {
   const syncPushTimerRef = useRef(null)
   const syncChannelRef = useRef(null)
   const syncSourceRef = useRef(null)
+  const interactionSyncGateRef = useRef(createInteractionSyncGate())
+  const taskEditorOpenRef = useRef(false)
   const reorderPointerTargetRef = useRef(null)
   const composerRef = useRef(null)
   const captureReturnFocusRef = useRef(null)
@@ -2036,22 +2040,40 @@ function App() {
     appStore.replace(nextState)
   }
 
+  const applyIncomingRemoteState = (remoteState, revision = remoteState.revision) => {
+    const local = appStore.getState()
+    const merged = mergeSyncStates(local, remoteState)
+    syncRemoteRevisionRef.current = Math.max(syncRemoteRevisionRef.current, revision)
+    if (syncStatesMatch(merged, local)) return false
+
+    if (interactionSyncGateRef.current.defer(remoteState, revision)) {
+      setSyncStatus('syncing')
+      return true
+    }
+
+    replaceFromSync({
+      ...merged,
+      revision: Math.max(local.revision, revision),
+      updatedAt: local.updatedAt >= remoteState.updatedAt ? local.updatedAt : remoteState.updatedAt,
+    }, !syncStatesMatch(merged, remoteState))
+    setSyncStatus('synced')
+    return true
+  }
+
+  useEffect(() => {
+    taskEditorOpenRef.current = Boolean(taskEditor)
+    const deferredRemote = interactionSyncGateRef.current.setInteractionOpen(taskEditorOpenRef.current)
+    if (deferredRemote) applyIncomingRemoteState(deferredRemote.state, deferredRemote.revision)
+  }, [taskEditor])
+
   useEffect(() => {
     let cancelled = false
+    syncReadyRef.current = false
+    setSyncReady(false)
     const source = `${appStore.getState().clientId}:${Math.random().toString(36).slice(2)}`
     syncSourceRef.current = source
     const applyRemoteState = (remoteState) => {
-      const local = appStore.getState()
-      const merged = mergeSyncStates(local, remoteState)
-      if (!syncStatesMatch(merged, local)) {
-        syncRemoteRevisionRef.current = Math.max(syncRemoteRevisionRef.current, remoteState.revision)
-        replaceFromSync({
-          ...merged,
-          revision: Math.max(local.revision, remoteState.revision),
-          updatedAt: local.updatedAt >= remoteState.updatedAt ? local.updatedAt : remoteState.updatedAt,
-        }, !syncStatesMatch(merged, remoteState))
-        setSyncStatus('synced')
-      }
+      applyIncomingRemoteState(remoteState)
     }
     syncChannelRef.current = createSyncChannel(syncKey, source, applyRemoteState)
     const initializeSync = async () => {
@@ -2096,10 +2118,12 @@ function App() {
           }
         }
         syncReadyRef.current = true
+        setSyncReady(true)
         setSyncStatus('synced')
       } catch {
         if (cancelled) return
         syncReadyRef.current = true
+        setSyncReady(true)
         setSyncStatus('offline')
       }
     }
@@ -2129,14 +2153,8 @@ function App() {
       } catch (error) {
         if (error?.code === 'conflict' && error.state) {
           const remoteRevision = Number(error.revision ?? error.state.revision)
-          const merged = mergeSyncStates(appStore.getState(), error.state)
-          const rebased = {
-            ...merged,
-            revision: Math.max(merged.revision, remoteRevision) + 1,
-            updatedAt: new Date().toISOString(),
-          }
           syncRemoteRevisionRef.current = remoteRevision
-          appStore.replace(rebased)
+          applyIncomingRemoteState(error.state, remoteRevision)
           setNotice('Daymark merged changes from another device and is syncing again.')
           setSyncStatus('syncing')
         } else {
@@ -2150,23 +2168,13 @@ function App() {
   }, [state, state.revision, syncKey])
 
   useEffect(() => {
-    if (!syncReadyRef.current) return undefined
+    if (!syncReady) return undefined
     let cancelled = false
     const refreshRemote = async () => {
       try {
         const remote = await pullSyncState(syncKey)
         if (cancelled || !remote.state) return
-        const local = appStore.getState()
-        const merged = mergeSyncStates(local, remote.state)
-        syncRemoteRevisionRef.current = Math.max(syncRemoteRevisionRef.current, remote.revision)
-        if (!syncStatesMatch(merged, local)) {
-          replaceFromSync({
-            ...merged,
-            revision: Math.max(local.revision, remote.revision),
-            updatedAt: local.updatedAt >= remote.state.updatedAt ? local.updatedAt : remote.state.updatedAt,
-          }, !syncStatesMatch(merged, remote.state))
-          setSyncStatus('synced')
-        }
+        applyIncomingRemoteState(remote.state, remote.revision)
       } catch {
         if (!cancelled) setSyncStatus('offline')
       }
@@ -2174,12 +2182,16 @@ function App() {
     let timer = null
     const schedule = () => {
       timer = window.setTimeout(async () => {
-        await refreshRemote()
+        if (!taskEditorOpenRef.current) await refreshRemote()
         if (!cancelled) schedule()
-      }, document.visibilityState === 'hidden' ? 2000 : 350)
+      }, taskEditorOpenRef.current
+        ? 15000
+        : document.visibilityState === 'hidden'
+          ? 30000
+          : 5000)
     }
     const refreshImmediately = () => {
-      refreshRemote()
+      if (!taskEditorOpenRef.current) refreshRemote()
     }
     window.addEventListener('online', refreshImmediately)
     document.addEventListener('visibilitychange', refreshImmediately)
@@ -2190,7 +2202,7 @@ function App() {
       window.removeEventListener('online', refreshImmediately)
       document.removeEventListener('visibilitychange', refreshImmediately)
     }
-  }, [syncKey, syncStatus])
+  }, [syncKey, syncReady])
 
   useEffect(() => {
     let cancelled = false

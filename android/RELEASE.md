@@ -1,5 +1,13 @@
 # Daymark Android Release
 
+`daymark-android-1.4.12.apk` protects an open task and Order transfer from
+incoming workspace replacement. Remote sync changes are deferred until the
+transfer closes, then merged, while background refresh uses a stable interval
+instead of repeatedly restarting during interaction. It uses package
+`com.michaelunkai.daymark`, version code `16`, and version name `1.4.12`. The
+tracked APK SHA-256 is
+`9BF9996580CFD30449A44BE2C7F71AB5ED401A42ACC4D6E436A726BE3A87E77A`.
+
 `daymark-android-1.4.11.apk` is the Android WebView recovery release. It
 recreates the renderer after a process loss, restores the most recent Daymark
 address, and replaces a permanent blank loading surface with a visible loading
