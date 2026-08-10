@@ -3,6 +3,10 @@ import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
 const app = await readFile(new URL('./App.jsx', import.meta.url), 'utf8')
+const taskEditor = await readFile(
+  new URL('./features/task-editor/TaskEditor.tsx', import.meta.url),
+  'utf8',
+)
 const styles = await readFile(new URL('./styles/app-shell.css', import.meta.url), 'utf8')
 
 test('global shell exposes the required settings and repository affordances', () => {
@@ -88,4 +92,18 @@ test('shell styles include keyboard focus, mobile layout, and dark theme coverag
   assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) repeat\(4, 34px\)/)
   assert.match(styles, /\.topbar__controls \.agent-connection \{[\s\S]*?font-size: 0;/)
   assert.match(styles, /\.topbar__controls \.topbar__divider \{[\s\S]*?display: none;/)
+})
+
+test('transfer selects capture WebView values before scheduling state updates', () => {
+  assert.match(taskEditor, /const orderLane = event\.currentTarget\.value;/)
+  assert.match(
+    taskEditor,
+    /const orderRelationId =\s+event\.currentTarget\.value;/,
+  )
+  assert.match(taskEditor, /const projectId = event\.currentTarget\.value;/)
+  assert.match(taskEditor, /const sectionId = event\.currentTarget\.value;/)
+  assert.doesNotMatch(
+    taskEditor,
+    /setTransferTarget\(\(current\) => \(\{[\s\S]{0,240}event\.currentTarget\.value/,
+  )
 })

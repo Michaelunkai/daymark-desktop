@@ -490,12 +490,13 @@ export function TaskEditor({
                           id={ids.orderLane}
                           value={transferTarget.orderLane}
                           onChange={(event) => {
+                            const orderLane = event.currentTarget.value;
                             setTransferError('');
                             setTransferTarget((current) => ({
                               ...current,
-                              orderLane: event.currentTarget.value,
+                              orderLane,
                               orderRelationId:
-                                event.currentTarget.value === 'after'
+                                orderLane === 'after'
                                   ? current.orderRelationId
                                   : '',
                             }));
@@ -519,10 +520,12 @@ export function TaskEditor({
                             id={ids.orderRelation}
                             value={transferTarget.orderRelationId}
                             onChange={(event) => {
+                              const orderRelationId =
+                                event.currentTarget.value;
                               setTransferError('');
                               setTransferTarget((current) => ({
                                 ...current,
-                                orderRelationId: event.currentTarget.value,
+                                orderRelationId,
                               }));
                             }}
                           >
@@ -551,10 +554,11 @@ export function TaskEditor({
                           id={ids.project}
                           value={transferTarget.projectId}
                           onChange={(event) => {
+                            const projectId = event.currentTarget.value;
                             setTransferError('');
                             setTransferTarget((current) => ({
                               ...current,
-                              projectId: event.currentTarget.value,
+                              projectId,
                               sectionId: '',
                             }));
                           }}
@@ -582,10 +586,11 @@ export function TaskEditor({
                           value={transferTarget.sectionId}
                           disabled={!transferTarget.projectId}
                           onChange={(event) => {
+                            const sectionId = event.currentTarget.value;
                             setTransferError('');
                             setTransferTarget((current) => ({
                               ...current,
-                              sectionId: event.currentTarget.value,
+                              sectionId,
                             }));
                           }}
                         >
