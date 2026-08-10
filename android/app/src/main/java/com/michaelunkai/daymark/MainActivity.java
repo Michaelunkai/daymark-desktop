@@ -9,6 +9,8 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.webkit.JavascriptInterface;
 import android.webkit.RenderProcessGoneDetail;
 import android.view.View;
@@ -27,6 +29,8 @@ public final class MainActivity extends Activity {
     private static final String PREFS_NAME = "daymark";
     private static final String SYNC_KEY_PREF = "sync_key";
     private static final int SURFACE_COLOR = Color.BLACK;
+    private static final String NATIVE_RELEASE = "1.4.14";
+    private static final int CONTENT_READY_TIMEOUT_MS = 9000;
     private WebView webView;
     private SharedPreferences preferences;
     private FrameLayout root;
@@ -36,8 +40,11 @@ public final class MainActivity extends Activity {
     private boolean destroying;
     private boolean hasVisibleDocument;
     private boolean loadingFailed;
+    private int loadGeneration;
+    private int readinessCheckGeneration = -1;
     private int rootBackPresses;
     private long lastRootBackAt;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -138,7 +145,7 @@ public final class MainActivity extends Activity {
         settings.setLoadWithOverviewMode(false);
         settings.setUseWideViewPort(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         return nextWebView;
     }
 
@@ -146,8 +153,9 @@ public final class MainActivity extends Activity {
         lastRequestedUrl = url;
         hasVisibleDocument = false;
         loadingFailed = false;
+        loadGeneration += 1;
         showLoading();
-        if (webView != null) webView.loadUrl(url);
+        if (webView != null) webView.loadUrl(withLaunchMarker(url));
     }
 
     private void showLoading() {
@@ -177,6 +185,62 @@ public final class MainActivity extends Activity {
 
     private void retryCurrentPage() {
         loadDaymarkUrl(lastRequestedUrl == null ? urlForIntent(getIntent()) : lastRequestedUrl);
+    }
+
+    private String withLaunchMarker(String url) {
+        return Uri.parse(url)
+                .buildUpon()
+                .appendQueryParameter("native", NATIVE_RELEASE)
+                .build()
+                .toString();
+    }
+
+    private void verifyAppRendered(WebView view, int generation) {
+        if (destroying || view != webView || generation != loadGeneration || loadingFailed) {
+            return;
+        }
+        view.evaluateJavascript(
+                "(function(){var root=document.getElementById('root');"
+                        + "return Boolean(root&&root.getAttribute('data-daymark-ready')==='true');})()",
+                value -> {
+                    if (destroying || view != webView || generation != loadGeneration || loadingFailed) {
+                        return;
+                    }
+                    if ("true".equals(value)) {
+                        markAppReady();
+                    } else {
+                        mainHandler.postDelayed(
+                                () -> verifyAppRendered(view, generation),
+                                250);
+                    }
+                });
+    }
+
+    private void scheduleAppReadinessCheck(WebView view) {
+        int generation = loadGeneration;
+        if (readinessCheckGeneration == generation) {
+            return;
+        }
+        readinessCheckGeneration = generation;
+        verifyAppRendered(view, generation);
+        mainHandler.postDelayed(() -> {
+            if (!destroying
+                    && view == webView
+                    && generation == loadGeneration
+                    && !hasVisibleDocument
+                    && !loadingFailed) {
+                loadingFailed = true;
+                showOffline();
+            }
+        }, CONTENT_READY_TIMEOUT_MS);
+    }
+
+    private void markAppReady() {
+        if (destroying || loadingFailed) {
+            return;
+        }
+        hasVisibleDocument = true;
+        hideLoading();
     }
 
     private void recoverWebView(WebView failedWebView) {
@@ -233,16 +297,14 @@ public final class MainActivity extends Activity {
         @Override
         public void onPageFinished(WebView view, String url) {
             if (view == webView && !loadingFailed) {
-                hasVisibleDocument = true;
-                hideLoading();
+                scheduleAppReadinessCheck(view);
             }
         }
 
         @Override
         public void onPageCommitVisible(WebView view, String url) {
             if (view == webView && !loadingFailed) {
-                hasVisibleDocument = true;
-                hideLoading();
+                scheduleAppReadinessCheck(view);
             }
         }
 
@@ -290,6 +352,21 @@ public final class MainActivity extends Activity {
         public void setTheme(String ignoredTheme) {
             runOnUiThread(() -> {
                 applyVantaBlackSystemBars();
+            });
+        }
+
+        @JavascriptInterface
+        public void onAppReady() {
+            runOnUiThread(() -> markAppReady());
+        }
+
+        @JavascriptInterface
+        public void onAppError() {
+            runOnUiThread(() -> {
+                if (!destroying) {
+                    loadingFailed = true;
+                    showOffline();
+                }
             });
         }
 

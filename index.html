@@ -8,7 +8,21 @@
     <title>Daymark workspace</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root" data-daymark-ready="false">
+      <main
+        aria-live="polite"
+        style="align-items:center;background:#000;color:#fff;display:flex;flex-direction:column;font-family:system-ui,sans-serif;gap:16px;justify-content:center;min-height:100vh;padding:24px;text-align:center"
+      >
+        <p style="font-size:18px;margin:0">Loading Daymark</p>
+        <button
+          onclick="window.location.reload()"
+          style="background:#000;border:1px solid #fff;color:#fff;font:inherit;padding:10px 14px"
+          type="button"
+        >
+          Reload Daymark
+        </button>
+      </main>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

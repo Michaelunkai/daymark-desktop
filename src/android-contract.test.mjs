@@ -15,7 +15,7 @@ test("Android release exposes the shared responsive app with a launcher icon", a
 
   assert.match(manifest, /android:icon="@drawable\/ic_daymark"/);
   assert.match(manifest, /android:roundIcon="@drawable\/ic_daymark"/);
-  assert.match(gradle, /versionName "1\.4\.13"/);
+  assert.match(gradle, /versionName "1\.4\.14"/);
   assert.match(activity, /daymark-desktop\.michaelovsky55555\.chatgpt\.site/);
   assert.match(activity, /setDomStorageEnabled\(true\)/);
   assert.match(activity, /addJavascriptInterface/);
@@ -33,6 +33,12 @@ test("Android release exposes the shared responsive app with a launcher icon", a
   assert.match(activity, /Loading Daymark/);
   assert.match(activity, /Daymark could not load/);
   assert.match(activity, /retryCurrentPage/);
+  assert.match(activity, /LOAD_NO_CACHE/);
+  assert.match(activity, /NATIVE_RELEASE/);
+  assert.match(activity, /withLaunchMarker/);
+  assert.match(activity, /onAppReady/);
+  assert.match(activity, /verifyAppRendered/);
+  assert.match(activity, /CONTENT_READY_TIMEOUT_MS/);
   assert.doesNotMatch(activity, /loadDataWithBaseURL/);
   assert.match(icon, /android:pathData/);
   assert.doesNotMatch(icon, /#267553|#C44536|#F4F2EF|#1E2A25/);
