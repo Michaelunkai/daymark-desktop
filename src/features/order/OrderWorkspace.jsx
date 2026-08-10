@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { createLongPressReorderController } from '../reorder/long-press.js'
+import { getTaskTransferDestinationError } from '../task-editor/form-state'
 import './order.css'
 
 const LANES = [
@@ -178,12 +179,12 @@ export function OrderWorkspace({
 
   const transferToTask = (callback) => {
     if (!editing || editing === 'create' || !callback) return
-    if (draft.taskProjectId === '') {
-      setTransferError('Choose Inbox or a project before transferring this item.')
-      return
-    }
-    if (draft.taskSectionId === '') {
-      setTransferError('Choose a section or explicitly choose No section before transferring.')
+    const destinationError = getTaskTransferDestinationError({
+      projectId: draft.taskProjectId,
+      sectionId: draft.taskSectionId,
+    })
+    if (destinationError) {
+      setTransferError(destinationError)
       return
     }
     if (callback(editing, draft)) closeEditor()

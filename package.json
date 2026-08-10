@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:core": "tsx --test src/core/store.test.ts src/core/sync.test.ts src/core/agent-api.test.ts src/core/dates/dates.test.ts",
-    "test:features": "tsx --test src/features/calendar/upcoming-model.test.ts src/features/calendar/task-movement.test.ts src/features/capture/capture.test.ts src/features/order/order.test.ts src/features/projects/projects.test.ts src/features/task-editor/task-editor.test.ts src/features/reminders/scheduler.test.ts src/features/reorder/long-press.test.ts && node --test src/features/companion/companion-context.test.mjs",
+    "test:features": "tsx --test src/features/calendar/upcoming-model.test.ts src/features/calendar/task-movement.test.ts src/features/capture/capture.test.ts src/features/order/order.test.ts src/features/projects/projects.test.ts src/features/task-editor/task-editor.test.ts src/features/task-editor/form-state.test.ts src/features/reminders/scheduler.test.ts src/features/reorder/long-press.test.ts && node --test src/features/companion/companion-context.test.mjs",
     "test:shell": "node --test src/shell-contract.test.mjs",
     "test:sites": "node --test src/sites-build-contract.test.mjs src/sync-contract.test.mjs src/android-contract.test.mjs src/agent-contract.test.mjs src/agent-api.test.mjs",
     "test:sites-artifact": "node --test src/sites-build-artifact.test.mjs",

@@ -8,6 +8,8 @@ import {
 } from 'react';
 
 import {
+  getOrderTransferDestinationError,
+  getTaskTransferDestinationError,
   updateTaskEditorDraft,
   validateTaskEditorDraft,
 } from './form-state';
@@ -241,15 +243,11 @@ export function TaskEditor({
     }
 
     if (isOrderTransfer) {
-      if (!transferTarget.orderLane) {
-        setTransferError('Choose an Order group before transferring.');
-        return;
-      }
-      if (
-        transferTarget.orderLane === 'after' &&
-        !transferTarget.orderRelationId
-      ) {
-        setTransferError('Choose the Order item this task should follow.');
+      const destinationError = getOrderTransferDestinationError(
+        transferTarget,
+      );
+      if (destinationError) {
+        setTransferError(destinationError);
         return;
       }
 
@@ -272,12 +270,9 @@ export function TaskEditor({
       return;
     }
 
-    if (!transferTarget.projectId) {
-      setTransferError('Choose Inbox or a project before transferring.');
-      return;
-    }
-    if (!transferTarget.sectionId) {
-      setTransferError('Choose a section or explicitly choose No section.');
+    const destinationError = getTaskTransferDestinationError(transferTarget);
+    if (destinationError) {
+      setTransferError(destinationError);
       return;
     }
 
@@ -480,7 +475,7 @@ export function TaskEditor({
                     <p className="task-editor__eyebrow">Transfer</p>
                     <h3>
                       {isOrderTransfer
-                        ? 'Choose the Order destination'
+                        ? 'Choose the Order section'
                         : 'Choose the task destination'}
                     </h3>
                   </div>
@@ -489,7 +484,7 @@ export function TaskEditor({
                 {isOrderTransfer ? (
                   <>
                     <div className="task-editor__field">
-                      <label htmlFor={ids.orderLane}>Order group</label>
+                      <label htmlFor={ids.orderLane}>Order section</label>
                       <div className="task-editor__select-wrap">
                         <select
                           id={ids.orderLane}
@@ -506,7 +501,7 @@ export function TaskEditor({
                             }));
                           }}
                         >
-                          <option value="">Choose an Order group</option>
+                          <option value="">Choose an Order section</option>
                           <option value="now">Do now</option>
                           <option value="later">Later</option>
                           <option value="after">After</option>

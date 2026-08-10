@@ -82,6 +82,39 @@ export function validateTaskEditorDraft(
   };
 }
 
+export function getTaskTransferDestinationError(destination: {
+  projectId: string | null;
+  sectionId: string | null;
+}): string {
+  if (!destination.projectId) {
+    return 'Choose Inbox or a project before transferring.';
+  }
+
+  if (!destination.sectionId) {
+    return 'Choose a section or explicitly choose No section.';
+  }
+
+  return '';
+}
+
+export function getOrderTransferDestinationError(destination: {
+  orderLane: string | null;
+  orderRelationId: string | null;
+}): string {
+  if (!destination.orderLane) {
+    return 'Choose an Order section before transferring.';
+  }
+
+  if (
+    destination.orderLane === 'after' &&
+    !destination.orderRelationId
+  ) {
+    return 'Choose the Order item this task should follow.';
+  }
+
+  return '';
+}
+
 export function isTaskEditorDirty(
   initialDraft: TaskEditorDraft,
   draft: TaskEditorDraft,

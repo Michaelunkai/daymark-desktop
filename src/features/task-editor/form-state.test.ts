@@ -5,6 +5,8 @@ import type { Task } from '../../core/types';
 
 import {
   createTaskEditorDraft,
+  getOrderTransferDestinationError,
+  getTaskTransferDestinationError,
   isTaskEditorDirty,
   normalizeTaskEditorDraft,
   updateTaskEditorDraft,
@@ -17,11 +19,10 @@ import {
   toTaskEditorSectionOptions,
 } from './adapters';
 
-test('normalizes editor text and de-duplicates labels', () => {
+test('normalizes editor text', () => {
   const draft = createTaskEditorDraft({
     title: '  Plan the handoff  ',
     description: '  Include links  ',
-    labelIds: ['label-focus', 'label-focus', 'label-next'],
   });
 
   assert.deepEqual(normalizeTaskEditorDraft(draft), {
@@ -29,11 +30,12 @@ test('normalizes editor text and de-duplicates labels', () => {
     description: 'Include links',
     projectId: null,
     sectionId: null,
-    labelIds: ['label-focus', 'label-next'],
     priority: 4,
     dueText: '',
     recurrenceText: '',
     reminderText: '',
+    orderLane: 'now',
+    orderRelationId: null,
   });
 });
 
@@ -88,11 +90,12 @@ test('maps a core task to a parser-compatible editor draft', () => {
     description: 'Attach the final receipt.',
     projectId: 'project-work',
     sectionId: 'section-finance',
-    labelIds: ['label-admin'],
     priority: 2,
     dueText: '2026-08-03 at 4:30 pm',
     recurrenceText: 'every week',
     reminderText: '',
+    orderLane: 'now',
+    orderRelationId: null,
   });
 });
 
@@ -130,6 +133,65 @@ test('normalizes an Order destination relation for After transfers', () => {
 
   assert.equal(draft.orderLane, 'after');
   assert.equal(draft.orderRelationId, 'order-previous');
+});
+
+test('requires an explicit project and section for every task destination', () => {
+  assert.equal(
+    getTaskTransferDestinationError({ projectId: '', sectionId: '' }),
+    'Choose Inbox or a project before transferring.',
+  );
+  assert.equal(
+    getTaskTransferDestinationError({
+      projectId: '__inbox__',
+      sectionId: '',
+    }),
+    'Choose a section or explicitly choose No section.',
+  );
+  assert.equal(
+    getTaskTransferDestinationError({
+      projectId: 'project-work',
+      sectionId: '__none__',
+    }),
+    '',
+  );
+  assert.equal(
+    getTaskTransferDestinationError({
+      projectId: null,
+      sectionId: null,
+    }),
+    'Choose Inbox or a project before transferring.',
+  );
+});
+
+test('requires an explicit Order section and relation for every Order destination', () => {
+  assert.equal(
+    getOrderTransferDestinationError({
+      orderLane: '',
+      orderRelationId: '',
+    }),
+    'Choose an Order section before transferring.',
+  );
+  assert.equal(
+    getOrderTransferDestinationError({
+      orderLane: 'after',
+      orderRelationId: '',
+    }),
+    'Choose the Order item this task should follow.',
+  );
+  assert.equal(
+    getOrderTransferDestinationError({
+      orderLane: 'later',
+      orderRelationId: null,
+    }),
+    '',
+  );
+  assert.equal(
+    getOrderTransferDestinationError({
+      orderLane: 'after',
+      orderRelationId: 'order-1',
+    }),
+    '',
+  );
 });
 
 test('returns field errors for unsupported schedule text', () => {
