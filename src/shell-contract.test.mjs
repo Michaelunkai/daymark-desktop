@@ -106,4 +106,7 @@ test('transfer selects capture WebView values before scheduling state updates', 
     taskEditor,
     /setTransferTarget\(\(current\) => \(\{[\s\S]{0,240}event\.currentTarget\.value/,
   )
+  assert.match(taskEditor, /const \[transferReady, setTransferReady\] = useState\(false\);/)
+  assert.match(taskEditor, /function armTransferAction\(\)/)
+  assert.match(taskEditor, /disabled=\{isSaving \|\| !transferReady\}/)
 })

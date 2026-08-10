@@ -67,6 +67,8 @@ export function TaskEditor({
     orderRelationId: '',
   });
   const [transferError, setTransferError] = useState('');
+  const [transferReady, setTransferReady] = useState(false);
+  const transferArmTimerRef = useRef<number | null>(null);
 
   const isOrderTransfer =
     transferAction === 'moveToOrder' || transferAction === 'copyToOrder';
@@ -147,6 +149,11 @@ export function TaskEditor({
       orderRelationId: '',
     });
     setTransferError('');
+    setTransferReady(false);
+    if (transferArmTimerRef.current !== null) {
+      window.clearTimeout(transferArmTimerRef.current);
+      transferArmTimerRef.current = null;
+    }
     return undefined;
   }, [isOpen]);
 
@@ -222,6 +229,10 @@ export function TaskEditor({
   }
 
   function startTransfer(action: TransferAction) {
+    if (transferArmTimerRef.current !== null) {
+      window.clearTimeout(transferArmTimerRef.current);
+      transferArmTimerRef.current = null;
+    }
     setTransferAction(action);
     setTransferTarget({
       projectId: '',
@@ -230,11 +241,28 @@ export function TaskEditor({
       orderRelationId: '',
     });
     setTransferError('');
+    setTransferReady(false);
   }
 
   function cancelTransfer() {
+    if (transferArmTimerRef.current !== null) {
+      window.clearTimeout(transferArmTimerRef.current);
+      transferArmTimerRef.current = null;
+    }
     setTransferAction(null);
     setTransferError('');
+    setTransferReady(false);
+  }
+
+  function armTransferAction() {
+    if (transferArmTimerRef.current !== null) {
+      window.clearTimeout(transferArmTimerRef.current);
+    }
+    setTransferReady(false);
+    transferArmTimerRef.current = window.setTimeout(() => {
+      setTransferReady(true);
+      transferArmTimerRef.current = null;
+    }, 300);
   }
 
   function finishTransfer() {
@@ -500,6 +528,11 @@ export function TaskEditor({
                                   ? current.orderRelationId
                                   : '',
                             }));
+                            if (orderLane === 'after') {
+                              setTransferReady(false);
+                            } else {
+                              armTransferAction();
+                            }
                           }}
                         >
                           <option value="">Choose an Order section</option>
@@ -527,6 +560,7 @@ export function TaskEditor({
                                 ...current,
                                 orderRelationId,
                               }));
+                              armTransferAction();
                             }}
                           >
                             <option value="">Choose an Order item</option>
@@ -561,6 +595,7 @@ export function TaskEditor({
                               projectId,
                               sectionId: '',
                             }));
+                            setTransferReady(false);
                           }}
                         >
                           <option value="">Choose Inbox or a project</option>
@@ -592,6 +627,7 @@ export function TaskEditor({
                               ...current,
                               sectionId,
                             }));
+                            armTransferAction();
                           }}
                         >
                           <option value="">Choose a section</option>
@@ -799,7 +835,7 @@ export function TaskEditor({
                   type="button"
                   className="task-editor__button task-editor__button--primary"
                   onClick={finishTransfer}
-                  disabled={isSaving}
+                  disabled={isSaving || !transferReady}
                 >
                   {isOrderTransfer
                     ? transferAction === 'moveToOrder'
