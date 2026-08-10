@@ -1,5 +1,20 @@
 # Daymark Android Release
 
+`daymark-android-1.4.11.apk` is the Android WebView recovery release. It
+recreates the renderer after a process loss, restores the most recent Daymark
+address, and replaces a permanent blank loading surface with a visible loading
+state. It uses package `com.michaelunkai.daymark`, version code `15`, and
+version name `1.4.11`. The tracked APK SHA-256 is recorded after the release
+build completes: `0CBE969797CA0C2452756B40F9583663AFDFAD3498838F357D3705A2DD489390`.
+
+`daymark-android-1.4.10.apk` is the transfer-destination release. It uses the
+same live Daymark application as the website, including explicit project and
+section selection for task moves and copies, explicit Order lane selection for
+task-to-Order transfers, and copy-to-Order handling that does not depend on a
+task's due date. It uses package `com.michaelunkai.daymark`, version code `14`,
+and version name `1.4.10`. The tracked APK SHA-256 is
+`C60243A5D380431039A7416F268A02E397738DB4A65711F8561845D156F99C61`.
+
 `daymark-android-1.4.9.apk` is the published VantaBlack companion shell
 release and the directly verified installed device version. It uses package
 `com.michaelunkai.daymark`, version code `13`, and version name `1.4.9`.

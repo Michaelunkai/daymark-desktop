@@ -19,3 +19,13 @@ test('shows only the active transfer controls while a destination is being chose
   assert.match(source, /onClick=\{cancelTransfer\}/);
   assert.match(source, /onClick=\{finishTransfer\}/);
 });
+
+test('keeps Order transfers in the explicit destination flow', () => {
+  assert.match(source, /startTransfer\('moveToOrder'\)/);
+  assert.match(source, /startTransfer\('copyToOrder'\)/);
+  assert.match(source, /Choose the Order section/);
+  assert.match(source, /getOrderTransferDestinationError/);
+  assert.match(source, /After which Order item\?/);
+  assert.match(source, /onMoveTaskToOrder\?\.\(nextDraft\)/);
+  assert.match(source, /onCopyTaskToOrder\?\.\(nextDraft\)/);
+});

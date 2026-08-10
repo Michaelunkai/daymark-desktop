@@ -4,11 +4,13 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.webkit.JavascriptInterface;
+import android.webkit.RenderProcessGoneDetail;
 import android.view.View;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -17,6 +19,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+import android.widget.TextView;
 
 public final class MainActivity extends Activity {
     private static final String START_URL =
@@ -26,7 +29,11 @@ public final class MainActivity extends Activity {
     private static final int SURFACE_COLOR = Color.BLACK;
     private WebView webView;
     private SharedPreferences preferences;
+    private FrameLayout root;
     private View loadingCover;
+    private TextView loadingMessage;
+    private String lastRequestedUrl;
+    private boolean destroying;
     private int rootBackPresses;
     private long lastRootBackAt;
 
@@ -36,32 +43,11 @@ public final class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         applyVantaBlackSystemBars();
+        WebView.setWebContentsDebuggingEnabled(
+                (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0);
 
-        webView = new WebView(this);
-        webView.setBackgroundColor(SURFACE_COLOR);
-        webView.addJavascriptInterface(new ThemeBridge(), "DaymarkAndroid");
-        webView.setWebViewClient(new DaymarkWebViewClient());
-        webView.setWebChromeClient(new WebChromeClient());
-
-        WebSettings settings = webView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setDatabaseEnabled(true);
-        settings.setBuiltInZoomControls(false);
-        settings.setDisplayZoomControls(false);
-        settings.setSupportZoom(false);
-        settings.setLoadWithOverviewMode(false);
-        settings.setUseWideViewPort(false);
-        settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-
-        FrameLayout root = new FrameLayout(this);
+        root = new FrameLayout(this);
         root.setBackgroundColor(SURFACE_COLOR);
-        root.addView(
-                webView,
-                new FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT));
         loadingCover = new View(this);
         loadingCover.setBackgroundColor(SURFACE_COLOR);
         root.addView(
@@ -69,11 +55,30 @@ public final class MainActivity extends Activity {
                 new FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         FrameLayout.LayoutParams.MATCH_PARENT));
+        loadingMessage = new TextView(this);
+        loadingMessage.setText("Loading Daymark");
+        loadingMessage.setTextColor(Color.WHITE);
+        loadingMessage.setTextSize(16);
+        loadingMessage.setGravity(android.view.Gravity.CENTER);
+        root.addView(
+                loadingMessage,
+                new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT));
         setContentView(root);
+        webView = createWebView();
+        root.addView(
+                webView,
+                0,
+                new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT));
         if (savedInstanceState == null) {
-            webView.loadUrl(urlForIntent(getIntent()));
+            loadDaymarkUrl(urlForIntent(getIntent()));
+        } else if (webView.restoreState(savedInstanceState) == null) {
+            loadDaymarkUrl(urlForIntent(getIntent()));
         } else {
-            webView.restoreState(savedInstanceState);
+            lastRequestedUrl = webView.getUrl();
         }
     }
 
@@ -81,12 +86,12 @@ public final class MainActivity extends Activity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        if (webView != null) webView.loadUrl(urlForIntent(intent));
+        loadDaymarkUrl(urlForIntent(intent));
     }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        webView.saveState(outState);
+        if (webView != null) webView.saveState(outState);
         super.onSaveInstanceState(outState);
     }
 
@@ -103,11 +108,70 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        destroying = true;
         if (webView != null) {
             webView.stopLoading();
             webView.destroy();
         }
         super.onDestroy();
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private WebView createWebView() {
+        WebView nextWebView = new WebView(this);
+        nextWebView.setBackgroundColor(SURFACE_COLOR);
+        nextWebView.addJavascriptInterface(new ThemeBridge(), "DaymarkAndroid");
+        nextWebView.setWebViewClient(new DaymarkWebViewClient());
+        nextWebView.setWebChromeClient(new WebChromeClient());
+
+        WebSettings settings = nextWebView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setDatabaseEnabled(true);
+        settings.setBuiltInZoomControls(false);
+        settings.setDisplayZoomControls(false);
+        settings.setSupportZoom(false);
+        settings.setLoadWithOverviewMode(false);
+        settings.setUseWideViewPort(false);
+        settings.setMediaPlaybackRequiresUserGesture(true);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        return nextWebView;
+    }
+
+    private void loadDaymarkUrl(String url) {
+        lastRequestedUrl = url;
+        showLoading();
+        if (webView != null) webView.loadUrl(url);
+    }
+
+    private void showLoading() {
+        if (loadingCover != null) loadingCover.setVisibility(View.VISIBLE);
+        if (loadingMessage != null) loadingMessage.setVisibility(View.VISIBLE);
+    }
+
+    private void hideLoading() {
+        if (loadingCover != null) loadingCover.setVisibility(View.GONE);
+        if (loadingMessage != null) loadingMessage.setVisibility(View.GONE);
+    }
+
+    private void recoverWebView(WebView failedWebView) {
+        if (destroying || failedWebView != webView || root == null) {
+            return;
+        }
+
+        showLoading();
+        root.removeView(failedWebView);
+        failedWebView.stopLoading();
+        failedWebView.destroy();
+
+        webView = createWebView();
+        root.addView(
+                webView,
+                0,
+                new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT));
+        loadDaymarkUrl(lastRequestedUrl == null ? urlForIntent(getIntent()) : lastRequestedUrl);
     }
 
     private void handleBackResult(boolean atRoot) {
@@ -143,7 +207,20 @@ public final class MainActivity extends Activity {
 
         @Override
         public void onPageFinished(WebView view, String url) {
-            if (loadingCover != null) loadingCover.setVisibility(View.GONE);
+            if (view == webView) hideLoading();
+        }
+
+        @Override
+        public void onPageCommitVisible(WebView view, String url) {
+            if (view == webView) hideLoading();
+        }
+
+        @Override
+        public boolean onRenderProcessGone(
+                WebView view,
+                RenderProcessGoneDetail detail) {
+            recoverWebView(view);
+            return true;
         }
 
         @Override
@@ -151,7 +228,8 @@ public final class MainActivity extends Activity {
                 WebView view,
                 WebResourceRequest request,
                 WebResourceError error) {
-            if (request.isForMainFrame()) {
+            if (view == webView && request.isForMainFrame()) {
+                hideLoading();
                 view.loadDataWithBaseURL(
                         START_URL,
                         "<!doctype html><meta name='viewport' content='width=device-width,initial-scale=1'>"
