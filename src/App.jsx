@@ -4082,8 +4082,8 @@ function App() {
         orderItems={Object.values(state.orderItems)
           .sort((left, right) => left.order - right.order || left.createdAt.localeCompare(right.createdAt))
           .map((item) => ({ id: item.id, label: item.title }))}
-        sections={toTaskEditorSectionOptions(Object.values(state.sections), taskEditor?.draft.projectId ?? null)}
-      />
+         sections={toTaskEditorSectionOptions(Object.values(state.sections))}
+       />
 
       <ProjectCreateDialog
         isOpen={projectDialogOpen}

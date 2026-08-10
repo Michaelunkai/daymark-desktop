@@ -25,6 +25,8 @@ const PRIORITY_OPTIONS: Array<{ value: TaskPriority; label: string }> = [
   { value: 1, label: 'P1 - High' },
 ];
 
+type TransferAction = 'move' | 'copy' | 'moveToOrder' | 'copyToOrder';
+
 export function TaskEditor({
   isOpen,
   draft,
@@ -53,8 +55,24 @@ export function TaskEditor({
   const [errors, setErrors] = useState<ReturnType<
     typeof validateTaskEditorDraft
   >['errors']>({});
+  const [transferAction, setTransferAction] = useState<TransferAction | null>(
+    null,
+  );
+  const [transferTarget, setTransferTarget] = useState({
+    projectId: '',
+    sectionId: '',
+    orderLane: '',
+    orderRelationId: '',
+  });
+  const [transferError, setTransferError] = useState('');
 
-  const availableSections = sections;
+  const isOrderTransfer =
+    transferAction === 'moveToOrder' || transferAction === 'copyToOrder';
+  const availableSections = sections.filter(
+    (section) =>
+      section.projectId ===
+      (transferAction ? transferTarget.projectId : draft.projectId),
+  );
 
   useEffect(() => {
     if (!isOpen) {
@@ -119,6 +137,14 @@ export function TaskEditor({
     }
 
     setErrors({});
+    setTransferAction(null);
+    setTransferTarget({
+      projectId: '',
+      sectionId: '',
+      orderLane: '',
+      orderRelationId: '',
+    });
+    setTransferError('');
     return undefined;
   }, [isOpen]);
 
@@ -191,6 +217,88 @@ export function TaskEditor({
   function handleCancel() {
     onCancel?.();
     onClose();
+  }
+
+  function startTransfer(action: TransferAction) {
+    setTransferAction(action);
+    setTransferTarget({
+      projectId: '',
+      sectionId: '',
+      orderLane: '',
+      orderRelationId: '',
+    });
+    setTransferError('');
+  }
+
+  function cancelTransfer() {
+    setTransferAction(null);
+    setTransferError('');
+  }
+
+  function finishTransfer() {
+    if (!transferAction) {
+      return;
+    }
+
+    if (isOrderTransfer) {
+      if (!transferTarget.orderLane) {
+        setTransferError('Choose an Order group before transferring.');
+        return;
+      }
+      if (
+        transferTarget.orderLane === 'after' &&
+        !transferTarget.orderRelationId
+      ) {
+        setTransferError('Choose the Order item this task should follow.');
+        return;
+      }
+
+      const nextDraft = updateTaskEditorDraft(
+        updateTaskEditorDraft(
+          draft,
+          'orderLane',
+          transferTarget.orderLane as TaskEditorDraft['orderLane'],
+        ),
+        'orderRelationId',
+        transferTarget.orderLane === 'after'
+          ? transferTarget.orderRelationId
+          : null,
+      );
+      if (transferAction === 'moveToOrder') {
+        onMoveTaskToOrder?.(nextDraft);
+      } else {
+        onCopyTaskToOrder?.(nextDraft);
+      }
+      return;
+    }
+
+    if (!transferTarget.projectId) {
+      setTransferError('Choose Inbox or a project before transferring.');
+      return;
+    }
+    if (!transferTarget.sectionId) {
+      setTransferError('Choose a section or explicitly choose No section.');
+      return;
+    }
+
+    const projectId =
+      transferTarget.projectId === '__inbox__'
+        ? null
+        : transferTarget.projectId;
+    const sectionId =
+      transferTarget.sectionId === '__none__'
+        ? null
+        : transferTarget.sectionId;
+    const nextDraft = updateTaskEditorDraft(
+      updateTaskEditorDraft(draft, 'projectId', projectId),
+      'sectionId',
+      sectionId,
+    );
+    if (transferAction === 'move') {
+      onMoveTask?.(nextDraft);
+    } else {
+      onCopyTask?.(nextDraft);
+    }
   }
 
   return (
@@ -365,69 +473,148 @@ export function TaskEditor({
               ) : null}
             </section>
 
-            {mode === 'edit' && (onMoveTaskToOrder || onCopyTaskToOrder) ? (
+            {mode === 'edit' && transferAction ? (
               <section className="task-editor__section">
                 <div className="task-editor__section-heading">
                   <div>
                     <p className="task-editor__eyebrow">Transfer</p>
-                    <h3>Order destination</h3>
+                    <h3>
+                      {isOrderTransfer
+                        ? 'Choose the Order destination'
+                        : 'Choose the task destination'}
+                    </h3>
                   </div>
                   <MoveIcon />
                 </div>
-                <div className="task-editor__field">
-                  <label htmlFor={ids.orderLane}>Order group</label>
-                  <div className="task-editor__select-wrap">
-                    <select
-                      id={ids.orderLane}
-                      value={draft.orderLane}
-                      onChange={(event) => {
-                        const nextLane = event.currentTarget.value as TaskEditorDraft['orderLane'];
-                        const nextDraft = updateTaskEditorDraft(
-                          updateTaskEditorDraft(draft, 'orderLane', nextLane),
-                          'orderRelationId',
-                          nextLane === 'after' ? draft.orderRelationId : null,
-                        );
-                        onDraftChange(nextDraft, {
-                          field: 'orderLane',
-                          value: nextLane,
-                        });
-                      }}
-                    >
-                      <option value="now">Do now</option>
-                      <option value="later">Later</option>
-                      <option value="after">After</option>
-                    </select>
-                    <ChevronDownIcon />
-                  </div>
-                </div>
-                {draft.orderLane === 'after' ? (
-                  <div className="task-editor__field">
-                    <label htmlFor={ids.orderRelation}>After which Order item?</label>
-                    <div className="task-editor__select-wrap">
-                      <select
-                        id={ids.orderRelation}
-                        value={draft.orderRelationId ?? ''}
-                        onChange={(event) =>
-                          changeField(
-                            'orderRelationId',
-                            event.currentTarget.value || null,
-                          )
-                        }
-                      >
-                        <option value="">Choose an Order item</option>
-                        {orderItems.map((item) => (
-                          <option
-                            key={item.id}
-                            value={item.id}
-                            disabled={item.disabled}
+                {isOrderTransfer ? (
+                  <>
+                    <div className="task-editor__field">
+                      <label htmlFor={ids.orderLane}>Order group</label>
+                      <div className="task-editor__select-wrap">
+                        <select
+                          id={ids.orderLane}
+                          value={transferTarget.orderLane}
+                          onChange={(event) => {
+                            setTransferError('');
+                            setTransferTarget((current) => ({
+                              ...current,
+                              orderLane: event.currentTarget.value,
+                              orderRelationId:
+                                event.currentTarget.value === 'after'
+                                  ? current.orderRelationId
+                                  : '',
+                            }));
+                          }}
+                        >
+                          <option value="">Choose an Order group</option>
+                          <option value="now">Do now</option>
+                          <option value="later">Later</option>
+                          <option value="after">After</option>
+                        </select>
+                        <ChevronDownIcon />
+                      </div>
+                    </div>
+                    {transferTarget.orderLane === 'after' ? (
+                      <div className="task-editor__field">
+                        <label htmlFor={ids.orderRelation}>
+                          After which Order item?
+                        </label>
+                        <div className="task-editor__select-wrap">
+                          <select
+                            id={ids.orderRelation}
+                            value={transferTarget.orderRelationId}
+                            onChange={(event) => {
+                              setTransferError('');
+                              setTransferTarget((current) => ({
+                                ...current,
+                                orderRelationId: event.currentTarget.value,
+                              }));
+                            }}
                           >
-                            {item.label}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDownIcon />
+                            <option value="">Choose an Order item</option>
+                            {orderItems.map((item) => (
+                              <option
+                                key={item.id}
+                                value={item.id}
+                                disabled={item.disabled}
+                              >
+                                {item.label}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDownIcon />
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="task-editor__field-grid">
+                    <div className="task-editor__field">
+                      <label htmlFor={ids.project}>Project</label>
+                      <div className="task-editor__select-wrap">
+                        <select
+                          id={ids.project}
+                          value={transferTarget.projectId}
+                          onChange={(event) => {
+                            setTransferError('');
+                            setTransferTarget((current) => ({
+                              ...current,
+                              projectId: event.currentTarget.value,
+                              sectionId: '',
+                            }));
+                          }}
+                        >
+                          <option value="">Choose Inbox or a project</option>
+                          <option value="__inbox__">Inbox</option>
+                          {projects.map((project) => (
+                            <option
+                              key={project.id}
+                              value={project.id}
+                              disabled={project.disabled}
+                            >
+                              {project.label}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDownIcon />
+                      </div>
+                    </div>
+                    <div className="task-editor__field">
+                      <label htmlFor={ids.section}>Section</label>
+                      <div className="task-editor__select-wrap">
+                        <select
+                          id={ids.section}
+                          value={transferTarget.sectionId}
+                          disabled={!transferTarget.projectId}
+                          onChange={(event) => {
+                            setTransferError('');
+                            setTransferTarget((current) => ({
+                              ...current,
+                              sectionId: event.currentTarget.value,
+                            }));
+                          }}
+                        >
+                          <option value="">Choose a section</option>
+                          <option value="__none__">No section</option>
+                          {availableSections.map((section) => (
+                            <option
+                              key={section.id}
+                              value={section.id}
+                              disabled={section.disabled}
+                            >
+                              {section.label}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDownIcon />
+                      </div>
                     </div>
                   </div>
+                )}
+                {transferError ? (
+                  <p className="task-editor__form-error" role="alert">
+                    {transferError}
+                  </p>
                 ) : null}
               </section>
             ) : null}
@@ -551,7 +738,7 @@ export function TaskEditor({
                   <button
                     type="button"
                     className="task-editor__button task-editor__button--secondary"
-                    onClick={() => onMoveTask(draft)}
+                    onClick={() => startTransfer('move')}
                     disabled={isSaving}
                   >
                     <MoveIcon />
@@ -562,7 +749,7 @@ export function TaskEditor({
                   <button
                     type="button"
                     className="task-editor__button task-editor__button--secondary"
-                    onClick={() => onCopyTask(draft)}
+                    onClick={() => startTransfer('copy')}
                     disabled={isSaving}
                   >
                     <CopyIcon />
@@ -573,7 +760,7 @@ export function TaskEditor({
                   <button
                     type="button"
                     className="task-editor__button task-editor__button--secondary"
-                    onClick={() => onMoveTaskToOrder(draft)}
+                    onClick={() => startTransfer('moveToOrder')}
                     disabled={isSaving}
                   >
                     <MoveIcon />
@@ -584,13 +771,39 @@ export function TaskEditor({
                   <button
                     type="button"
                     className="task-editor__button task-editor__button--secondary"
-                    onClick={() => onCopyTaskToOrder(draft)}
+                    onClick={() => startTransfer('copyToOrder')}
                     disabled={isSaving}
                   >
                     <CopyIcon />
                     Copy to Order
                   </button>
                 ) : null}
+              </div>
+            ) : null}
+            {mode === 'edit' && transferAction ? (
+              <div className="task-editor__transfer-actions">
+                <button
+                  type="button"
+                  className="task-editor__button task-editor__button--secondary"
+                  onClick={cancelTransfer}
+                  disabled={isSaving}
+                >
+                  Cancel transfer
+                </button>
+                <button
+                  type="button"
+                  className="task-editor__button task-editor__button--primary"
+                  onClick={finishTransfer}
+                  disabled={isSaving}
+                >
+                  {isOrderTransfer
+                    ? transferAction === 'moveToOrder'
+                      ? 'Move to Order'
+                      : 'Copy to Order'
+                    : transferAction === 'move'
+                      ? 'Move task'
+                      : 'Copy task'}
+                </button>
               </div>
             ) : null}
             <div className="task-editor__actions">

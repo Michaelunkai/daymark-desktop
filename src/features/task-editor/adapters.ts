@@ -114,18 +114,19 @@ export function toTaskEditorProjectOptions(
 
 export function toTaskEditorSectionOptions(
   sections: readonly Section[],
-  projectId: string | null,
+  projectId?: string | null,
 ): TaskEditorOption[] {
-  if (!projectId) {
+  if (projectId === null) {
     return [];
   }
 
   return sections
-    .filter((section) => section.projectId === projectId)
+    .filter((section) => projectId === undefined || section.projectId === projectId)
     .sort((left, right) => left.order - right.order)
     .map((section) => ({
       id: section.id,
       label: section.name,
+      ...(projectId === undefined ? { projectId: section.projectId } : {}),
     }));
 }
 

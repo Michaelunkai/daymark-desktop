@@ -155,7 +155,7 @@ export function OrderWorkspace({
 
   const openEdit = (item) => {
     setEditing(item.id)
-    setDraft({ ...item, taskProjectId: '', taskSectionId: null, taskDueText: '' })
+    setDraft({ ...item, taskProjectId: '', taskSectionId: '', taskDueText: '' })
     setTransferError('')
   }
 
@@ -182,8 +182,8 @@ export function OrderWorkspace({
       setTransferError('Choose Inbox or a project before transferring this item.')
       return
     }
-    if (draft.taskProjectId && taskSectionOptions.length && !draft.taskSectionId) {
-      setTransferError('Choose a section for the selected project before transferring.')
+    if (draft.taskSectionId === '') {
+      setTransferError('Choose a section or explicitly choose No section before transferring.')
       return
     }
     if (callback(editing, draft)) closeEditor()
@@ -304,18 +304,22 @@ export function OrderWorkspace({
                     setDraft({
                       ...draft,
                       taskProjectId: value === '__inbox__' ? null : value,
-                      taskSectionId: null,
+                      taskSectionId: '',
                     })
                   }} value={draft.taskProjectId === null ? '__inbox__' : draft.taskProjectId ?? ''}>
                     <option value="">Choose a project</option>
                     <option value="__inbox__">Inbox</option>
                     {projects.map((project) => <option disabled={project.disabled} key={project.id} value={project.id}>{project.label}</option>)}
                   </select></label>
-                  <label>Section<select disabled={!draft.taskProjectId || taskSectionOptions.length === 0} onChange={(event) => {
+                  <label>Section<select disabled={draft.taskProjectId === ''} onChange={(event) => {
                     setTransferError('')
-                    setDraft({ ...draft, taskSectionId: event.target.value || null })
-                  }} value={draft.taskSectionId ?? ''}>
-                    <option value="">{draft.taskProjectId ? (taskSectionOptions.length ? 'Choose a section' : 'No sections') : 'Choose a project first'}</option>
+                    setDraft({
+                      ...draft,
+                      taskSectionId: event.target.value === '__none__' ? null : event.target.value,
+                    })
+                  }} value={draft.taskSectionId === null ? '__none__' : draft.taskSectionId ?? ''}>
+                    <option value="">{draft.taskProjectId === '' ? 'Choose a project first' : 'Choose a section'}</option>
+                    <option value="__none__">No section</option>
                     {taskSectionOptions.map((section) => <option disabled={section.disabled} key={section.id} value={section.id}>{section.label}</option>)}
                   </select></label>
                   <label>Due date<input onChange={(event) => setDraft({ ...draft, taskDueText: event.target.value })} placeholder="e.g. tomorrow" value={draft.taskDueText ?? ''} /></label>

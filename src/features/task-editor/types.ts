@@ -24,6 +24,7 @@ export type TaskEditorOption = {
   label: string;
   color?: string;
   hint?: string;
+  projectId?: string;
   disabled?: boolean;
 };
 
