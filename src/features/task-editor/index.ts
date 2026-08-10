@@ -1,5 +1,6 @@
 export { TaskEditor } from './TaskEditor';
 export {
+  taskEditorDraftToOrderItemInput,
   taskEditorDraftToTaskInput,
   taskEditorDraftToTaskPatch,
   taskToTaskEditorDraft,

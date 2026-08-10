@@ -304,6 +304,28 @@ assert(
   "Undo should restore a task moved into Order without leaving the converted item behind.",
 );
 
+const taskCopiedToOrder = reduce(
+  base,
+  {
+    type: "order.add",
+    input: {
+      id: "order-copy",
+      title: base.tasks["task-welcome"].content,
+      details: base.tasks["task-welcome"].description,
+      lane: "after",
+      relationId: "order-welcome",
+      priority: base.tasks["task-welcome"].priority,
+    },
+  },
+  timestamp,
+);
+assert(
+  taskCopiedToOrder.ok &&
+    taskCopiedToOrder.state.tasks["task-welcome"] &&
+    taskCopiedToOrder.state.orderItems["order-copy"]?.relationId === "order-welcome",
+  "Copying a task to Order should retain the source task and create the requested Order item.",
+);
+
 const orderToTask = reduce(
   base,
   {

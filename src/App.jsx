@@ -36,6 +36,7 @@ import {
 import {
   TaskEditor,
   createTaskEditorDraft,
+  taskEditorDraftToOrderItemInput,
   taskEditorDraftToTaskInput,
   taskEditorDraftToTaskPatch,
   taskToTaskEditorDraft,
@@ -3311,30 +3312,15 @@ function App() {
 
   const transferTaskToOrder = (draft, mode) => {
     if (!taskEditor?.taskId || taskEditor.mode !== 'edit') return
-    if (draft.orderLane === 'after' && !draft.orderRelationId) {
-      setNotice('Choose the Order item this task should follow.')
-      return
-    }
-    const adapted = taskEditorDraftToTaskInput(draft, {
-      today,
-      inboxProjectId: state.preferences.inboxProjectId,
-    })
+    const adapted = taskEditorDraftToOrderItemInput(draft)
     if (!adapted.ok) {
-      setNotice(Object.values(adapted.errors).find(Boolean) ?? 'Check the task details and try again.')
+      setNotice(Object.values(adapted.errors).find(Boolean) ?? 'Choose an Order destination and try again.')
       return
     }
 
-    const orderInput = {
-      title: adapted.value.content,
-      details: adapted.value.description,
-      lane: draft.orderLane,
-      priority: adapted.value.priority,
-      status: 'open',
-      relationId: draft.orderLane === 'after' ? draft.orderRelationId : null,
-    }
     const result = mode === 'move'
-      ? appStore.dispatch({ type: 'task.transferToOrder', taskId: taskEditor.taskId, input: orderInput })
-      : appStore.dispatch({ type: 'order.add', input: orderInput })
+      ? appStore.dispatch({ type: 'task.transferToOrder', taskId: taskEditor.taskId, input: adapted.value })
+      : appStore.dispatch({ type: 'order.add', input: adapted.value })
     if (!result.ok) {
       setNotice(result.message)
       setUndoAvailable(false)

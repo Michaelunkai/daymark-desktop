@@ -5,6 +5,7 @@ import {
 } from '../../core/dates';
 import type {
   Project,
+  OrderItemInput,
   Section,
   Task,
   TaskDue,
@@ -12,7 +13,11 @@ import type {
   TaskPatch,
 } from '../../core/types';
 
-import { normalizeTaskEditorDraft, validateTaskEditorDraft } from './form-state';
+import {
+  getOrderTransferDestinationError,
+  normalizeTaskEditorDraft,
+  validateTaskEditorDraft,
+} from './form-state';
 import type {
   TaskEditorDraft,
   TaskEditorErrors,
@@ -97,6 +102,38 @@ export function taskEditorDraftToTaskPatch(
   }
 
   return { ok: true, value: patch };
+}
+
+export function taskEditorDraftToOrderItemInput(
+  draft: TaskEditorDraft,
+): TaskEditorAdapterResult<OrderItemInput> {
+  const value = normalizeTaskEditorDraft(draft);
+  if (!value.title) {
+    return {
+      ok: false,
+      errors: { title: 'Add a task title before transferring.' },
+    };
+  }
+
+  const destinationError = getOrderTransferDestinationError(value);
+  if (destinationError) {
+    return {
+      ok: false,
+      errors: { form: destinationError },
+    };
+  }
+
+  return {
+    ok: true,
+    value: {
+      title: value.title,
+      details: value.description,
+      lane: value.orderLane,
+      relationId: value.orderLane === 'after' ? value.orderRelationId : null,
+      priority: value.priority,
+      status: 'open',
+    },
+  };
 }
 
 export function toTaskEditorProjectOptions(

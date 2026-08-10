@@ -13,6 +13,7 @@ import {
   validateTaskEditorDraft,
 } from './form-state';
 import {
+  taskEditorDraftToOrderItemInput,
   taskEditorDraftToTaskInput,
   taskEditorDraftToTaskPatch,
   taskToTaskEditorDraft,
@@ -192,6 +193,31 @@ test('requires an explicit Order section and relation for every Order destinatio
     }),
     '',
   );
+});
+
+test('adapts a task for Order without depending on its schedule or task location', () => {
+  const result = taskEditorDraftToOrderItemInput(
+    createTaskEditorDraft({
+      title: '  Sequence the research  ',
+      description: '  Keep the useful notes.  ',
+      projectId: null,
+      sectionId: null,
+      dueText: 'not a supported date',
+      orderLane: 'later',
+    }),
+  );
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+
+  assert.deepEqual(result.value, {
+    title: 'Sequence the research',
+    details: 'Keep the useful notes.',
+    lane: 'later',
+    relationId: null,
+    priority: 4,
+    status: 'open',
+  });
 });
 
 test('returns field errors for unsupported schedule text', () => {
