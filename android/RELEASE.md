@@ -1,5 +1,15 @@
 # Daymark Android Release
 
+`daymark-android-1.4.18.apk` is the verified transfer and launcher-icon
+release. Android transfer dropdowns retain their selected project, section,
+Order lane, and related item values before React schedules state updates, and
+the final transfer action cannot be triggered by a native-select click-through.
+Successful transfers clear stale search filters so destination projects keep
+showing their older items alongside the transferred item. It uses package
+`com.michaelunkai.daymark`, version code `22`, and version name `1.4.18`. The
+tracked APK SHA-256 is
+`8C7816A1BD21CC3E5B6A56E0C32AA269EA07DE5891AE669E90AB34567025A2A2`.
+
 `daymark-android-1.4.13.apk` fixes the Android black-screen failure: a
 transient WebView load error can no longer replace a visible Daymark workspace
 with a blank fallback. A genuine first-load failure stays visible as an
