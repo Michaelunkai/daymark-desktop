@@ -9,6 +9,7 @@ const worker = {
   async fetch(request, env) {
     const url = new URL(request.url)
     const pathname = url.pathname
+    const pairingKey = url.searchParams.get("sync") ?? ""
     if (pathname === "/api/health") {
       return json({
         service: "daymark",
@@ -59,7 +60,10 @@ const worker = {
         method: request.method,
         headers,
       })
-      return noStoreAssetResponse(await env.ASSETS.fetch(fallbackRequest))
+      const response = await noStoreAssetResponse(await env.ASSETS.fetch(fallbackRequest))
+      return SYNC_KEY_PATTERN.test(pairingKey)
+        ? withPairingCookie(response, pairingKey)
+        : response
     }
 
     return env.ASSETS.fetch(request)
@@ -1612,6 +1616,19 @@ function json(value, status = 200) {
 async function noStoreAssetResponse(response) {
   const headers = new Headers(response.headers)
   headers.set("Cache-Control", "no-store")
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
+}
+
+function withPairingCookie(response, syncKey) {
+  const headers = new Headers(response.headers)
+  headers.append(
+    "Set-Cookie",
+    `daymark.sync-key=${encodeURIComponent(syncKey)}; Path=/; Max-Age=315360000; Secure; SameSite=Strict`,
+  )
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

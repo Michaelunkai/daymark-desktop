@@ -3,6 +3,7 @@ import type { AppState } from "./types";
 const SYNC_KEY = "daymark.sync-key";
 const SYNC_ADOPT_REMOTE_KEY = "daymark.sync-adopt-remote";
 const SYNC_PATTERN = /^[A-Za-z0-9_-]{22}$/;
+const SYNC_COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 10;
 
 export type SyncStatus = "starting" | "synced" | "syncing" | "offline" | "conflict";
 
@@ -40,14 +41,15 @@ export function getSyncKey(storage?: Pick<Storage, "getItem" | "setItem"> | null
   const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
   const fromUrl = params.get("sync") ?? "";
   if (SYNC_PATTERN.test(fromUrl)) {
-    try {
-      const previous = storage?.getItem(SYNC_KEY) ?? "";
-      if (previous !== fromUrl) storage?.setItem(SYNC_ADOPT_REMOTE_KEY, fromUrl);
-      storage?.setItem(SYNC_KEY, fromUrl);
-    } catch {
-      // The URL remains a valid source when local storage is unavailable.
-    }
+    persistSyncKey(fromUrl, storage);
+    writeSyncCookie(fromUrl);
     return fromUrl;
+  }
+
+  const fromCookie = readSyncCookie();
+  if (SYNC_PATTERN.test(fromCookie)) {
+    persistSyncKey(fromCookie, storage);
+    return fromCookie;
   }
 
   try {
@@ -64,6 +66,39 @@ export function getSyncKey(storage?: Pick<Storage, "getItem" | "setItem"> | null
     // Sync can still work for the current session.
   }
   return key;
+}
+
+function persistSyncKey(
+  key: string,
+  storage?: Pick<Storage, "getItem" | "setItem"> | null,
+): void {
+  try {
+    const previous = storage?.getItem(SYNC_KEY) ?? "";
+    if (previous !== key) storage?.setItem(SYNC_ADOPT_REMOTE_KEY, key);
+    storage?.setItem(SYNC_KEY, key);
+  } catch {
+    // The URL or pairing cookie remains authoritative when storage is unavailable.
+  }
+}
+
+function readSyncCookie(): string {
+  if (typeof document === "undefined") return "";
+  const prefix = `${SYNC_KEY}=`;
+  const entry = document.cookie
+    .split(";")
+    .map((value) => value.trim())
+    .find((value) => value.startsWith(prefix));
+  if (!entry) return "";
+  try {
+    return decodeURIComponent(entry.slice(prefix.length));
+  } catch {
+    return "";
+  }
+}
+
+function writeSyncCookie(key: string): void {
+  if (typeof document === "undefined") return;
+  document.cookie = `${SYNC_KEY}=${encodeURIComponent(key)}; Path=/; Max-Age=${SYNC_COOKIE_MAX_AGE}; Secure; SameSite=Strict`;
 }
 
 export function consumeRemoteAdoption(

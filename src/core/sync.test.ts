@@ -113,9 +113,15 @@ const pairingStorage = {
   removeItem: (key: string) => storageEntries.delete(key),
 };
 const priorWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+const priorDocument = Object.getOwnPropertyDescriptor(globalThis, "document");
+const cookieDocument = { cookie: "" };
 Object.defineProperty(globalThis, "window", {
   configurable: true,
   value: { location: { search: `?sync=${pairingCode}` } },
+});
+Object.defineProperty(globalThis, "document", {
+  configurable: true,
+  value: cookieDocument,
 });
 try {
   assert(
@@ -130,7 +136,27 @@ try {
     !consumeRemoteAdoption(pairingCode, pairingStorage),
     "Remote adoption must be consumed once so ordinary later reloads merge normally.",
   );
+  assert(
+    cookieDocument.cookie.includes(`daymark.sync-key=${pairingCode}`),
+    "An explicit pairing URL must persist a durable first-party pairing cookie.",
+  );
+
+  storageEntries.set("daymark.sync-key", "stale-demo-sync-key");
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: { location: { search: "" } },
+  });
+  assert(
+    getSyncKey(pairingStorage) === pairingCode,
+    "The durable pairing cookie must override stale demo local storage on the clean root URL.",
+  );
+  assert(
+    consumeRemoteAdoption(pairingCode, pairingStorage),
+    "Recovering from stale demo storage must adopt the authoritative remote workspace.",
+  );
 } finally {
   if (priorWindow) Object.defineProperty(globalThis, "window", priorWindow);
   else delete (globalThis as { window?: unknown }).window;
+  if (priorDocument) Object.defineProperty(globalThis, "document", priorDocument);
+  else delete (globalThis as { document?: unknown }).document;
 }
