@@ -27,8 +27,8 @@ Release state:
 - Downloadable APK target:
   `https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.9/daymark-android-1.4.9.apk`.
 - Android release source commit: `60e1273c4e2a1e1f9a6d1b338b065cecbecbdcd9`.
-- Current GitHub `main` reconciliation commit:
-  `ce8a7967900358659e5def19b5626eb737d86a93`.
+- Release-preparation GitHub `main` commit:
+  `d8bf81913354f7a0789b2330664d371a13b31036`.
 - GitHub latest published release: `v1.4.9`.
 - Last verified Sites saved version `19` is deployed successfully as
   `appgdep_6a728c20c07c819198dbf9fd54591a21` at

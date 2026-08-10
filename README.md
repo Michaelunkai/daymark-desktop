@@ -149,8 +149,8 @@ Android version, APK SHA-256, and the browser/Android acceptance results here.
 Release `1.4.9` evidence from August 10, 2026:
 
 - Android release source commit: `60e1273c4e2a1e1f9a6d1b338b065cecbecbdcd9`.
-- Current GitHub `main` reconciliation commit:
-  `ce8a7967900358659e5def19b5626eb737d86a93`.
+- Release-preparation GitHub `main` commit:
+  `d8bf81913354f7a0789b2330664d371a13b31036`.
 - GitHub latest published release: `v1.4.9`, targeting the current `main`
   reconciliation commit above.
 - Last verified Sites saved version: `19`
