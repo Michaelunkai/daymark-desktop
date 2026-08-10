@@ -4,6 +4,7 @@ import {
   createInteractionSyncGate,
   getSyncKey,
   mergeSyncStates,
+  rebaseSyncConflict,
   syncStatesMatch,
 } from "./sync";
 
@@ -46,6 +47,12 @@ assert(merged.clientId === "local-client", "Merged state should retain the local
 assert(merged.tasks["task-local"].content === "Created on Android", "Local-only changes should survive a merge.");
 assert(merged.tasks["task-remote"].content === "Created on Windows", "Remote-only changes should survive a merge.");
 assert(merged.tasks["task-welcome"].content === "Local edit", "The newer entity edit should win a merge.");
+
+const rebased = rebaseSyncConflict(local, remote, 41, "2026-08-04T10:00:02.000Z");
+assert(rebased.revision === 42, "A conflict rebase must advance beyond the remote revision.");
+assert(rebased.updatedAt === "2026-08-04T10:00:02.000Z", "A conflict rebase must receive a fresh timestamp.");
+assert(rebased.tasks["task-local"], "A conflict rebase must retain Android-only data.");
+assert(rebased.tasks["task-remote"], "A conflict rebase must retain website-only data.");
 
 const deletedLocal = createSampleState(newer, "delete-client");
 delete deletedLocal.tasks["task-welcome"];

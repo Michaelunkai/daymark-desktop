@@ -14,10 +14,12 @@ test("remote sync contract is present in the client and Sites worker", async () 
   assert.match(sync, /\/api\/sync\//);
   assert.match(sync, /expectedRevision/);
   assert.match(sync, /mergeSyncStates/);
+  assert.match(sync, /rebaseSyncConflict/);
   assert.match(sync, /BroadcastChannel/);
   assert.match(sync, /createInteractionSyncGate/);
   assert.match(app, /interactionSyncGateRef\.current\.defer/);
-  assert.match(app, /taskEditorOpenRef\.current\s*\?\s*15000/);
+  assert.match(app, /pushSyncStateWithRebase/);
+  assert.match(app, /taskEditorOpenRef\.current\s*\?\s*3000/);
   assert.match(app, /setTimeout/);
   assert.match(app, /pushSyncState/);
   assert.match(app, /}, 50\)/);

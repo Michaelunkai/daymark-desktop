@@ -159,6 +159,20 @@ export function mergeSyncStates(local: AppState, remote: AppState): AppState {
   return merged;
 }
 
+export function rebaseSyncConflict(
+  local: AppState,
+  remote: AppState,
+  remoteRevision: number,
+  now = new Date().toISOString(),
+): AppState {
+  const merged = mergeSyncStates(local, remote);
+  return {
+    ...merged,
+    revision: Math.max(local.revision, remote.revision, remoteRevision) + 1,
+    updatedAt: now,
+  };
+}
+
 export function syncStatesMatch(left: AppState, right: AppState): boolean {
   return stableSerialize(syncComparableState(left)) === stableSerialize(syncComparableState(right));
 }

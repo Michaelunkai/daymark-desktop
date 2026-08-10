@@ -14,6 +14,7 @@ import {
   mergeSyncStates,
   pullSyncState,
   pushSyncState,
+  rebaseSyncConflict,
   syncStatesMatch,
 } from './core/sync'
 import { clearLegacyJournal, readLegacyJournal } from './features/journal/model'
@@ -2040,6 +2041,22 @@ function App() {
     appStore.replace(nextState)
   }
 
+  const pushSyncStateWithRebase = async (candidate, expectedRevision, maxAttempts = 4) => {
+    let nextState = candidate
+    let nextExpectedRevision = expectedRevision
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        return await pushSyncState(syncKey, nextState, nextExpectedRevision)
+      } catch (error) {
+        if (error?.code !== 'conflict' || !error.state) throw error
+        nextExpectedRevision = Number(error.revision ?? error.state.revision ?? 0)
+        nextState = rebaseSyncConflict(nextState, error.state, nextExpectedRevision)
+        replaceFromSync(nextState)
+      }
+    }
+    throw new Error('Sync remained busy after several safe merge retries.')
+  }
+
   const applyIncomingRemoteState = (remoteState, revision = remoteState.revision) => {
     const local = appStore.getState()
     const merged = mergeSyncStates(local, remoteState)
@@ -2082,7 +2099,7 @@ function App() {
         if (cancelled) return
         const local = appStore.getState()
         if (!remote.state) {
-          const pushed = await pushSyncState(syncKey, local, remote.revision)
+          const pushed = await pushSyncStateWithRebase(local, remote.revision)
           if (cancelled) return
           syncRemoteRevisionRef.current = pushed.revision
         } else if (adoptRemoteOnJoin) {
@@ -2105,7 +2122,7 @@ function App() {
               revision: Math.max(local.revision, remote.revision) + 1,
               updatedAt: new Date().toISOString(),
             }
-            const pushed = await pushSyncState(syncKey, rebased, remote.revision)
+            const pushed = await pushSyncStateWithRebase(rebased, remote.revision)
             if (cancelled) return
             syncRemoteRevisionRef.current = pushed.revision
             replaceFromSync(pushed.state)
@@ -2146,20 +2163,12 @@ function App() {
     syncPushTimerRef.current = window.setTimeout(async () => {
       setSyncStatus('syncing')
       try {
-        const pushed = await pushSyncState(syncKey, state, syncRemoteRevisionRef.current)
+        const pushed = await pushSyncStateWithRebase(state, syncRemoteRevisionRef.current)
         syncRemoteRevisionRef.current = pushed.revision
         syncChannelRef.current?.publish(pushed.state)
         setSyncStatus('synced')
       } catch (error) {
-        if (error?.code === 'conflict' && error.state) {
-          const remoteRevision = Number(error.revision ?? error.state.revision)
-          syncRemoteRevisionRef.current = remoteRevision
-          applyIncomingRemoteState(error.state, remoteRevision)
-          setNotice('Daymark merged changes from another device and is syncing again.')
-          setSyncStatus('syncing')
-        } else {
-          setSyncStatus('offline')
-        }
+        setSyncStatus('offline')
       }
     }, 50)
     return () => {
@@ -2185,10 +2194,10 @@ function App() {
         if (!taskEditorOpenRef.current) await refreshRemote()
         if (!cancelled) schedule()
       }, taskEditorOpenRef.current
-        ? 15000
+        ? 3000
         : document.visibilityState === 'hidden'
-          ? 30000
-          : 5000)
+          ? 5000
+          : 1500)
     }
     const refreshImmediately = () => {
       if (!taskEditorOpenRef.current) refreshRemote()
