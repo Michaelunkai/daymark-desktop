@@ -19,10 +19,11 @@ Download the installable Android package from the repository:
 The Android shell targets Android 6.0+ and opens the same responsive Daymark
 application used by Windows and mobile browsers.
 
-The canonical published/device-matching package is `1.4.6`. The repository
-also contains an unreleased `1.4.9` build in `main`; it is not the download
-target until that version is installed on the device and published as a
-verified GitHub release.
+The latest published package is `1.4.6`. The last recorded connected-device
+verification also reported `1.4.6`, but today's live device read is pending
+wireless pairing. The repository also contains an unreleased `1.4.9` build in
+`main`; it is not the download target until the installed device version is
+re-read and the matching version is published as a verified GitHub release.
 
 The deployed application supports the root route and client-side workspace
 routes, including:
@@ -152,7 +153,7 @@ on August 10, 2026:
 
 - Android release source commit: `aa1b2e381a02ab7743cba28b5b1f3caec765903c`.
 - Current GitHub `main` reconciliation commit:
-  `f083cee9c872cda4238c1afa1c14cf1d8627b69d`.
+  `821173914f62739cec6dcfb4e868b43d4f0eeaab`.
 - GitHub latest published release: `v1.4.6`, targeting
   `aa1b2e381a02ab7743cba28b5b1f3caec765903c`.
 - Last verified Sites saved version: `19`
@@ -175,10 +176,11 @@ on August 10, 2026:
   selection with task agenda and Add task, and a clean browser console.
 - The latest recorded connected-device verification reported the same package,
   version code `10`, version name `1.4.6`, and a successful `MainActivity`
-  launch. A fresh device read on August 10, 2026 was blocked because both
-  currently advertised wireless ADB endpoints were unavailable; no device data
-  was reset or changed. No Windows security reservation was removed or
-  bypassed.
+  launch. A fresh device read on August 10, 2026 reached the phone's advertised
+  mDNS connect endpoint `192.168.1.124:41615`, but Android reset the TLS
+  session before authorization; no device data was reset or changed. Pairing
+  must be completed from Android's `Pair device with pairing code` screen
+  before the installed package can be re-read.
 
 The required local gates are:
 

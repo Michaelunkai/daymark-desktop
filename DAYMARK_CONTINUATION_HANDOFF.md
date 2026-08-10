@@ -28,7 +28,7 @@ Release state:
   `https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.6/daymark-android-1.4.6.apk`.
 - Android release source commit: `aa1b2e381a02ab7743cba28b5b1f3caec765903c`.
 - Current GitHub `main` reconciliation commit:
-  `f083cee9c872cda4238c1afa1c14cf1d8627b69d`.
+  `821173914f62739cec6dcfb4e868b43d4f0eeaab`.
 - GitHub latest published release: `v1.4.6`.
 - Last verified Sites saved version `19` is deployed successfully as
   `appgdep_6a728c20c07c819198dbf9fd54591a21` at
@@ -46,11 +46,13 @@ Release state:
 - The latest recorded connected-device verification reported
   `com.michaelunkai.daymark` version code `10`, version name `1.4.6`, and
   `MainActivity` foreground after launch. A fresh device read on August 10,
-  2026 was blocked because both advertised wireless ADB endpoints were
-  unavailable. The captured runtime screen remains
-  `android/releases/daymark-android-installed.png`. The default ADB port
-  `5037` remains administrator-managed; do not remove that reservation or
-  weaken Windows security controls.
+  2026 reached the phone's advertised mDNS endpoint
+  `192.168.1.124:41615`, but Android reset the TLS session before
+  authorization. The captured runtime screen remains
+  `android/releases/daymark-android-installed.png`. The durable ADB bridge
+  now uses server port `5038`; the phone must complete pairing from Android's
+  `Pair device with pairing code` screen before the installed version can be
+  re-read.
 
 Preservation rules:
 
