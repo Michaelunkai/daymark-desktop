@@ -51,6 +51,11 @@ test('global shell exposes the required settings and repository affordances', ()
   assert.match(app, /onCopyToTask=\{copyOrderItemToTask\}/)
   assert.match(app, /type: 'task\.transferToOrder'/)
   assert.match(app, /type: 'order\.transferToTask'/)
+  assert.equal(
+    [...app.matchAll(/setSearchTerm\(''\)/g)].length >= 5,
+    true,
+    'successful transfers must clear stale global search filters',
+  )
   assert.doesNotMatch(app, /actionLabel: 'Delete note'/)
   assert.doesNotMatch(app, /actionLabel: 'Delete section'/)
   assert.doesNotMatch(app, /actionLabel: 'Delete project'/)

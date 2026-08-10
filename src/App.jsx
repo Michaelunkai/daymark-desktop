@@ -3296,6 +3296,7 @@ function App() {
 
     setNotice('Task moved.')
     setUndoAvailable(true)
+    setSearchTerm('')
     setTaskEditor(null)
   }
 
@@ -3319,6 +3320,7 @@ function App() {
 
     setNotice('Task copied.')
     setUndoAvailable(true)
+    setSearchTerm('')
     setTaskEditor(null)
   }
 
@@ -3341,6 +3343,7 @@ function App() {
 
     setNotice(mode === 'move' ? 'Task moved to Order.' : 'Task copied to Order.')
     setUndoAvailable(true)
+    setSearchTerm('')
     setTaskEditor(null)
   }
 
@@ -3378,6 +3381,7 @@ function App() {
 
     setNotice(mode === 'move' ? 'Order item moved to tasks.' : 'Order item copied to tasks.')
     setUndoAvailable(true)
+    setSearchTerm('')
     return true
   }
 
