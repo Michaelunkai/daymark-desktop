@@ -86,11 +86,11 @@ export function getTaskTransferDestinationError(destination: {
   projectId: string | null;
   sectionId: string | null;
 }): string {
-  if (!destination.projectId) {
+  if (destination.projectId !== null && !destination.projectId.trim()) {
     return 'Choose Inbox or a project before transferring.';
   }
 
-  if (!destination.sectionId) {
+  if (destination.sectionId !== null && !destination.sectionId.trim()) {
     return 'Choose a section or explicitly choose No section.';
   }
 

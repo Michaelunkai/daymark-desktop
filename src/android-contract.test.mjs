@@ -4,18 +4,18 @@ import test from "node:test";
 
 const root = new URL("../", import.meta.url);
 
-test("Android release exposes the shared responsive app with a launcher icon", async () => {
+test("Android release exposes the shared responsive app with the premium launcher icon", async () => {
   const [manifest, gradle, activity, icon, shellStyles] = await Promise.all([
     readFile(new URL("./android/app/src/main/AndroidManifest.xml", root), "utf8"),
     readFile(new URL("./android/app/build.gradle", root), "utf8"),
     readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/MainActivity.java", root), "utf8"),
-    readFile(new URL("./android/app/src/main/res/drawable/ic_daymark.xml", root), "utf8"),
+    readFile(new URL("./android/app/src/main/res/drawable-nodpi/ic_daymark_launcher.png", root)),
     readFile(new URL("./src/styles/app-shell.css", root), "utf8"),
   ]);
 
-  assert.match(manifest, /android:icon="@drawable\/ic_daymark"/);
-  assert.match(manifest, /android:roundIcon="@drawable\/ic_daymark"/);
-  assert.match(gradle, /versionName "1\.4\.16"/);
+  assert.match(manifest, /android:icon="@drawable\/ic_daymark_launcher"/);
+  assert.match(manifest, /android:roundIcon="@drawable\/ic_daymark_launcher"/);
+  assert.match(gradle, /versionName "1\.4\.17"/);
   assert.match(activity, /daymark-desktop\.michaelovsky55555\.chatgpt\.site/);
   assert.match(activity, /setDomStorageEnabled\(true\)/);
   assert.match(activity, /addJavascriptInterface/);
@@ -45,8 +45,8 @@ test("Android release exposes the shared responsive app with a launcher icon", a
   assert.match(activity, /RUNTIME_HEALTH_CHECK_MS/);
   assert.match(activity, /DaymarkChromeClient/);
   assert.doesNotMatch(activity, /loadDataWithBaseURL/);
-  assert.match(icon, /android:pathData/);
-  assert.doesNotMatch(icon, /#267553|#C44536|#F4F2EF|#1E2A25/);
+  assert.deepEqual([...icon.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+  assert.ok(icon.length > 50_000);
   assert.match(manifest, /android:windowSoftInputMode="adjustResize"/);
   assert.match(shellStyles, /--daymark-viewport-height:\s*100dvh/);
   assert.match(shellStyles, /var\(--daymark-viewport-height\)/);

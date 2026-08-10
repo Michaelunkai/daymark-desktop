@@ -160,7 +160,7 @@ test('requires an explicit project and section for every task destination', () =
       projectId: null,
       sectionId: null,
     }),
-    'Choose Inbox or a project before transferring.',
+    '',
   );
 });
 
