@@ -727,7 +727,12 @@ export function TaskEditor({
           ) : null}
 
           <footer className="task-editor__footer">
-            {mode === 'edit' && (onMoveTask || onCopyTask) ? (
+            {mode === 'edit' &&
+            !transferAction &&
+            (onMoveTask ||
+              onCopyTask ||
+              onMoveTaskToOrder ||
+              onCopyTaskToOrder) ? (
               <div className="task-editor__transfer-actions">
                 {onMoveTask ? (
                   <button
@@ -801,23 +806,29 @@ export function TaskEditor({
                 </button>
               </div>
             ) : null}
-            <div className="task-editor__actions">
-              <button
-                type="button"
-                className="task-editor__button task-editor__button--secondary"
-                onClick={handleCancel}
-                disabled={isSaving}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="task-editor__button task-editor__button--primary"
-                disabled={isSaving}
-              >
-                {isSaving ? 'Saving...' : mode === 'create' ? 'Create task' : 'Save changes'}
-              </button>
-            </div>
+            {!transferAction ? (
+              <div className="task-editor__actions">
+                <button
+                  type="button"
+                  className="task-editor__button task-editor__button--secondary"
+                  onClick={handleCancel}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="task-editor__button task-editor__button--primary"
+                  disabled={isSaving}
+                >
+                  {isSaving
+                    ? 'Saving...'
+                    : mode === 'create'
+                      ? 'Create task'
+                      : 'Save changes'}
+                </button>
+              </div>
+            ) : null}
           </footer>
         </form>
       </section>
