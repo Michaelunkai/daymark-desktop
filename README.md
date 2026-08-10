@@ -14,10 +14,15 @@ https://daymark-desktop.michaelovsky55555.chatgpt.site
 
 Download the installable Android package from the repository:
 
-[Daymark Android 1.4.2 APK](android/releases/daymark-android-1.4.2.apk)
+[Daymark Android 1.4.6 APK](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.6/daymark-android-1.4.6.apk)
 
 The Android shell targets Android 6.0+ and opens the same responsive Daymark
 application used by Windows and mobile browsers.
+
+The canonical published/device-matching package is `1.4.6`. The repository
+also contains an unreleased `1.4.9` build in `main`; it is not the download
+target until that version is installed on the device and published as a
+verified GitHub release.
 
 The deployed application supports the root route and client-side workspace
 routes, including:
@@ -142,29 +147,38 @@ It is not an authenticated remote API and is never required for new clients.
 
 For each release, record the exact Git commit, Sites saved version/deployment,
 Android version, APK SHA-256, and the browser/Android acceptance results here.
-Release `1.4.2` evidence from August 5, 2026:
+Release `1.4.6` evidence from August 5, 2026, reconciled against GitHub `main`
+on August 10, 2026:
 
-- Application source commit: `53f097d9d64384687fcd6781556650d1aef315cb`.
-- GitHub `main` and `codex/android-navigation-hardening-20260804` both contain
-  the release source and APK.
-- Sites saved version: `19`
+- Android release source commit: `aa1b2e381a02ab7743cba28b5b1f3caec765903c`.
+- Current GitHub `main` reconciliation commit:
+  `302e7c6f5c387aff450606013377e47de1028d0c`.
+- GitHub latest published release: `v1.4.6`, targeting
+  `aa1b2e381a02ab7743cba28b5b1f3caec765903c`.
+- Last verified Sites saved version: `19`
   (`appgprj_6a72433e80108191b2c3936efd51e00a~appgver_713d42d4e4c48191bb4cc27c69e19093`).
-- Sites production deployment:
+- Last verified Sites production deployment:
   `appgdep_6a728c20c07c819198dbf9fd54591a21`.
 - Production URL: `https://daymark-desktop.michaelovsky55555.chatgpt.site`.
-- APK: `android/releases/daymark-android-1.4.2.apk`.
+- APK: `android/releases/daymark-android-1.4.6.apk`.
 - APK SHA-256:
-  `B228B72768ADDEA801748A186C5190975FDF40863A6E1C6622EDAE3972E0E687`.
+- `827EF66BFC401DC5D8D6BBAF7550CB214E421A7B0BF229740FAE45B9BC13D770`.
+- The tracked `1.4.6` APK matches the published GitHub release asset
+  byte-for-byte.
+- APK metadata: package `com.michaelunkai.daymark`, version code `10`,
+  version name `1.4.6`, launch activity
+  `com.michaelunkai.daymark.MainActivity`.
 - `npm run verify` passed, including the production build and Sites artifact
   checks.
 - Visible production acceptance passed for note completion controls, Workspace
   Order with Do now/Later/After, the multi-section Diary, calendar day
   selection with task agenda and Add task, and a clean browser console.
-- Android release build and installation passed on the connected Android
-  device. ADB used the safe non-reserved local port `22000`; package
-  `com.michaelunkai.daymark` reports version code `6` and version name `1.4.2`,
-  and `MainActivity` launched successfully. No Windows security reservation
-  was removed or bypassed.
+- The latest recorded connected-device verification reported the same package,
+  version code `10`, version name `1.4.6`, and a successful `MainActivity`
+  launch. A fresh device read on August 10, 2026 was blocked because both
+  currently advertised wireless ADB endpoints were unavailable; no device data
+  was reset or changed. No Windows security reservation was removed or
+  bypassed.
 
 The required local gates are:
 

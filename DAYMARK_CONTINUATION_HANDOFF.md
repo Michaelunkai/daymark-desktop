@@ -1,6 +1,6 @@
 # Daymark Continuation Handoff
 
-## Current Session: August 5, 2026
+## Current Session: August 10, 2026
 
 Repository used for this release work:
 
@@ -23,15 +23,19 @@ WebView wrapper. The current source work adds or preserves:
 
 Release state:
 
-- Android version: `1.4.2`, version code `6`.
-- Downloadable APK target: `android/releases/daymark-android-1.4.2.apk`.
-- Application source commit: `53f097d9d64384687fcd6781556650d1aef315cb`.
-- GitHub `main` and `codex/android-navigation-hardening-20260804` are pushed.
-- Sites saved version `19` is deployed successfully as
+- Published/device-matching Android version: `1.4.6`, version code `10`.
+- Downloadable APK target:
+  `https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.6/daymark-android-1.4.6.apk`.
+- Android release source commit: `aa1b2e381a02ab7743cba28b5b1f3caec765903c`.
+- Current GitHub `main` reconciliation commit:
+  `302e7c6f5c387aff450606013377e47de1028d0c`.
+- GitHub latest published release: `v1.4.6`.
+- Last verified Sites saved version `19` is deployed successfully as
   `appgdep_6a728c20c07c819198dbf9fd54591a21` at
   `https://daymark-desktop.michaelovsky55555.chatgpt.site`.
 - APK SHA-256:
-  `B228B72768ADDEA801748A186C5190975FDF40863A6E1C6622EDAE3972E0E687`.
+- `827EF66BFC401DC5D8D6BBAF7550CB214E421A7B0BF229740FAE45B9BC13D770`.
+- The tracked APK and published GitHub release asset match byte-for-byte.
 - `npm run verify` passed, including the production build and Sites artifact
   checks.
 - Android `assembleRelease` passed with Gradle 8.10.2 and JDK 17.0.20 using a
@@ -39,13 +43,14 @@ Release state:
 - Visible production acceptance passed for note completion, Workspace Order,
   the multi-section Diary, calendar day selection and agenda, and a clean
   browser console.
-- Android installation is verified on the connected wireless device. ADB used
-  safe non-reserved port `22000`; `com.michaelunkai.daymark` reports version
-  code `6` and version name `1.4.2`, and `MainActivity` is foreground after
-  launch. The captured runtime screen is
-  `android/releases/daymark-android-installed.png`. The default ADB port `5037`
-  remains administrator-managed; do not remove that reservation or weaken
-  Windows security controls.
+- The latest recorded connected-device verification reported
+  `com.michaelunkai.daymark` version code `10`, version name `1.4.6`, and
+  `MainActivity` foreground after launch. A fresh device read on August 10,
+  2026 was blocked because both advertised wireless ADB endpoints were
+  unavailable. The captured runtime screen remains
+  `android/releases/daymark-android-installed.png`. The default ADB port
+  `5037` remains administrator-managed; do not remove that reservation or
+  weaken Windows security controls.
 
 Preservation rules:
 
