@@ -23,13 +23,13 @@ WebView wrapper. The current source work adds or preserves:
 
 Release state:
 
-- Published/device-matching Android version: `1.4.6`, version code `10`.
+- Published/device-matching Android version: `1.4.9`, version code `13`.
 - Downloadable APK target:
-  `https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.6/daymark-android-1.4.6.apk`.
-- Android release source commit: `aa1b2e381a02ab7743cba28b5b1f3caec765903c`.
+  `https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.9/daymark-android-1.4.9.apk`.
+- Android release source commit: `60e1273c4e2a1e1f9a6d1b338b065cecbecbdcd9`.
 - Current GitHub `main` reconciliation commit:
-  `821173914f62739cec6dcfb4e868b43d4f0eeaab`.
-- GitHub latest published release: `v1.4.6`.
+  `ce8a7967900358659e5def19b5626eb737d86a93`.
+- GitHub latest published release: `v1.4.9`.
 - Last verified Sites saved version `19` is deployed successfully as
   `appgdep_6a728c20c07c819198dbf9fd54591a21` at
   `https://daymark-desktop.michaelovsky55555.chatgpt.site`.
@@ -43,16 +43,12 @@ Release state:
 - Visible production acceptance passed for note completion, Workspace Order,
   the multi-section Diary, calendar day selection and agenda, and a clean
   browser console.
-- The latest recorded connected-device verification reported
-  `com.michaelunkai.daymark` version code `10`, version name `1.4.6`, and
-  `MainActivity` foreground after launch. A fresh device read on August 10,
-  2026 reached the phone's advertised mDNS endpoint
-  `192.168.1.124:41615`, but Android reset the TLS session before
-  authorization. The captured runtime screen remains
+- Direct wireless ADB verification reported hardware serial `R5CY610XJGV`,
+  model `SM-S938B`, package `com.michaelunkai.daymark`, version code `13`,
+  version name `1.4.9`, and the expected launcher activity through the mDNS
+  endpoint `192.168.1.124:41615`. The captured runtime screen remains
   `android/releases/daymark-android-installed.png`. The durable ADB bridge
-  now uses server port `5038`; the phone must complete pairing from Android's
-  `Pair device with pairing code` screen before the installed version can be
-  re-read.
+  uses server port `5038` and the preserved authorized host key.
 
 Preservation rules:
 

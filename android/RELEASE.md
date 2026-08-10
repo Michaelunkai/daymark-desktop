@@ -1,9 +1,10 @@
 # Daymark Android Release
 
-`daymark-android-1.4.9.apk` is the current unreleased VantaBlack companion
-shell build in `main`. The latest published release remains
-`daymark-android-1.4.6.apk`; the currently installed device version must be
-re-read over wireless ADB before declaring the published APK device-matching.
+`daymark-android-1.4.9.apk` is the published VantaBlack companion shell
+release and the directly verified installed device version. It uses package
+`com.michaelunkai.daymark`, version code `13`, and version name `1.4.9`.
+The tracked APK SHA-256 is
+`EBCBB1F4415EAF547C771DFD10D5177EDAB1415C2D6FF0C39B0F37A9DFCCADF2`.
 The native shell, system bars, launcher icon, offline fallback, and loaded
 Daymark web application use black surfaces with pure white text and controls,
 while retaining the section task add, edit, and delete controls.
