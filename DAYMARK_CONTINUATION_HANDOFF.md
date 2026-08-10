@@ -28,7 +28,7 @@ Release state:
   `https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.6/daymark-android-1.4.6.apk`.
 - Android release source commit: `aa1b2e381a02ab7743cba28b5b1f3caec765903c`.
 - Current GitHub `main` reconciliation commit:
-  `302e7c6f5c387aff450606013377e47de1028d0c`.
+  `f083cee9c872cda4238c1afa1c14cf1d8627b69d`.
 - GitHub latest published release: `v1.4.6`.
 - Last verified Sites saved version `19` is deployed successfully as
   `appgdep_6a728c20c07c819198dbf9fd54591a21` at
@@ -98,7 +98,8 @@ Current main checkout at handoff:
 
 `F:\study\WebBuilding\projects\daymark-desktop`
 
-Current main checkout remains on the original local application head until the integrated release branch is merged.
+The original local application checkout remains a separate dirty working tree;
+the published GitHub `main` head above contains this release-provenance update.
 
 Important isolated worktrees:
 
