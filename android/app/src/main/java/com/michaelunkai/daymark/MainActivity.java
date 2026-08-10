@@ -11,6 +11,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
+import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface;
 import android.webkit.RenderProcessGoneDetail;
 import android.view.View;
@@ -29,8 +31,9 @@ public final class MainActivity extends Activity {
     private static final String PREFS_NAME = "daymark";
     private static final String SYNC_KEY_PREF = "sync_key";
     private static final int SURFACE_COLOR = Color.BLACK;
-    private static final String NATIVE_RELEASE = "1.4.14";
+    private static final String NATIVE_RELEASE = "1.4.16";
     private static final int CONTENT_READY_TIMEOUT_MS = 9000;
+    private static final int RUNTIME_HEALTH_CHECK_MS = 500;
     private WebView webView;
     private SharedPreferences preferences;
     private FrameLayout root;
@@ -42,6 +45,7 @@ public final class MainActivity extends Activity {
     private boolean loadingFailed;
     private int loadGeneration;
     private int readinessCheckGeneration = -1;
+    private int timeoutGeneration = -1;
     private int rootBackPresses;
     private long lastRootBackAt;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -133,7 +137,7 @@ public final class MainActivity extends Activity {
         nextWebView.setBackgroundColor(SURFACE_COLOR);
         nextWebView.addJavascriptInterface(new ThemeBridge(), "DaymarkAndroid");
         nextWebView.setWebViewClient(new DaymarkWebViewClient());
-        nextWebView.setWebChromeClient(new WebChromeClient());
+        nextWebView.setWebChromeClient(new DaymarkChromeClient());
 
         WebSettings settings = nextWebView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -155,7 +159,10 @@ public final class MainActivity extends Activity {
         loadingFailed = false;
         loadGeneration += 1;
         showLoading();
-        if (webView != null) webView.loadUrl(withLaunchMarker(url));
+        if (webView != null) {
+            scheduleContentTimeout(webView, loadGeneration);
+            webView.loadUrl(withLaunchMarker(url));
+        }
     }
 
     private void showLoading() {
@@ -201,7 +208,10 @@ public final class MainActivity extends Activity {
         }
         view.evaluateJavascript(
                 "(function(){var root=document.getElementById('root');"
-                        + "return Boolean(root&&root.getAttribute('data-daymark-ready')==='true');})()",
+                        + "if(!root)return false;"
+                        + "if(root.getAttribute('data-daymark-ready')==='true')return true;"
+                        + "var text=(root.innerText||'').trim();"
+                        + "return root.children.length>0&&text.length>0;})()",
                 value -> {
                     if (destroying || view != webView || generation != loadGeneration || loadingFailed) {
                         return;
@@ -223,6 +233,13 @@ public final class MainActivity extends Activity {
         }
         readinessCheckGeneration = generation;
         verifyAppRendered(view, generation);
+    }
+
+    private void scheduleContentTimeout(WebView view, int generation) {
+        if (timeoutGeneration == generation) {
+            return;
+        }
+        timeoutGeneration = generation;
         mainHandler.postDelayed(() -> {
             if (!destroying
                     && view == webView
@@ -241,6 +258,33 @@ public final class MainActivity extends Activity {
         }
         hasVisibleDocument = true;
         hideLoading();
+        monitorRenderedApp(webView, loadGeneration);
+    }
+
+    private void monitorRenderedApp(WebView view, int generation) {
+        if (destroying || view != webView || generation != loadGeneration || !hasVisibleDocument) {
+            return;
+        }
+        view.evaluateJavascript(
+                "(function(){var root=document.getElementById('root');"
+                        + "if(!root)return false;"
+                        + "var text=(root.innerText||'').trim();"
+                        + "return root.children.length>0&&text.length>0;})()",
+                value -> {
+                    if (destroying || view != webView || generation != loadGeneration || !hasVisibleDocument) {
+                        return;
+                    }
+                    if ("true".equals(value)) {
+                        mainHandler.postDelayed(
+                                () -> monitorRenderedApp(view, generation),
+                                RUNTIME_HEALTH_CHECK_MS);
+                        return;
+                    }
+                    hasVisibleDocument = false;
+                    loadingFailed = false;
+                    showLoading();
+                    loadDaymarkUrl(lastRequestedUrl == null ? urlForIntent(getIntent()) : lastRequestedUrl);
+                });
     }
 
     private void recoverWebView(WebView failedWebView) {
@@ -330,6 +374,18 @@ public final class MainActivity extends Activity {
             }
             loadingFailed = true;
             showOffline();
+        }
+    }
+
+    private static final class DaymarkChromeClient extends WebChromeClient {
+        @Override
+        public boolean onConsoleMessage(ConsoleMessage message) {
+            if (message.messageLevel() == ConsoleMessage.MessageLevel.ERROR) {
+                Log.e(
+                        "DaymarkWeb",
+                        "Web error at line " + message.lineNumber() + ": " + message.message());
+            }
+            return super.onConsoleMessage(message);
         }
     }
 
