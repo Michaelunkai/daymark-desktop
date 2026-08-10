@@ -161,8 +161,8 @@ Release `1.4.9` evidence from August 10, 2026:
 - APK: `android/releases/daymark-android-1.4.9.apk`.
 - APK SHA-256:
 - `EBCBB1F4415EAF547C771DFD10D5177EDAB1415C2D6FF0C39B0F37A9DFCCADF2`.
-- The tracked `1.4.9` APK is the exact asset intended for the published
-  GitHub release.
+- The tracked `1.4.9` APK matches the published GitHub release asset
+  byte-for-byte.
 - APK metadata: package `com.michaelunkai.daymark`, version code `13`,
   version name `1.4.9`, launch activity
   `com.michaelunkai.daymark.MainActivity`.
