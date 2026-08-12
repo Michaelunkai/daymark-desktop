@@ -5,9 +5,10 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 
 test("remote sync contract is present in the client and Sites worker", async () => {
-  const [sync, app, worker, hosting] = await Promise.all([
+  const [sync, app, main, worker, hosting] = await Promise.all([
     readFile(new URL("./core/sync.ts", new URL("./src/", root)), "utf8"),
     readFile(new URL("./App.jsx", new URL("./src/", root)), "utf8"),
+    readFile(new URL("./main.jsx", new URL("./src/", root)), "utf8"),
     readFile(new URL("./worker/index.js", root), "utf8"),
     readFile(new URL("./.openai/hosting.json", root), "utf8"),
   ]);
@@ -37,6 +38,9 @@ test("remote sync contract is present in the client and Sites worker", async () 
   assert.match(worker, /getCanonicalSyncKey/);
   assert.match(worker, /daymark_sync_config/);
   assert.match(worker, /ORDER BY revision DESC, updated_at DESC LIMIT 1/);
+  assert.match(worker, /\/api\/sync\/pair-canonical/);
+  assert.match(main, /await pairCanonicalWorkspace\(\)/);
+  assert.match(main, /method:\s*'POST'/);
   assert.match(worker, /Set-Cookie/);
   assert.match(worker, /const nextRevision = Math\.max/);
   assert.match(worker, /applyTombstones/);

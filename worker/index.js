@@ -19,6 +19,14 @@ const worker = {
         serverTime: new Date().toISOString(),
       }, env.DB ? 200 : 503)
     }
+    if (pathname === "/api/sync/pair-canonical") {
+      if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405)
+      if (!env.DB) return json({ error: "sync_unavailable" }, 503)
+      const canonicalSyncKey = await getCanonicalSyncKey(env.DB)
+      return canonicalSyncKey
+        ? withPairingCookie(json({ paired: true }), canonicalSyncKey)
+        : json({ error: "workspace_not_initialized" }, 409)
+    }
     const syncMatch = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})$/)
     const syncChangesMatch = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})\/changes$/)
     if (pathname === "/.well-known/daymark-ai.json" && request.method === "GET") {

@@ -62,6 +62,22 @@ function AndroidReadyApp() {
   return <App />
 }
 
+async function pairCanonicalWorkspace() {
+  const explicitSync = new URLSearchParams(window.location.search).get('sync')
+  if (explicitSync) return
+  try {
+    await fetch('/api/sync/pair-canonical', {
+      method: 'POST',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    })
+  } catch {
+    // Existing pairing storage remains available while offline.
+  }
+}
+
+await pairCanonicalWorkspace()
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ThemeProvider defaultPreference="dark">

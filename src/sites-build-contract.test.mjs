@@ -182,3 +182,22 @@ test('plain production navigation pairs to the highest-revision canonical worksp
   assert.match(response.headers.get('Set-Cookie'), /daymark\.sync-key=A1b2C3d4E5f6G7h8I9j0K_/)
   assert.ok(statements.some((statement) => statement.includes('ORDER BY revision DESC')))
 })
+
+test('canonical pairing API bypasses cached HTML and sets the workspace cookie', async () => {
+  const db = {
+    prepare(statement) {
+      if (statement.includes('CREATE TABLE')) return { async run() {} }
+      if (statement.includes("config_key = 'canonical_sync_key'")) {
+        return { async first() { return { config_value: 'A1b2C3d4E5f6G7h8I9j0K_' } } }
+      }
+      throw new Error(`Unexpected SQL: ${statement}`)
+    },
+  }
+  const response = await worker.fetch(
+    new Request('https://daymark.test/api/sync/pair-canonical', { method: 'POST' }),
+    { DB: db },
+  )
+  assert.equal(response.status, 200)
+  assert.deepEqual(await response.json(), { paired: true })
+  assert.match(response.headers.get('Set-Cookie'), /daymark\.sync-key=A1b2C3d4E5f6G7h8I9j0K_/)
+})
