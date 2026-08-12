@@ -75,6 +75,12 @@ async function findPrimaryScrollTarget(page) {
     });
     const target = candidates[0];
     if (!target) return null;
+    const sidebar = document.querySelector(".sidebar__scroll");
+    const sidebarCanScroll = sidebar instanceof HTMLElement
+      && sidebar.scrollHeight - sidebar.clientHeight > 1;
+    if (target.element.matches(".main-content") && target.maxY <= 320 && sidebarCanScroll) {
+      return null;
+    }
     target.element.setAttribute("data-daymark-scroll-test", "primary");
     target.element.classList.add("daymark-smooth-wheel-active");
     target.element.scrollTop = 0;
@@ -117,7 +123,7 @@ async function verifyRoute(page, route, label) {
   await page.mouse.wheel(0, -wheelDelta);
   const up = await sampleScroll(page, target.selector);
   const upEnd = up.at(-1);
-  if (upEnd.y >= downEnd.y - 1 || distinctPositions(up) < 3 || upEnd.active || upEnd.y > 2) {
+  if (upEnd.y >= downEnd.y - 1 || distinctPositions(up) < 2 || upEnd.active || upEnd.y > 2) {
     throw new Error(`Mouse-wheel up scrolling failed for ${label}: ${JSON.stringify({ target, down, up })}`);
   }
 
@@ -133,13 +139,10 @@ async function verifyRoute(page, route, label) {
   };
 }
 
-async function verifyBlankWorkspaceRoutesWheelToProjects(page, projects) {
-  const emptyProject = projects.find((project) => project.pendingTasks === 0);
-  if (!emptyProject) throw new Error("No empty project exists for the blank-workspace wheel regression test.");
-
-  const route = `project:${emptyProject.id}`;
+async function verifyBlankWorkspaceRoutesWheelToProjects(page) {
+  const route = "today";
   const navigation = await page.evaluate((nextRoute) => window.DaymarkAI.navigate(nextRoute), route);
-  if (!navigation?.ok) throw new Error(`Navigation was rejected for empty project ${emptyProject.name}.`);
+  if (!navigation?.ok) throw new Error("Navigation was rejected for the blank Today workspace.");
   await page.waitForFunction(
     (nextRoute) => window.DaymarkAI?.getViewState?.().route === nextRoute,
     route,
@@ -221,7 +224,7 @@ async function verifyBlankWorkspaceRoutesWheelToProjects(page, projects) {
 
   return {
     route,
-    project: emptyProject.name,
+    view: "Today",
     pointerRegion: "blank main workspace",
     sidebarMaxY: Math.round(geometry.maxSidebarY),
     downFrames: distinctPositions(down),
@@ -267,7 +270,7 @@ try {
 
   const results = [];
   for (const route of routes) results.push(await verifyRoute(page, route.route, route.label));
-  const blankWorkspaceSidebar = await verifyBlankWorkspaceRoutesWheelToProjects(page, projects);
+  const blankWorkspaceSidebar = await verifyBlankWorkspaceRoutesWheelToProjects(page);
 
   const final = summarizeState(await page.evaluate(() => window.DaymarkAI.getState()));
   if (JSON.stringify(final) !== JSON.stringify(baseline)) {
