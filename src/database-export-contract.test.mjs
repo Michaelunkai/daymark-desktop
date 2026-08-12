@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { DatabaseSync } from "node:sqlite";
 
@@ -23,7 +24,7 @@ test("repository database contains the complete Android-authoritative workspace"
   assert.equal(Object.keys(document.state.syncTombstones).length, 140);
 
   const database = new DatabaseSync(
-    new URL("./data/daymark.sqlite", root).pathname.slice(1),
+    fileURLToPath(new URL("./data/daymark.sqlite", root)),
     { readOnly: true },
   );
   try {

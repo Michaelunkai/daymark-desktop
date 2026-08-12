@@ -18,6 +18,24 @@ only after its signer is verified against the installed Daymark app.
 The Android shell targets Android 6.0+ and opens the same responsive Daymark
 application used by Windows and mobile browsers.
 
+## Windows app
+
+The official Windows application opens the same production Daymark origin in a
+dedicated, persistent desktop session. It uses the existing pairing code,
+optimistic revision checks, timestamp merges, and deletion tombstones rather
+than introducing a separate desktop data store.
+
+Build and verify the Windows installer and portable executable:
+
+```powershell
+npm install
+npm run desktop:verify
+```
+
+The generated artifacts are written to `release/windows`. The installer keeps
+Daymark's local Windows session data when uninstalling so an accidental
+uninstall does not silently erase the desktop pairing and cached workspace.
+
 The next signed package is `1.4.22`, package `com.michaelunkai.daymark`,
 version code `26`. It preserves completed Order items as completed tasks,
 keeps Completed newest-first, and includes the Android touch-navigation update.
