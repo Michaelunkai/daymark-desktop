@@ -52,8 +52,8 @@ function currentScroll(element: HTMLElement, axis: ScrollAxis): number {
 }
 
 function setCurrentScroll(element: HTMLElement, axis: ScrollAxis, value: number) {
-  if (axis === "y") element.scrollTop = value;
-  else element.scrollLeft = value;
+  if (axis === "y") element.scrollTo({ top: value, behavior: "instant" });
+  else element.scrollTo({ left: value, behavior: "instant" });
 }
 
 function canScroll(element: HTMLElement, axis: ScrollAxis, delta: number): boolean {
