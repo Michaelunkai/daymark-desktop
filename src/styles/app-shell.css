@@ -1,5 +1,6 @@
 :root {
   --daymark-viewport-height: 100dvh;
+  --daymark-topbar-height: 64px;
   font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--color-text-primary);
   background: var(--color-canvas);
@@ -263,7 +264,7 @@ kbd {
 .shell-grid {
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr) 286px;
-  height: calc(var(--daymark-viewport-height) - 64px);
+  height: calc(var(--daymark-viewport-height) - var(--daymark-topbar-height));
   min-height: 0;
 }
 
@@ -2155,6 +2156,10 @@ kbd {
 }
 
 @media (max-width: 720px) {
+  :root {
+    --daymark-topbar-height: 112px;
+  }
+
   .topbar {
     grid-template-columns: 1fr;
     height: 112px;
@@ -2234,7 +2239,7 @@ kbd {
 
   .shell-grid {
     grid-template-columns: minmax(0, 1fr);
-    height: calc(var(--daymark-viewport-height) - 112px);
+    height: calc(var(--daymark-viewport-height) - var(--daymark-topbar-height));
     min-height: 0;
   }
 
@@ -2247,7 +2252,7 @@ kbd {
     grid-row: 1;
     position: fixed;
     z-index: 5;
-    top: 112px;
+    top: var(--daymark-topbar-height);
     bottom: 0;
     left: 0;
     width: min(280px, 85vw);
@@ -2267,7 +2272,7 @@ kbd {
   .sidebar-backdrop {
     position: fixed;
     z-index: 4;
-    top: 112px;
+    top: var(--daymark-topbar-height);
     right: 0;
     bottom: 0;
     left: 0;
@@ -2279,7 +2284,11 @@ kbd {
   }
 
   .content-frame {
-    padding: 32px 18px 42px;
+    padding:
+      32px
+      max(18px, env(safe-area-inset-right))
+      calc(42px + env(safe-area-inset-bottom))
+      max(18px, env(safe-area-inset-left));
   }
 
   .view-header {
@@ -2320,19 +2329,32 @@ kbd {
   }
 
   .task-preview {
-    top: 124px;
-    right: 14px;
-    left: 14px;
+    top: calc(var(--daymark-topbar-height) + 12px);
+    right: max(14px, env(safe-area-inset-right));
+    left: max(14px, env(safe-area-inset-left));
     width: auto;
+    max-height: calc(
+      var(--daymark-viewport-height) - var(--daymark-topbar-height) -
+        max(24px, env(safe-area-inset-bottom))
+    );
   }
 
   .thought-capture,
   .thought-capture-toast {
-    right: 14px;
-    bottom: 14px;
-    left: 14px;
+    right: max(14px, env(safe-area-inset-right));
+    bottom: max(14px, env(safe-area-inset-bottom));
+    left: max(14px, env(safe-area-inset-left));
     width: auto;
     max-width: none;
+  }
+
+  .thought-capture {
+    max-height: calc(
+      var(--daymark-viewport-height) - var(--daymark-topbar-height) -
+        max(24px, env(safe-area-inset-bottom))
+    );
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .thought-capture__footer {

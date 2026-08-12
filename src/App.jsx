@@ -2008,6 +2008,7 @@ function App() {
   const reorderPointerTargetRef = useRef(null)
   const composerRef = useRef(null)
   const captureReturnFocusRef = useRef(null)
+  const topbarRef = useRef(null)
 
   useEffect(() => {
     appStore.rollOverIncompleteTasks(toLocalDate(new Date()))
@@ -2038,6 +2039,31 @@ function App() {
       window.removeEventListener('resize', updateViewportHeight)
       viewport?.removeEventListener('resize', updateViewportHeight)
       viewport?.removeEventListener('scroll', updateViewportHeight)
+    }
+  }, [])
+
+  useEffect(() => {
+    const topbar = topbarRef.current
+    if (!topbar) return undefined
+
+    const updateTopbarHeight = () => {
+      document.documentElement.style.setProperty(
+        '--daymark-topbar-height',
+        `${Math.round(topbar.getBoundingClientRect().height)}px`,
+      )
+    }
+
+    const observer =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(updateTopbarHeight)
+
+    observer?.observe(topbar)
+    updateTopbarHeight()
+    window.addEventListener('resize', updateTopbarHeight)
+    return () => {
+      observer?.disconnect()
+      window.removeEventListener('resize', updateTopbarHeight)
     }
   }, [])
 
@@ -3550,7 +3576,7 @@ function App() {
   return (
     <div className={`app-shell density-${uiSettings.density} text-scale-${uiSettings.textScale} ${sidebarOpen ? '' : 'sidebar-is-collapsed'}`}>
       <CalendarIntegrationStyle />
-      <header className="topbar">
+      <header className="topbar" ref={topbarRef}>
         <div className="topbar__brand">
           <button
             aria-controls="primary-navigation"
