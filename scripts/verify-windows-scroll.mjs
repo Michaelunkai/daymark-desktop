@@ -151,6 +151,16 @@ async function verifyBlankWorkspaceRoutesWheelToProjects(page, projects) {
     const sidebar = document.querySelector(".sidebar__scroll");
     const main = document.querySelector(".main-content");
     if (!(sidebar instanceof HTMLElement) || !(main instanceof HTMLElement)) return null;
+    let fixture = sidebar.querySelector('[data-daymark-scroll-fixture="projects-overflow"]');
+    if (!(fixture instanceof HTMLElement) && sidebar.scrollHeight <= sidebar.clientHeight) {
+      fixture = document.createElement("div");
+      fixture.setAttribute("data-daymark-scroll-fixture", "projects-overflow");
+      fixture.setAttribute("aria-hidden", "true");
+      fixture.style.height = "1200px";
+      fixture.style.minHeight = "1200px";
+      fixture.style.pointerEvents = "none";
+      sidebar.append(fixture);
+    }
     sidebar.classList.add("daymark-smooth-wheel-active");
     sidebar.scrollTop = 0;
     sidebar.classList.remove("daymark-smooth-wheel-active");
@@ -168,6 +178,7 @@ async function verifyBlankWorkspaceRoutesWheelToProjects(page, projects) {
       scrollbarX: sidebarRect.right - 6,
       thumbStartY: sidebarRect.top + (thumbHeight / 2),
       thumbDragY: Math.min(sidebarRect.bottom - (thumbHeight / 2), sidebarRect.top + (thumbHeight / 2) + 180),
+      fixtureAdded: Boolean(fixture),
     };
   });
   if (
@@ -204,6 +215,9 @@ async function verifyBlankWorkspaceRoutesWheelToProjects(page, projects) {
   if (draggedY <= 1) {
     throw new Error(`The visible Projects scrollbar could not be dragged: ${JSON.stringify({ geometry, draggedY })}`);
   }
+  await page.evaluate(() => {
+    document.querySelector('[data-daymark-scroll-fixture="projects-overflow"]')?.remove();
+  });
 
   return {
     route,
