@@ -240,7 +240,7 @@ export function OrderWorkspace({
 
       <div className="order-intro">
         <strong>{orderedItems.length ? `${orderedItems.length} sequenced items` : 'A clear place to decide what comes next'}</strong>
-        <span>Items stay local and are saved with the rest of your workspace.</span>
+        <span>Changes sync with your paired devices and stay with the rest of your workspace.</span>
       </div>
 
       {orderedItems.length ? (

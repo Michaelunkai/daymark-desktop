@@ -105,7 +105,7 @@ assert(
   "A deferred remote state must flush only once.",
 );
 
-const pairingCode = "MIPPAd7gqrVglM_FQyqwAA";
+const pairingCode = "A1b2C3d4E5f6G7h8I9j0K_";
 const storageEntries = new Map<string, string>([["daymark.sync-key", "old-desktop-sync-key"]]);
 const pairingStorage = {
   getItem: (key: string) => storageEntries.get(key) ?? null,

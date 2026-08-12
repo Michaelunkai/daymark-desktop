@@ -2004,6 +2004,8 @@ function App() {
   const syncRemoteRevisionRef = useRef(0)
   const syncSkipNextPushRef = useRef(false)
   const syncPushTimerRef = useRef(null)
+  const syncPushInFlightRef = useRef(false)
+  const syncPushQueuedRef = useRef(false)
   const syncChannelRef = useRef(null)
   const syncSourceRef = useRef(null)
   const interactionSyncGateRef = useRef(createInteractionSyncGate())
@@ -2195,14 +2197,27 @@ function App() {
     }
     if (syncPushTimerRef.current) window.clearTimeout(syncPushTimerRef.current)
     syncPushTimerRef.current = window.setTimeout(async () => {
+      if (syncPushInFlightRef.current) {
+        syncPushQueuedRef.current = true
+        return
+      }
+      syncPushInFlightRef.current = true
       setSyncStatus('syncing')
       try {
-        const pushed = await pushSyncStateWithRebase(state, syncRemoteRevisionRef.current)
-        syncRemoteRevisionRef.current = pushed.revision
-        syncChannelRef.current?.publish(pushed.state)
+        do {
+          syncPushQueuedRef.current = false
+          const pushed = await pushSyncStateWithRebase(
+            appStore.getState(),
+            syncRemoteRevisionRef.current,
+          )
+          syncRemoteRevisionRef.current = pushed.revision
+          syncChannelRef.current?.publish(pushed.state)
+        } while (syncPushQueuedRef.current)
         setSyncStatus('synced')
       } catch (error) {
         setSyncStatus('offline')
+      } finally {
+        syncPushInFlightRef.current = false
       }
     }, 50)
     return () => {
