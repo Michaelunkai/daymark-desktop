@@ -2559,7 +2559,8 @@ kbd {
   line-height: 1.4;
 }
 
-.settings-field select {
+.settings-field select,
+.settings-field input {
   min-width: 122px;
   height: 34px;
   padding: 0 28px 0 9px;
@@ -2569,6 +2570,20 @@ kbd {
   background: var(--surface-soft);
   cursor: pointer;
   font-size: 11px;
+}
+
+.settings-field input {
+  width: min(100%, 320px);
+  padding-right: 9px;
+}
+
+.settings-pairing {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-pairing > .secondary-button {
+  justify-self: start;
 }
 
 .settings-toggle input {
@@ -2811,8 +2826,20 @@ kbd {
     align-items: flex-start;
   }
 
-  .settings-field select {
+  .settings-field select,
+  .settings-field input {
     min-width: 112px;
+  }
+
+  .settings-field input {
+    min-height: 44px;
+    width: 100%;
+    font-size: 16px;
+  }
+
+  .settings-pairing > .secondary-button {
+    min-height: 44px;
+    justify-self: stretch;
   }
 }
 
