@@ -39,7 +39,9 @@ test("remote sync contract is present in the client and Sites worker", async () 
   assert.match(worker, /daymark_sync_config/);
   assert.match(worker, /ORDER BY revision DESC, updated_at DESC LIMIT 1/);
   assert.match(worker, /\/api\/sync\/pair-canonical/);
-  assert.match(main, /await pairCanonicalWorkspace\(\)/);
+  assert.match(main, /daymark\.canonical-workspace=1/);
+  assert.match(main, /pairCanonicalWorkspace\(\)/);
+  assert.doesNotMatch(main, /await pairCanonicalWorkspace\(\)/);
   assert.match(main, /method:\s*'POST'/);
   assert.match(worker, /Set-Cookie/);
   assert.match(worker, /const nextRevision = Math\.max/);

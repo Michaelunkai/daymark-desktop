@@ -65,6 +65,7 @@ function AndroidReadyApp() {
 async function pairCanonicalWorkspace() {
   const explicitSync = new URLSearchParams(window.location.search).get('sync')
   if (explicitSync) return
+  if (document.cookie.split(';').some((entry) => entry.trim() === 'daymark.canonical-workspace=1')) return
   try {
     await fetch('/api/sync/pair-canonical', {
       method: 'POST',
@@ -76,8 +77,6 @@ async function pairCanonicalWorkspace() {
   }
 }
 
-await pairCanonicalWorkspace()
-
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ThemeProvider defaultPreference="dark">
@@ -87,3 +86,5 @@ createRoot(document.getElementById('root')).render(
     </ThemeProvider>
   </StrictMode>,
 )
+
+pairCanonicalWorkspace()

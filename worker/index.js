@@ -24,7 +24,7 @@ const worker = {
       if (!env.DB) return json({ error: "sync_unavailable" }, 503)
       const canonicalSyncKey = await getCanonicalSyncKey(env.DB)
       return canonicalSyncKey
-        ? withPairingCookie(json({ paired: true }), canonicalSyncKey)
+        ? withPairingCookie(json({ paired: true }), canonicalSyncKey, true)
         : json({ error: "workspace_not_initialized" }, 409)
     }
     const syncMatch = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})$/)
@@ -85,9 +85,16 @@ const worker = {
 }
 
 async function getCanonicalSyncKey(db) {
-  await db.prepare(
-    "CREATE TABLE IF NOT EXISTS daymark_sync_config (config_key TEXT PRIMARY KEY, config_value TEXT NOT NULL, updated_at TEXT NOT NULL)",
-  ).run()
+  try {
+    const configured = await db
+      .prepare("SELECT config_value FROM daymark_sync_config WHERE config_key = 'canonical_sync_key'")
+      .first()
+    if (SYNC_KEY_PATTERN.test(configured?.config_value ?? "")) return configured.config_value
+  } catch {
+    await db.prepare(
+      "CREATE TABLE IF NOT EXISTS daymark_sync_config (config_key TEXT PRIMARY KEY, config_value TEXT NOT NULL, updated_at TEXT NOT NULL)",
+    ).run()
+  }
   const configured = await db
     .prepare("SELECT config_value FROM daymark_sync_config WHERE config_key = 'canonical_sync_key'")
     .first()
@@ -1686,12 +1693,18 @@ async function noStoreAssetResponse(response) {
   })
 }
 
-function withPairingCookie(response, syncKey) {
+function withPairingCookie(response, syncKey, canonical = false) {
   const headers = new Headers(response.headers)
   headers.append(
     "Set-Cookie",
     `daymark.sync-key=${encodeURIComponent(syncKey)}; Path=/; Max-Age=315360000; Secure; SameSite=Strict`,
   )
+  if (canonical) {
+    headers.append(
+      "Set-Cookie",
+      "daymark.canonical-workspace=1; Path=/; Max-Age=315360000; Secure; SameSite=Strict",
+    )
+  }
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

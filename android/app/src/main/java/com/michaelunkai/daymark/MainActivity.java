@@ -351,6 +351,7 @@ public final class MainActivity extends Activity {
         @Override
         public void onPageCommitVisible(WebView view, String url) {
             if (view == webView && !loadingFailed) {
+                hideLoading();
                 scheduleAppReadinessCheck(view);
             }
         }

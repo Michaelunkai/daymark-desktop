@@ -199,5 +199,7 @@ test('canonical pairing API bypasses cached HTML and sets the workspace cookie',
   )
   assert.equal(response.status, 200)
   assert.deepEqual(await response.json(), { paired: true })
-  assert.match(response.headers.get('Set-Cookie'), /daymark\.sync-key=A1b2C3d4E5f6G7h8I9j0K_/)
+  const cookies = response.headers.getSetCookie()
+  assert.ok(cookies.some((cookie) => /daymark\.sync-key=A1b2C3d4E5f6G7h8I9j0K_/.test(cookie)))
+  assert.ok(cookies.some((cookie) => /daymark\.canonical-workspace=1/.test(cookie)))
 })

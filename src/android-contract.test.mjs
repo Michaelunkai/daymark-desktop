@@ -65,6 +65,7 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(activity, /onRenderProcessGone/);
   assert.match(activity, /recoverWebView/);
   assert.match(activity, /onPageCommitVisible/);
+  assert.match(activity, /onPageCommitVisible[\s\S]*?hideLoading\(\)/);
   assert.match(activity, /Loading Daymark/);
   assert.match(activity, /Daymark could not load/);
   assert.match(activity, /retryCurrentPage/);
