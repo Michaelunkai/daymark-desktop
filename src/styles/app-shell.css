@@ -29,6 +29,10 @@
   box-sizing: border-box;
 }
 
+.daymark-smooth-wheel-active {
+  scroll-behavior: auto !important;
+}
+
 body {
   margin: 0;
   min-width: 0;

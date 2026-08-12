@@ -113,7 +113,8 @@ test('coarse mouse wheels are smoothed without replacing precise or accessible s
   assert.match(smoothWheel, /prefers-reduced-motion: reduce/)
   assert.match(smoothWheel, /isDiscreteMouseWheel/)
   assert.match(smoothWheel, /findScrollTarget\(path, "x", deltaY\)/)
-  assert.match(smoothWheel, /behavior: "instant"/)
+  assert.match(smoothWheel, /daymark-smooth-wheel-active/)
+  assert.match(styles, /\.daymark-smooth-wheel-active \{[\s\S]*?scroll-behavior: auto !important;/)
 })
 
 test('transfer selects capture WebView values before scheduling state updates', () => {

@@ -3,6 +3,7 @@ const DISCRETE_WHEEL_THRESHOLD = 32;
 const WHEEL_DISTANCE_SCALE = 1.08;
 const EASING_FACTOR = 0.24;
 const SETTLED_DISTANCE = 0.35;
+const ACTIVE_SCROLL_CLASS = "daymark-smooth-wheel-active";
 
 type ScrollAxis = "x" | "y";
 
@@ -52,8 +53,8 @@ function currentScroll(element: HTMLElement, axis: ScrollAxis): number {
 }
 
 function setCurrentScroll(element: HTMLElement, axis: ScrollAxis, value: number) {
-  if (axis === "y") element.scrollTo({ top: value, behavior: "instant" });
-  else element.scrollTo({ left: value, behavior: "instant" });
+  if (axis === "y") element.scrollTop = value;
+  else element.scrollLeft = value;
 }
 
 function canScroll(element: HTMLElement, axis: ScrollAxis, delta: number): boolean {
@@ -92,6 +93,7 @@ export function installSmoothWheelScrolling(targetWindow: Window = window): () =
     const next = nextSmoothScrollPosition(current, animation.target);
     setCurrentScroll(element, animation.axis, next);
     if (next === animation.target) {
+      element.classList.remove(ACTIVE_SCROLL_CLASS);
       animations.delete(element);
       return;
     }
@@ -104,6 +106,7 @@ export function installSmoothWheelScrolling(targetWindow: Window = window): () =
     const previous = animations.get(element);
     if (previous && previous.axis !== axis) {
       targetWindow.cancelAnimationFrame(previous.frame);
+      element.classList.remove(ACTIVE_SCROLL_CLASS);
       animations.delete(element);
     }
     const active = animations.get(element);
@@ -115,6 +118,7 @@ export function installSmoothWheelScrolling(targetWindow: Window = window): () =
     }
     const animation: ScrollAnimation = { axis, frame: 0, target: nextTarget };
     animations.set(element, animation);
+    element.classList.add(ACTIVE_SCROLL_CLASS);
     animation.frame = targetWindow.requestAnimationFrame(() => animate(element));
   };
 
