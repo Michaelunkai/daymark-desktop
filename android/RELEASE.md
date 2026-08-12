@@ -1,5 +1,18 @@
 # Daymark Android Release
 
+## Mandatory signing protection
+
+Before any Daymark Android release, run `.\Protect-DaymarkSigningKey.ps1`.
+It accepts only the signing key whose certificate matches the installed
+Daymark app, creates two independent hash-verified backups outside the
+repository, and refuses to overwrite a different key.
+
+Before publishing an APK, run
+`.\Test-DaymarkReleaseReadiness.ps1 -ApkPath <apk-path> -ExpectedCommit <git-commit>`.
+It refuses publication unless both protected backups, the repository commit,
+and the APK signer match. Never uninstall the installed app, clear its data,
+or publish an incompatible replacement merely to bypass a signing mismatch.
+
 `1.4.22` is reserved for the Android and web Order workspace and completed
 history release. Completing or removing an Order item immediately preserves it
 as a completed task, and Completed is one newest-first timeline across every
