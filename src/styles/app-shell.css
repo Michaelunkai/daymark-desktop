@@ -318,7 +318,33 @@ kbd {
   overscroll-behavior: contain;
   scroll-behavior: smooth;
   scrollbar-gutter: stable;
+  scrollbar-color: #74827f #111615;
+  scrollbar-width: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+.sidebar__scroll::-webkit-scrollbar {
+  width: 12px;
+}
+
+.sidebar__scroll::-webkit-scrollbar-track {
+  background: #111615;
+  border-left: 1px solid #27302e;
+}
+
+.sidebar__scroll::-webkit-scrollbar-thumb {
+  min-height: 52px;
+  border: 3px solid #111615;
+  border-radius: 6px;
+  background: #74827f;
+}
+
+.sidebar__scroll::-webkit-scrollbar-thumb:hover {
+  background: #a6b2af;
+}
+
+.sidebar__scroll::-webkit-scrollbar-thumb:active {
+  background: #d7dfdd;
 }
 
 .sidebar-section {

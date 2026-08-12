@@ -154,15 +154,29 @@ async function verifyBlankWorkspaceRoutesWheelToProjects(page, projects) {
     sidebar.classList.add("daymark-smooth-wheel-active");
     sidebar.scrollTop = 0;
     sidebar.classList.remove("daymark-smooth-wheel-active");
+    const sidebarRect = sidebar.getBoundingClientRect();
     const mainRect = main.getBoundingClientRect();
+    const sidebarStyle = getComputedStyle(sidebar);
+    const thumbHeight = Math.max(52, sidebar.clientHeight * (sidebar.clientHeight / sidebar.scrollHeight));
     return {
       maxSidebarY: Math.max(0, sidebar.scrollHeight - sidebar.clientHeight),
       mainMaxY: Math.max(0, main.scrollHeight - main.clientHeight),
       x: Math.max(1, Math.min(innerWidth - 1, mainRect.left + (mainRect.width * 0.75))),
       y: Math.max(1, Math.min(innerHeight - 1, mainRect.top + (mainRect.height * 0.5))),
+      scrollbarColor: sidebarStyle.scrollbarColor,
+      scrollbarWidth: sidebarStyle.scrollbarWidth,
+      scrollbarX: sidebarRect.right - 6,
+      thumbStartY: sidebarRect.top + (thumbHeight / 2),
+      thumbDragY: Math.min(sidebarRect.bottom - (thumbHeight / 2), sidebarRect.top + (thumbHeight / 2) + 180),
     };
   });
-  if (!geometry || geometry.maxSidebarY <= 1 || geometry.mainMaxY > 1) {
+  if (
+    !geometry
+    || geometry.maxSidebarY <= 1
+    || geometry.mainMaxY > 1
+    || geometry.scrollbarColor === "auto"
+    || geometry.scrollbarWidth === "none"
+  ) {
     throw new Error(`The screenshot regression layout was not reproduced: ${JSON.stringify(geometry)}`);
   }
 
@@ -181,6 +195,16 @@ async function verifyBlankWorkspaceRoutesWheelToProjects(page, projects) {
     throw new Error(`Blank-workspace wheel did not scroll the Projects navigation back up: ${JSON.stringify({ geometry, down, up })}`);
   }
 
+  await page.mouse.move(geometry.scrollbarX, geometry.thumbStartY);
+  await page.mouse.down();
+  await page.mouse.move(geometry.scrollbarX, geometry.thumbDragY, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(120);
+  const draggedY = await page.locator(".sidebar__scroll").evaluate((element) => element.scrollTop);
+  if (draggedY <= 1) {
+    throw new Error(`The visible Projects scrollbar could not be dragged: ${JSON.stringify({ geometry, draggedY })}`);
+  }
+
   return {
     route,
     project: emptyProject.name,
@@ -190,6 +214,7 @@ async function verifyBlankWorkspaceRoutesWheelToProjects(page, projects) {
     downEnd: Math.round(downEnd.y * 10) / 10,
     upFrames: distinctPositions(up),
     upEnd: Math.round(upEnd.y * 10) / 10,
+    scrollbarDraggedTo: Math.round(draggedY * 10) / 10,
   };
 }
 
