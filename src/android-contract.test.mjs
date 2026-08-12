@@ -5,7 +5,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 
 test("Android release exposes the shared responsive app with the premium launcher icon", async () => {
-  const [manifest, gradle, activity, icon, shellStyles, appSource, commandStyles, searchStyles, mainSource, releaseVerifier] = await Promise.all([
+  const [manifest, gradle, activity, icon, shellStyles, appSource, commandStyles, searchStyles, mainSource, releaseVerifier, escrow, readiness, buildScript] = await Promise.all([
     readFile(new URL("./android/app/src/main/AndroidManifest.xml", root), "utf8"),
     readFile(new URL("./android/app/build.gradle", root), "utf8"),
     readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/MainActivity.java", root), "utf8"),
@@ -16,6 +16,9 @@ test("Android release exposes the shared responsive app with the premium launche
     readFile(new URL("./src/features/search/search.css", root), "utf8"),
     readFile(new URL("./src/main.jsx", root), "utf8"),
     readFile(new URL("./android/Verify-DaymarkRelease.ps1", root), "utf8"),
+    readFile(new URL("./android/Protect-DaymarkSigningKey.ps1", root), "utf8"),
+    readFile(new URL("./android/Test-DaymarkReleaseReadiness.ps1", root), "utf8"),
+    readFile(new URL("./scripts/build-android.ps1", root), "utf8"),
   ]);
 
   assert.match(manifest, /android:icon="@drawable\/ic_daymark_launcher"/);
@@ -25,11 +28,29 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(gradle, /if \(isReleaseRequested && !hasDaymarkSigning\)/);
   assert.match(gradle, /A Daymark release requires DAYMARK_SIGNING_STORE/);
   assert.match(gradle, /Debug signing is not valid for updates/);
+  assert.match(gradle, /DAYMARK_GIT_COMMIT/);
+  assert.match(gradle, /manifestPlaceholders = \[daymarkGitCommit:/);
   assert.doesNotMatch(gradle, /signingConfigs\.debug/);
+  assert.match(manifest, /com\.michaelunkai\.daymark\.GIT_COMMIT/);
+  assert.match(manifest, /\$\{daymarkGitCommit\}/);
   assert.match(releaseVerifier, /Missing \$name\. A release must use the original Daymark signing key/);
   assert.match(releaseVerifier, /JAVA_HOME is required to verify the release signer/);
   assert.match(releaseVerifier, /890ddcf80b412cf3145b9ce0841e0d857226022bef20ae637ef0d0a8b5358676/);
   assert.match(releaseVerifier, /does not match the installed Daymark signer/);
+  assert.match(releaseVerifier, /exactly one signer/);
+  assert.match(releaseVerifier, /GIT_COMMIT/);
+  assert.match(releaseVerifier, /APK is not bound to expected Git commit/);
+  assert.match(escrow, /param\(\)/);
+  assert.doesNotMatch(escrow, /\[string\]\$ExpectedSigner/);
+  assert.match(escrow, /Entry type:\\s\*PrivateKeyEntry/);
+  assert.match(escrow, /schemaVersion = 2/);
+  assert.match(escrow, /Signing backup could not be reopened/);
+  assert.match(readiness, /Repository has tracked changes/);
+  assert.match(readiness, /Daymark signing backups are not stored on separate drive roots/);
+  assert.match(readiness, /Verify-DaymarkRelease\.ps1'\) -ApkPath \$ApkPath -ExpectedCommit \$ExpectedCommit/);
+  assert.match(buildScript, /Protect-DaymarkSigningKey\.ps1/);
+  assert.match(buildScript, /\$env:DAYMARK_GIT_COMMIT = \$ExpectedCommit/);
+  assert.match(buildScript, /Test-DaymarkReleaseReadiness\.ps1/);
   assert.match(activity, /daymark-desktop\.michaelovsky55555\.chatgpt\.site/);
   assert.match(activity, /setDomStorageEnabled\(true\)/);
   assert.match(activity, /addJavascriptInterface/);

@@ -6,6 +6,7 @@ def daymarkSigningStore = System.getenv("DAYMARK_SIGNING_STORE")
 def daymarkSigningStorePassword = System.getenv("DAYMARK_SIGNING_STORE_PASSWORD")
 def daymarkSigningKeyAlias = System.getenv("DAYMARK_SIGNING_KEY_ALIAS")
 def daymarkSigningKeyPassword = System.getenv("DAYMARK_SIGNING_KEY_PASSWORD")
+def daymarkGitCommit = System.getenv("DAYMARK_GIT_COMMIT")
 def hasDaymarkSigning = [
         daymarkSigningStore,
         daymarkSigningStorePassword,
@@ -21,6 +22,9 @@ if (isReleaseRequested && !hasDaymarkSigning) {
             "DAYMARK_SIGNING_KEY_PASSWORD. Debug signing is not valid for updates."
     )
 }
+if (isReleaseRequested && (daymarkGitCommit == null || !(daymarkGitCommit ==~ /[0-9a-f]{40}/))) {
+    throw new GradleException("A Daymark release requires DAYMARK_GIT_COMMIT with the exact 40-character Git commit.")
+}
 
 android {
     namespace "com.michaelunkai.daymark"
@@ -32,6 +36,7 @@ android {
         targetSdk 34
         versionCode 26
         versionName "1.4.22"
+        manifestPlaceholders = [daymarkGitCommit: daymarkGitCommit ?: "unverified"]
     }
 
     if (hasDaymarkSigning) {
