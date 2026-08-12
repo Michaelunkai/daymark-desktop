@@ -26,6 +26,7 @@ import { ProjectCreateDialog } from './features/projects/ProjectCreateDialog'
 import './features/projects/project-create-dialog.css'
 import { OrderWorkspace } from './features/order/OrderWorkspace'
 import { createLongPressReorderController } from './features/reorder/long-press.js'
+import { sortCompletedHistoryNewestFirst } from './features/tasks/completed-history'
 import {
   createLocalThoughtCaptureStore,
   discardCapture,
@@ -274,6 +275,7 @@ function toViewTask(task, state) {
     priorityTone: task.priority === 1 || task.priority === 2 ? 'coral' : 'ink',
     note: task.description || 'No description yet.',
     completed: Boolean(task.completedAt),
+    completedAt: task.completedAt ?? null,
   }
 }
 
@@ -2398,12 +2400,23 @@ function App() {
     if (route === 'upcoming') scoped = availableTasks.filter((task) => state.tasks[task.id]?.due?.date >= today)
     if (route.startsWith('project:')) scoped = availableTasks.filter((task) => task.project === route.slice('project:'.length))
     if (route === 'today') scoped = availableTasks.filter((task) => state.tasks[task.id]?.due?.date <= today)
-    if (route === 'completed') scoped = tasks.filter((task) => task.completed)
+    if (route === 'completed') {
+      scoped = sortCompletedHistoryNewestFirst(tasks.filter((task) => task.completed))
+    }
     if (route !== 'completed' && !state.preferences.showCompleted) scoped = scoped.filter((task) => !task.completed)
     return scoped
   }, [route, searchTerm, state.preferences.inboxProjectId, state.preferences.showCompleted, state.tasks, tasks, today])
 
   const sections = useMemo(() => {
+    if (route === 'completed') {
+      return [{
+        id: 'completed-history',
+        projectId: null,
+        name: 'Recently completed',
+        tasks: visibleTasks,
+      }]
+    }
+
     const orderedTasks = [...visibleTasks].sort((left, right) => {
       const leftTask = state.tasks[left.id]
       const rightTask = state.tasks[right.id]
@@ -2610,6 +2623,7 @@ function App() {
   const navigate = (nextRoute) => {
     setReorderMode(null)
     setSectionComposerOpen(false)
+    window.scrollTo(0, 0)
     setRoute(nextRoute)
     setSelectedTask(null)
     if (window.matchMedia('(max-width: 720px)').matches) setSidebarOpen(false)
@@ -3701,31 +3715,33 @@ function App() {
 
         <main className="main-content">
           <div className="content-frame">
-            <div className="view-header">
-              <div>
-                <span className="section-kicker">{routeInfo.kicker}</span>
-                <h1>{routeInfo.title}</h1>
-                <p>{routeInfo.subtitle}</p>
+            {route !== 'order' ? (
+              <div className="view-header">
+                <div>
+                  <span className="section-kicker">{routeInfo.kicker}</span>
+                  <h1>{routeInfo.title}</h1>
+                  <p>{routeInfo.subtitle}</p>
+                </div>
+                <div className="view-header__actions">
+                  {!['upcoming', 'order', 'notes', 'diary'].includes(route) ? (
+                    <div aria-label="View mode" className="segmented-control" role="group">
+                      <button className={viewMode === 'list' ? 'is-selected' : ''} onClick={() => setViewMode('list')} title="List view" type="button">
+                        <Icon name="list" size={16} />
+                        List
+                      </button>
+                      <button className={viewMode === 'board' ? 'is-selected' : ''} onClick={() => setViewMode('board')} title="Board view" type="button">
+                        <Icon name="board" size={16} />
+                        Board
+                      </button>
+                    </div>
+                  ) : null}
+                  {!['order', 'notes', 'diary'].includes(route) ? <button className="primary-button" onClick={() => openTaskEditor('create', null, route === 'upcoming' ? selectedCalendarDate : null)} type="button">
+                    <Icon name="plus" size={17} />
+                    Add task
+                  </button> : null}
+                </div>
               </div>
-              <div className="view-header__actions">
-                {!['upcoming', 'order', 'notes', 'diary'].includes(route) ? (
-                  <div aria-label="View mode" className="segmented-control" role="group">
-                    <button className={viewMode === 'list' ? 'is-selected' : ''} onClick={() => setViewMode('list')} title="List view" type="button">
-                      <Icon name="list" size={16} />
-                      List
-                    </button>
-                    <button className={viewMode === 'board' ? 'is-selected' : ''} onClick={() => setViewMode('board')} title="Board view" type="button">
-                      <Icon name="board" size={16} />
-                      Board
-                    </button>
-                  </div>
-                ) : null}
-                {!['order', 'notes', 'diary'].includes(route) ? <button className="primary-button" onClick={() => openTaskEditor('create', null, route === 'upcoming' ? selectedCalendarDate : null)} type="button">
-                  <Icon name="plus" size={17} />
-                  Add task
-                </button> : null}
-              </div>
-            </div>
+            ) : null}
 
             {searchTerm ? (
               <div className="search-summary">

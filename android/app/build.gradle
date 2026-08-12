@@ -12,6 +12,15 @@ def hasDaymarkSigning = [
         daymarkSigningKeyAlias,
         daymarkSigningKeyPassword
 ].every { it != null && !it.isEmpty() }
+def isReleaseRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
+
+if (isReleaseRequested && !hasDaymarkSigning) {
+    throw new GradleException(
+            "A Daymark release requires DAYMARK_SIGNING_STORE, " +
+            "DAYMARK_SIGNING_STORE_PASSWORD, DAYMARK_SIGNING_KEY_ALIAS, and " +
+            "DAYMARK_SIGNING_KEY_PASSWORD. Debug signing is not valid for updates."
+    )
+}
 
 android {
     namespace "com.michaelunkai.daymark"
@@ -21,12 +30,12 @@ android {
         applicationId "com.michaelunkai.daymark"
         minSdk 23
         targetSdk 34
-        versionCode 25
-        versionName "1.4.21"
+        versionCode 26
+        versionName "1.4.22"
     }
 
-    signingConfigs {
-        if (hasDaymarkSigning) {
+    if (hasDaymarkSigning) {
+        signingConfigs {
             daymarkRelease {
                 storeFile file(daymarkSigningStore)
                 storePassword daymarkSigningStorePassword
@@ -40,7 +49,9 @@ android {
         release {
             minifyEnabled false
             shrinkResources false
-            signingConfig hasDaymarkSigning ? signingConfigs.daymarkRelease : signingConfigs.debug
+            if (hasDaymarkSigning) {
+                signingConfig signingConfigs.daymarkRelease
+            }
         }
     }
 

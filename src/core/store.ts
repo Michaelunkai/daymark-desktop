@@ -432,6 +432,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       };
       state.orderItems[id] = item;
       clearTombstone(state, "orderItems", id);
+      if (action.input.status === "done") return completeOrderItem(state, item, now);
       return { ok: true, inverse: { type: "order.remove", itemId: id } };
     }
     case "order.update": {
@@ -446,40 +447,14 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
         details: action.patch.details?.trim() ?? item.details,
         updatedAt: now,
       });
+      if (action.patch.status === "done") return completeOrderItem(state, item, now);
       return { ok: true, inverse: { type: "order.update", itemId: item.id, patch: before } };
     }
     case "order.complete":
     case "order.delete": {
       const item = state.orderItems[action.itemId];
       if (!item) return invalid("The Order item no longer exists.");
-      const taskResult = createTask(state, {
-        content: item.title,
-        description: item.details,
-        projectId: state.preferences.inboxProjectId,
-        sectionId: null,
-        priority: item.priority,
-      }, now);
-      if (!taskResult.ok) return taskResult;
-
-      taskResult.task.completedAt = now;
-      taskResult.task.completionContext = {
-        projectId: taskResult.task.projectId,
-        sectionId: taskResult.task.sectionId,
-        order: taskResult.task.order,
-      };
-      state.tasks[taskResult.task.id] = taskResult.task;
-      clearTombstone(state, "tasks", taskResult.task.id);
-      delete state.orderItems[action.itemId];
-      markTombstone(state, "orderItems", action.itemId, now);
-      clearOrderRelations(state, item.id);
-      return {
-        ok: true,
-        inverse: {
-          type: "order.transfer.restore",
-          orderItem: structuredClone(item),
-          taskId: taskResult.task.id,
-        },
-      };
+      return completeOrderItem(state, item, now);
     }
     case "order.remove": {
       const item = state.orderItems[action.itemId];
@@ -788,6 +763,40 @@ function clearOrderRelations(state: AppState, itemId: string): void {
   Object.values(state.orderItems).forEach((candidate) => {
     if (candidate.relationId === itemId) candidate.relationId = null;
   });
+}
+
+function completeOrderItem(state: AppState, item: OrderItem, now: string): MutationResult {
+  const taskResult = createTask(state, {
+    content: item.title,
+    description: item.details,
+    projectId: state.preferences.inboxProjectId,
+    sectionId: null,
+    priority: item.priority,
+  }, now);
+  if (!taskResult.ok) return taskResult;
+
+  taskResult.task.completedAt = now;
+  taskResult.task.completionContext = {
+    projectId: taskResult.task.projectId,
+    sectionId: taskResult.task.sectionId,
+    order: taskResult.task.order,
+  };
+  state.tasks[taskResult.task.id] = taskResult.task;
+  clearTombstone(state, "tasks", taskResult.task.id);
+  delete state.orderItems[item.id];
+  markTombstone(state, "orderItems", item.id, now);
+  clearOrderRelations(state, item.id);
+  return {
+    ok: true,
+    inverse: {
+      type: "order.transfer.restore",
+      orderItem: {
+        ...structuredClone(item),
+        status: item.status === "done" ? "open" : item.status,
+      },
+      taskId: taskResult.task.id,
+    },
+  };
 }
 
 function createUndoEntry(inverse: UndoAction, createdAt: string): UndoEntry {

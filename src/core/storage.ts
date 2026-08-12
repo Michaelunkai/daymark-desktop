@@ -115,7 +115,7 @@ export function migrate(value: unknown): AppState {
     value.schemaVersion === 1 ||
     value.schemaVersion === 0
   ) {
-    return validateCurrentState(removeTags(migrateTasks({
+    return validateCurrentState(removeTags(migrateCompletedOrderItems(migrateTasks({
       ...value,
       schemaVersion: CURRENT_SCHEMA_VERSION,
       sections: isRecord(value.sections) ? value.sections : {},
@@ -131,7 +131,7 @@ export function migrate(value: unknown): AppState {
       orderItems: isRecord(value.orderItems) ? value.orderItems : {},
       notes: isRecord(value.notes) ? value.notes : {},
       diaryEntries: isRecord(value.diaryEntries) ? value.diaryEntries : {},
-    })));
+    }))));
   }
   throw new Error("Stored state schema is unsupported.");
 }
@@ -153,7 +153,7 @@ function validateCurrentState(value: Record<string, unknown>): AppState {
   ) {
     throw new Error("Stored state is incomplete.");
   }
-  return removeTags(migrateDiaryEntries(migrateNotes(migrateTasks(value)))) as unknown as AppState;
+  return removeTags(migrateCompletedOrderItems(migrateDiaryEntries(migrateNotes(migrateTasks(value))))) as unknown as AppState;
 }
 
 function removeTags(value: Record<string, unknown>): Record<string, unknown> {
@@ -205,6 +205,77 @@ function migrateTasks(value: Record<string, unknown>): Record<string, unknown> {
   );
 
   return { ...value, tasks };
+}
+
+function migrateCompletedOrderItems(value: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(value.tasks) || !isRecord(value.orderItems) || !isRecord(value.preferences)) return value;
+
+  const doneItems = Object.entries(value.orderItems).filter(([, rawItem]) => (
+    isRecord(rawItem) && rawItem.status === "done"
+  ));
+  if (!doneItems.length) return value;
+
+  const tasks = { ...value.tasks };
+  const orderItems = { ...value.orderItems };
+  const tombstones = isRecord(value.syncTombstones) ? { ...value.syncTombstones } : {};
+  const inboxProjectId = typeof value.preferences.inboxProjectId === "string"
+    ? value.preferences.inboxProjectId
+    : "";
+  let nextOrder = Math.max(
+    -1,
+    ...Object.values(tasks).map((rawTask) => (
+      isRecord(rawTask) && typeof rawTask.order === "number" ? rawTask.order : -1
+    )),
+  ) + 1;
+
+  for (const [itemId, rawItem] of doneItems) {
+    if (!isRecord(rawItem)) continue;
+    const completedAt = typeof rawItem.updatedAt === "string"
+      ? rawItem.updatedAt
+      : typeof rawItem.createdAt === "string"
+        ? rawItem.createdAt
+        : typeof value.updatedAt === "string"
+          ? value.updatedAt
+          : new Date(0).toISOString();
+    const taskId = createMigratedCompletedOrderTaskId(tasks, itemId);
+    if (!tasks[taskId]) {
+      tasks[taskId] = {
+        content: typeof rawItem.title === "string" ? rawItem.title : "Completed Order item",
+        description: typeof rawItem.details === "string" ? rawItem.details : "",
+        projectId: inboxProjectId,
+        sectionId: null,
+        parentId: null,
+        priority: typeof rawItem.priority === "number" ? rawItem.priority : 4,
+        due: null,
+        completedAt,
+        completionContext: {
+          projectId: inboxProjectId,
+          sectionId: null,
+          order: nextOrder,
+        },
+        order: nextOrder,
+        createdAt: typeof rawItem.createdAt === "string" ? rawItem.createdAt : completedAt,
+        updatedAt: completedAt,
+      };
+      nextOrder += 1;
+    }
+    delete orderItems[itemId];
+    tombstones[`orderItems:${itemId}`] = { deletedAt: completedAt };
+  }
+
+  return { ...value, tasks, orderItems, syncTombstones: tombstones };
+}
+
+function createMigratedCompletedOrderTaskId(
+  tasks: Record<string, unknown>,
+  orderItemId: string,
+): string {
+  const baseId = `completed-order-${orderItemId}`;
+  if (!tasks[baseId]) return baseId;
+
+  let suffix = 2;
+  while (tasks[`${baseId}-${suffix}`]) suffix += 1;
+  return `${baseId}-${suffix}`;
 }
 
 function migrateNotes(value: Record<string, unknown>): Record<string, unknown> {

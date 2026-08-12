@@ -1,5 +1,14 @@
 # Daymark Android Release
 
+`1.4.22` is reserved for the Android and web Order workspace and completed
+history release. Completing or removing an Order item immediately preserves it
+as a completed task, and Completed is one newest-first timeline across every
+project and section. The mobile Order view opens at the top, avoids the
+duplicate shell heading, and keeps large lane, reorder, edit, and completion
+controls. A release APK is deliberately not produced until
+`Verify-DaymarkRelease.ps1` confirms that it uses the original signer of the
+installed Daymark app.
+
 `daymark-android-1.4.21.apk` is the Android Order completion and touch-navigation update.
 Removing or completing an Order item now immediately preserves it as a completed
 task, including its title, details, and priority. The Order workspace has

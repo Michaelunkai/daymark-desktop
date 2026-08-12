@@ -217,6 +217,12 @@ export function OrderWorkspace({
     ...lane,
     items: orderedItems.filter((item) => item.lane === lane.id),
   }))
+  const scrollToLane = (laneId) => {
+    document.querySelector(`[data-order-lane="${laneId}"]`)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    })
+  }
 
   return (
     <section aria-labelledby="order-title" className="order-workspace">
@@ -238,6 +244,15 @@ export function OrderWorkspace({
       </div>
 
       {orderedItems.length ? (
+        <>
+        <nav aria-label="Order sections" className="order-lane-nav">
+          {grouped.map((lane) => (
+            <button key={lane.id} onClick={() => scrollToLane(lane.id)} type="button">
+              <span>{lane.label}</span>
+              <strong>{lane.items.length}</strong>
+            </button>
+          ))}
+        </nav>
         <div className="order-lanes">
           {grouped.map((lane) => (
             <section
@@ -278,6 +293,7 @@ export function OrderWorkspace({
             </section>
           ))}
         </div>
+        </>
       ) : (
         <div className="order-empty">
           <span aria-hidden="true" className="order-empty__mark">1</span>
@@ -302,7 +318,7 @@ export function OrderWorkspace({
             <div className="order-editor__grid">
               <label>Group<select onChange={(event) => setDraft({ ...draft, lane: event.target.value, relationId: event.target.value === 'now' || event.target.value === 'later' ? null : draft.relationId })} value={draft.lane}>{LANES.map((lane) => <option key={lane.id} value={lane.id}>{lane.label}</option>)}</select></label>
               <label>Priority<select onChange={(event) => setDraft({ ...draft, priority: Number(event.target.value) })} value={draft.priority}>{PRIORITIES.map((priority) => <option key={priority.value} value={priority.value}>{priority.label}</option>)}</select></label>
-              <label>Status<select onChange={(event) => setDraft({ ...draft, status: event.target.value })} value={draft.status}><option value="open">Open</option><option value="done">Done</option><option value="blocked">Blocked</option></select></label>
+              <label>Status<select onChange={(event) => setDraft({ ...draft, status: event.target.value })} value={draft.status === 'done' ? 'open' : draft.status}><option value="open">Open</option><option value="blocked">Blocked</option></select></label>
             </div>
             {draft.lane === 'after' ? (
               <label>After item<select onChange={(event) => setDraft({ ...draft, relationId: event.target.value || null })} value={draft.relationId ?? ''}><option value="">Choose a related item</option>{relationOptions.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>

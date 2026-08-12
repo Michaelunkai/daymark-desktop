@@ -5,7 +5,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 
 test("Android release exposes the shared responsive app with the premium launcher icon", async () => {
-  const [manifest, gradle, activity, icon, shellStyles, appSource, commandStyles, searchStyles, mainSource] = await Promise.all([
+  const [manifest, gradle, activity, icon, shellStyles, appSource, commandStyles, searchStyles, mainSource, releaseVerifier] = await Promise.all([
     readFile(new URL("./android/app/src/main/AndroidManifest.xml", root), "utf8"),
     readFile(new URL("./android/app/build.gradle", root), "utf8"),
     readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/MainActivity.java", root), "utf8"),
@@ -15,11 +15,21 @@ test("Android release exposes the shared responsive app with the premium launche
     readFile(new URL("./src/features/command/command.css", root), "utf8"),
     readFile(new URL("./src/features/search/search.css", root), "utf8"),
     readFile(new URL("./src/main.jsx", root), "utf8"),
+    readFile(new URL("./android/Verify-DaymarkRelease.ps1", root), "utf8"),
   ]);
 
   assert.match(manifest, /android:icon="@drawable\/ic_daymark_launcher"/);
   assert.match(manifest, /android:roundIcon="@drawable\/ic_daymark_launcher"/);
-  assert.match(gradle, /versionName "1\.4\.21"/);
+  assert.match(gradle, /versionName "1\.4\.22"/);
+  assert.match(gradle, /def isReleaseRequested = gradle\.startParameter\.taskNames\.any/);
+  assert.match(gradle, /if \(isReleaseRequested && !hasDaymarkSigning\)/);
+  assert.match(gradle, /A Daymark release requires DAYMARK_SIGNING_STORE/);
+  assert.match(gradle, /Debug signing is not valid for updates/);
+  assert.doesNotMatch(gradle, /signingConfigs\.debug/);
+  assert.match(releaseVerifier, /Missing \$name\. A release must use the original Daymark signing key/);
+  assert.match(releaseVerifier, /JAVA_HOME is required to verify the release signer/);
+  assert.match(releaseVerifier, /890ddcf80b412cf3145b9ce0841e0d857226022bef20ae637ef0d0a8b5358676/);
+  assert.match(releaseVerifier, /does not match the installed Daymark signer/);
   assert.match(activity, /daymark-desktop\.michaelovsky55555\.chatgpt\.site/);
   assert.match(activity, /setDomStorageEnabled\(true\)/);
   assert.match(activity, /addJavascriptInterface/);

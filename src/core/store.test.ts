@@ -125,6 +125,45 @@ assert(
   legacyCompleted.tasks["task-welcome"].completionContext?.order === 0,
   "Schema v2 completed tasks should gain an active-context snapshot.",
 );
+const migratedDoneOrder = migrate({
+  ...base,
+  orderItems: {
+    "order-done-legacy": {
+      ...base.orderItems["order-welcome"],
+      id: "order-done-legacy",
+      status: "done",
+      updatedAt: timestamp,
+    },
+  },
+});
+assert(
+  !migratedDoneOrder.orderItems["order-done-legacy"] &&
+    migratedDoneOrder.tasks["completed-order-order-done-legacy"]?.completedAt === timestamp,
+  "Stored done Order items should migrate into Completed.",
+);
+const migratedDoneOrderCollision = migrate({
+  ...base,
+  tasks: {
+    ...base.tasks,
+    "completed-order-order-done-legacy": {
+      ...base.tasks["task-welcome"],
+      id: "completed-order-order-done-legacy",
+      content: "Existing task",
+    },
+  },
+  orderItems: {
+    "order-done-legacy": {
+      ...base.orderItems["order-welcome"],
+      id: "order-done-legacy",
+      status: "done",
+      updatedAt: timestamp,
+    },
+  },
+});
+assert(
+  migratedDoneOrderCollision.tasks["completed-order-order-done-legacy-2"]?.completedAt === timestamp,
+  "Stored done Order items should retain their history if a migration task ID is already taken.",
+);
 
 const longText = "x".repeat(100_000);
 const large = reduce(
@@ -293,6 +332,34 @@ assert(
     !legacyDeleteCompletesOrder.state.orderItems["order-welcome"] &&
     Object.values(legacyDeleteCompletesOrder.state.tasks).some((task) => task.content === "Choose the next useful step" && task.completedAt === timestamp),
   "Removing an Order item should preserve it as a completed task.",
+);
+const statusDoneCompletesOrder = reduce(
+  base,
+  { type: "order.update", itemId: "order-welcome", patch: { status: "done" } },
+  timestamp,
+);
+assert(
+  statusDoneCompletesOrder.ok &&
+    !statusDoneCompletesOrder.state.orderItems["order-welcome"] &&
+    Object.values(statusDoneCompletesOrder.state.tasks).some((task) => (
+      task.content === "Choose the next useful step" &&
+      task.completedAt === timestamp
+    )),
+  "Marking an Order item done should immediately move it to Completed.",
+);
+const createdDoneOrder = reduce(
+  base,
+  { type: "order.add", input: { id: "order-created-done", title: "Done on arrival", status: "done" } },
+  timestamp,
+);
+assert(
+  createdDoneOrder.ok &&
+    !createdDoneOrder.state.orderItems["order-created-done"] &&
+    Object.values(createdDoneOrder.state.tasks).some((task) => (
+      task.content === "Done on arrival" &&
+      task.completedAt === timestamp
+    )),
+  "Creating an Order item as done should immediately place it in Completed.",
 );
 
 raw = "{bad-json";
