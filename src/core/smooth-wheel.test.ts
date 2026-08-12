@@ -22,4 +22,5 @@ test("eases toward the requested position without overshooting", () => {
   const next = nextSmoothScrollPosition(100, 200);
   assert(next > 100 && next < 200);
   assert.equal(nextSmoothScrollPosition(199.8, 200), 200);
+  assert.equal(nextSmoothScrollPosition(452.6667, 453.6), 453.6);
 });
