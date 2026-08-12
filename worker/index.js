@@ -67,13 +67,34 @@ const worker = {
         headers,
       })
       const response = await noStoreAssetResponse(await env.ASSETS.fetch(fallbackRequest))
-      return SYNC_KEY_PATTERN.test(pairingKey)
-        ? withPairingCookie(response, pairingKey)
-        : response
+      if (SYNC_KEY_PATTERN.test(pairingKey)) return withPairingCookie(response, pairingKey)
+      const canonicalSyncKey = env.DB ? await getCanonicalSyncKey(env.DB) : null
+      return canonicalSyncKey ? withPairingCookie(response, canonicalSyncKey) : response
     }
 
     return env.ASSETS.fetch(request)
   },
+}
+
+async function getCanonicalSyncKey(db) {
+  await db.prepare(
+    "CREATE TABLE IF NOT EXISTS daymark_sync_config (config_key TEXT PRIMARY KEY, config_value TEXT NOT NULL, updated_at TEXT NOT NULL)",
+  ).run()
+  const configured = await db
+    .prepare("SELECT config_value FROM daymark_sync_config WHERE config_key = 'canonical_sync_key'")
+    .first()
+  if (SYNC_KEY_PATTERN.test(configured?.config_value ?? "")) return configured.config_value
+
+  const latest = await db
+    .prepare("SELECT sync_key FROM daymark_sync_states ORDER BY revision DESC, updated_at DESC LIMIT 1")
+    .first()
+  if (!SYNC_KEY_PATTERN.test(latest?.sync_key ?? "")) return null
+
+  await db
+    .prepare("INSERT OR IGNORE INTO daymark_sync_config (config_key, config_value, updated_at) VALUES ('canonical_sync_key', ?1, ?2)")
+    .bind(latest.sync_key, new Date().toISOString())
+    .run()
+  return latest.sync_key
 }
 
 async function handleSyncChanges(request, db, syncKey) {

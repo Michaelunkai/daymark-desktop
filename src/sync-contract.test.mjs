@@ -34,6 +34,9 @@ test("remote sync contract is present in the client and Sites worker", async () 
   assert.match(worker, /,\s*409\)/);
   assert.match(worker, /function mergeSyncStates/);
   assert.match(worker, /withPairingCookie/);
+  assert.match(worker, /getCanonicalSyncKey/);
+  assert.match(worker, /daymark_sync_config/);
+  assert.match(worker, /ORDER BY revision DESC, updated_at DESC LIMIT 1/);
   assert.match(worker, /Set-Cookie/);
   assert.match(worker, /const nextRevision = Math\.max/);
   assert.match(worker, /applyTombstones/);

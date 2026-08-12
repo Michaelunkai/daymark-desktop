@@ -152,3 +152,33 @@ test('Sites worker returns a changed workspace immediately from the revision str
   assert.equal(payload.revision, 1876)
   assert.deepEqual(payload.state, state)
 })
+
+test('plain production navigation pairs to the highest-revision canonical workspace', async () => {
+  const statements = []
+  const db = {
+    prepare(statement) {
+      statements.push(statement)
+      if (statement.includes('CREATE TABLE')) return { async run() {} }
+      if (statement.includes("config_key = 'canonical_sync_key'")) {
+        return { async first() { return null } }
+      }
+      if (statement.includes('ORDER BY revision DESC')) {
+        return { async first() { return { sync_key: 'A1b2C3d4E5f6G7h8I9j0K_' } } }
+      }
+      if (statement.includes('INSERT OR IGNORE')) {
+        return { bind() { return { async run() {} } } }
+      }
+      throw new Error(`Unexpected SQL: ${statement}`)
+    },
+  }
+  const response = await worker.fetch(
+    new Request('https://daymark.test/'),
+    {
+      DB: db,
+      ASSETS: { async fetch() { return new Response('DAYMARK') } },
+    },
+  )
+  assert.equal(response.status, 200)
+  assert.match(response.headers.get('Set-Cookie'), /daymark\.sync-key=A1b2C3d4E5f6G7h8I9j0K_/)
+  assert.ok(statements.some((statement) => statement.includes('ORDER BY revision DESC')))
+})
