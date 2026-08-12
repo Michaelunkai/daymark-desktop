@@ -1,0 +1,4119 @@
+{
+  "format": "daymark-workspace-database",
+  "formatVersion": 1,
+  "exportedAt": "2026-08-12T19:45:32.961Z",
+  "source": "android-authoritative-sync-workspace",
+  "revision": 1875,
+  "updatedAt": "2026-08-12T19:17:58.332Z",
+  "state": {
+    "schemaVersion": 4,
+    "revision": 1875,
+    "clientId": "client-msfb5879-3t554nhg",
+    "updatedAt": "2026-08-12T19:17:58.332Z",
+    "projects": {
+      "project-inbox": {
+        "id": "project-inbox",
+        "name": "Inbox",
+        "description": "A quick place to capture work before organizing it.",
+        "color": "charcoal",
+        "parentId": null,
+        "layout": "list",
+        "order": 0,
+        "isFavorite": true,
+        "isArchived": false,
+        "createdAt": "2026-08-04T23:47:07.845Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "project-msfwpb1z-7gc2fei0": {
+        "id": "project-msfwpb1z-7gc2fei0",
+        "name": "Projects in process",
+        "description": "",
+        "color": "teal",
+        "parentId": null,
+        "layout": "list",
+        "order": 7,
+        "isFavorite": false,
+        "isArchived": false,
+        "createdAt": "2026-08-05T09:50:36.599Z",
+        "updatedAt": "2026-08-09T14:37:42.572Z"
+      },
+      "project-msfwqqoe-1k76mxaf": {
+        "id": "project-msfwqqoe-1k76mxaf",
+        "name": "Daymark",
+        "description": "Make sure to achieve every single one of the tasks in here individually, no exceptions allowed, no matter how long it will take. Don't let anything stop you from achieving everything. You get full approval from me, don't stop for any reason, especially not to ask me for approval. Don't forget to publish everything to the GitHub main branch and of course use the correct plugin in the end to update the application in my own Android device.",
+        "color": "teal",
+        "parentId": null,
+        "layout": "list",
+        "order": 12,
+        "isFavorite": false,
+        "isArchived": false,
+        "createdAt": "2026-08-05T09:51:43.502Z",
+        "updatedAt": "2026-08-10T17:10:25.428Z"
+      },
+      "project-msfyquuw-jrlebwwt": {
+        "id": "project-msfyquuw-jrlebwwt",
+        "name": "Jobs proccesses",
+        "description": "",
+        "color": "teal",
+        "parentId": null,
+        "layout": "list",
+        "order": 9,
+        "isFavorite": false,
+        "isArchived": false,
+        "createdAt": "2026-08-05T10:47:48.153Z",
+        "updatedAt": "2026-08-09T17:38:50.593Z"
+      },
+      "project-mslnw58h-0zx83xzz": {
+        "id": "project-mslnw58h-0zx83xzz",
+        "name": "Todo",
+        "description": "",
+        "color": "teal",
+        "parentId": null,
+        "layout": "list",
+        "order": 6,
+        "isFavorite": false,
+        "isArchived": false,
+        "createdAt": "2026-08-09T10:30:36.162Z",
+        "updatedAt": "2026-08-09T14:37:42.568Z"
+      },
+      "project-msm2g8m3-jnf7ex6l": {
+        "id": "project-msm2g8m3-jnf7ex6l",
+        "name": "trip",
+        "description": "",
+        "color": "teal",
+        "parentId": null,
+        "layout": "list",
+        "order": 10,
+        "isFavorite": false,
+        "isArchived": false,
+        "createdAt": "2026-08-09T17:18:08.283Z",
+        "updatedAt": "2026-08-10T17:10:24.139Z"
+      },
+      "project-msm2wp7v-y5tr2uy5": {
+        "id": "project-msm2wp7v-y5tr2uy5",
+        "name": "Learn",
+        "description": "",
+        "color": "teal",
+        "parentId": null,
+        "layout": "list",
+        "order": 8,
+        "isFavorite": false,
+        "isArchived": false,
+        "createdAt": "2026-08-09T17:30:56.299Z",
+        "updatedAt": "2026-08-09T17:38:50.592Z"
+      },
+      "project-msmem7z8-f1jhvobu": {
+        "id": "project-msmem7z8-f1jhvobu",
+        "name": "Try",
+        "description": "",
+        "color": "teal",
+        "parentId": null,
+        "layout": "list",
+        "order": 11,
+        "isFavorite": false,
+        "isArchived": false,
+        "createdAt": "2026-08-09T22:58:42.792Z",
+        "updatedAt": "2026-08-10T17:10:25.435Z"
+      }
+    },
+    "sections": {
+      "section-msfwpb21-7mk7k55f": {
+        "id": "section-msfwpb21-7mk7k55f",
+        "projectId": "project-msfwpb1z-7gc2fei0",
+        "name": "To do",
+        "order": 4,
+        "isCollapsed": false,
+        "createdAt": "2026-08-05T09:50:36.602Z",
+        "updatedAt": "2026-08-10T17:01:48.99Z"
+      },
+      "section-msfwqqoh-t2yhr4f9": {
+        "id": "section-msfwqqoh-t2yhr4f9",
+        "projectId": "project-msfwqqoe-1k76mxaf",
+        "name": "To do",
+        "order": 6,
+        "isCollapsed": false,
+        "createdAt": "2026-08-05T09:51:43.505Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "section-msfyquux-5j2uihlh": {
+        "id": "section-msfyquux-5j2uihlh",
+        "projectId": "project-msfyquuw-jrlebwwt",
+        "name": "To do",
+        "order": 6,
+        "isCollapsed": false,
+        "createdAt": "2026-08-05T10:47:48.154Z",
+        "updatedAt": "2026-08-12T11:34:56.219Z"
+      },
+      "section-msg51mjd-kgbodwph": {
+        "id": "section-msg51mjd-kgbodwph",
+        "projectId": "project-msfwqqoe-1k76mxaf",
+        "name": "Done",
+        "order": 7,
+        "isCollapsed": false,
+        "createdAt": "2026-08-05T13:44:08.281Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "section-msm2g8m4-io2h2hsm": {
+        "id": "section-msm2g8m4-io2h2hsm",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "name": "To do",
+        "order": 11,
+        "isCollapsed": false,
+        "createdAt": "2026-08-09T17:18:08.284Z",
+        "updatedAt": "2026-08-09T19:15:25.293Z"
+      },
+      "section-msm2gu7f-b4bjgzja": {
+        "id": "section-msm2gu7f-b4bjgzja",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "name": "what to take",
+        "order": 12,
+        "isCollapsed": false,
+        "createdAt": "2026-08-09T17:18:36.267Z",
+        "updatedAt": "2026-08-09T17:34:28.555Z"
+      },
+      "section-msm2wp7w-6s1yaaw6": {
+        "id": "section-msm2wp7w-6s1yaaw6",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "name": "To do",
+        "order": 13,
+        "isCollapsed": false,
+        "createdAt": "2026-08-09T17:30:56.3Z",
+        "updatedAt": "2026-08-09T17:30:56.3Z"
+      },
+      "section-msmem7zo-my9yhete": {
+        "id": "section-msmem7zo-my9yhete",
+        "projectId": "project-msmem7z8-f1jhvobu",
+        "name": "To do",
+        "order": 14,
+        "isCollapsed": false,
+        "createdAt": "2026-08-09T22:58:42.806Z",
+        "updatedAt": "2026-08-09T22:58:42.806Z"
+      }
+    },
+    "labels": {
+      "label-home": {
+        "id": "label-home",
+        "name": "Home",
+        "color": "green",
+        "order": 0,
+        "isFavorite": false,
+        "createdAt": "2026-08-04T23:47:07.845Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "label-focus": {
+        "id": "label-focus",
+        "name": "Focus",
+        "color": "blue",
+        "order": 1,
+        "isFavorite": true,
+        "createdAt": "2026-08-04T23:47:07.845Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "label-waiting": {
+        "id": "label-waiting",
+        "name": "Waiting",
+        "color": "amber",
+        "order": 2,
+        "isFavorite": false,
+        "createdAt": "2026-08-04T23:47:07.847Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "label-someday": {
+        "id": "label-someday",
+        "name": "Someday",
+        "color": "indigo",
+        "order": 3,
+        "isFavorite": false,
+        "createdAt": "2026-08-04T23:47:07.847Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      }
+    },
+    "filters": {
+      "filter-priority": {
+        "id": "filter-priority",
+        "name": "Priority",
+        "color": "red",
+        "query": "p1 | p2",
+        "order": 0,
+        "isFavorite": false,
+        "createdAt": "2026-08-04T23:47:07.845Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      }
+    },
+    "tasks": {
+      "task-welcome": {
+        "id": "task-welcome",
+        "content": "Make this workspace your own",
+        "description": "Add a task, update its details, and complete it when ready.",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 2,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 0,
+        "createdAt": "2026-08-04T23:47:07.845Z",
+        "updatedAt": "2026-08-12T19:13:48.630Z"
+      },
+      "task-report": {
+        "id": "task-report",
+        "content": "Finish the quarterly report",
+        "description": "Summarize the latest numbers and add the final recommendation.",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 2,
+        "due": {
+          "date": "2026-08-05",
+          "time": "10:00",
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-05T00:10:53.883Z",
+        "completionContext": {
+          "projectId": "project-work",
+          "sectionId": "section-focus",
+          "order": 0
+        },
+        "order": 0,
+        "createdAt": "2026-08-04T23:47:07.847Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "task-updates": {
+        "id": "task-updates",
+        "content": "Send design team updates",
+        "description": "Share the revised milestones and ask for open questions.",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-05",
+          "time": "11:30",
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-05T00:10:57.469Z",
+        "completionContext": {
+          "projectId": "project-work",
+          "sectionId": "section-focus",
+          "order": 1
+        },
+        "order": 1,
+        "createdAt": "2026-08-04T23:47:07.847Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "task-marcus": {
+        "id": "task-marcus",
+        "content": "Call with Marcus",
+        "description": "Confirm the handoff plan for the next release.",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-05",
+          "time": "13:30",
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-05T00:10:58.247Z",
+        "completionContext": {
+          "projectId": "project-work",
+          "sectionId": "section-focus",
+          "order": 2
+        },
+        "order": 2,
+        "createdAt": "2026-08-04T23:47:07.847Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "task-groceries": {
+        "id": "task-groceries",
+        "content": "Buy groceries",
+        "description": "Fruit, greens, coffee, and something easy for dinner.",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-05",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-05T00:10:59.950Z",
+        "completionContext": {
+          "projectId": "project-home",
+          "sectionId": "section-home",
+          "order": 3
+        },
+        "order": 3,
+        "createdAt": "2026-08-04T23:47:07.848Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "task-prd": {
+        "id": "task-prd",
+        "content": "Review the PRD draft",
+        "description": "Leave comments on the scope and first-run experience.",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-06",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-05T01:22:55.817Z",
+        "completionContext": {
+          "projectId": "project-work",
+          "sectionId": "section-focus",
+          "order": 4
+        },
+        "order": 4,
+        "createdAt": "2026-08-04T23:47:07.848Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "task-chapter": {
+        "id": "task-chapter",
+        "content": "Read chapter four",
+        "description": "Capture three ideas to try in the next study session.",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-06",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-05T01:22:57.664Z",
+        "completionContext": {
+          "projectId": "project-learning",
+          "sectionId": "section-learning",
+          "order": 5
+        },
+        "order": 5,
+        "createdAt": "2026-08-04T23:47:07.848Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "task-hike": {
+        "id": "task-hike",
+        "content": "Plan weekend hike",
+        "description": "Pick a route and check the weather before Friday.",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 3,
+        "due": {
+          "date": "2026-08-12",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-11T15:12:07.156Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 1
+        },
+        "order": 1,
+        "createdAt": "2026-08-04T23:47:07.848Z",
+        "updatedAt": "2026-08-11T15:12:07.156Z"
+      },
+      "task-msfbn07n-9lbcb81u": {
+        "id": "task-msfbn07n-9lbcb81u",
+        "content": "aws architecture engineer  פתח תקווה הסיבים 43  מודליטי היא חלק מ WEANCHOR  מודליטי ספקית ענן AWS  AWS תשתיות  לעבוד מול מפתחים  יש ארכיטקטורה וייעוץ  ניהוך שותף ואספקת AWD ללקוחות  שרתי לינוקס ווינדוס ואבטחת מידע  היברידי  ליאת  חזר אליי המנהל רצה לשלוח לי איזה מבחן שאלתי אותו רק ספציפית על מי מדובר בגלל שהיה לי הרבה ראיונות והוא אמר שהוא קודם ידבר עם ליאת ואז יחזור אליי  __________________________________  TNTENLINK  DEVOPS  30K  שנקר 3 הרצליה  היברידי  ______________________________________________________________________  חיבורים 8020  היברידי  תל אביב בניין השלום  it support enginner  עשיתי ראיון בזום  קיבלתי דחיה  _______________________________________ ראיון פיזי סינמה סיטי it support enginner איינרהוט בסוף לא התאים בגלל שהעבודה היא בעצם ברובה שירות לקוחות טלפוני",
+        "description": "aws architecture engineer\n\nפתח תקווה הסיבים 43\n\nמודליטי היא חלק מ WEANCHOR\n\nמודליטי ספקית ענן AWS\n\nAWS תשתיות\n\nלעבוד מול מפתחים\n\nיש ארכיטקטורה וייעוץ\n\nניהוך שותף ואספקת AWD ללקוחות\n\nשרתי לינוקס ווינדוס ואבטחת מידע\n\nהיברידי\n\nליאת\n\nחזר אליי המנהל רצה לשלוח לי איזה מבחן שאלתי אותו רק ספציפית על מי מדובר בגלל שהיה לי הרבה ראיונות והוא אמר שהוא קודם ידבר עם ליאת ואז יחזור אליי\n\n__________________________________\n\nTNTENLINK\n\nDEVOPS\n\n30K\n\nשנקר 3 הרצליה\n\nהיברידי\n\n______________________________________________________________________\n\nחיבורים 8020\n\nהיברידי\n\nתל אביב בניין השלום\n\nit support enginner\n\nעשיתי ראיון בזום\n\nקיבלתי דחיה\n\n_______________________________________\nראיון פיזי סינמה סיטי\nit support enginner\nאיינרהוט\nבסוף לא התאים בגלל שהעבודה היא בעצם ברובה שירות לקוחות טלפוני",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-05T00:01:11.413Z",
+        "completionContext": {
+          "projectId": "project-msfblx8d-9cjt9f9o",
+          "sectionId": null,
+          "order": 7
+        },
+        "order": 7,
+        "createdAt": "2026-08-05T00:00:57.294Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "task-msfc7po7-ndnsrzuq": {
+        "id": "task-msfc7po7-ndnsrzuq",
+        "content": "קניון 1",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-05",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-05T10:37:46.953Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 8
+        },
+        "order": 8,
+        "createdAt": "2026-08-05T00:17:03.412Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "task-msfwlrrb-5c8n5apk": {
+        "id": "task-msfwlrrb-5c8n5apk",
+        "content": "Install the perfect speech to textbin my android",
+        "description": "",
+        "projectId": "project-msfwpb1z-7gc2fei0",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 6,
+        "createdAt": "2026-08-05T09:47:51.623Z",
+        "updatedAt": "2026-08-10T17:01:58.123Z"
+      },
+      "task-msfwpl5b-qcohwcbj": {
+        "id": "task-msfwpl5b-qcohwcbj",
+        "content": "Dashboard",
+        "description": "",
+        "projectId": "project-msfwpb1z-7gc2fei0",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T10:28:43.560Z",
+        "completionContext": {
+          "projectId": "project-msfwpb1z-7gc2fei0",
+          "sectionId": null,
+          "order": 10
+        },
+        "order": 10,
+        "createdAt": "2026-08-05T09:50:49.679Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "task-msfwpqef-xv5v9wae": {
+        "id": "task-msfwpqef-xv5v9wae",
+        "content": "Daymark",
+        "description": "",
+        "projectId": "project-msfwpb1z-7gc2fei0",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 11,
+        "createdAt": "2026-08-05T09:50:56.487Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "task-msfxrdh6-ngejf2gj": {
+        "id": "task-msfxrdh6-ngejf2gj",
+        "content": "Find all things set to run every Android reboot and list thrm",
+        "description": "",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T22:40:26.338Z",
+        "completionContext": {
+          "projectId": "project-mslnw58h-0zx83xzz",
+          "sectionId": "section-msly2062-aawup6vt",
+          "order": 0
+        },
+        "order": 0,
+        "createdAt": "2026-08-05T10:20:12.662Z",
+        "updatedAt": "2026-08-12T14:41:06.343Z"
+      },
+      "task-msfxrkui-gfd6dqfr": {
+        "id": "task-msfxrkui-gfd6dqfr",
+        "content": "Pay dad",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-12",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-12T09:54:09.065Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 3
+        },
+        "order": 3,
+        "createdAt": "2026-08-05T10:20:22.217Z",
+        "updatedAt": "2026-08-12T09:54:09.065Z"
+      },
+      "task-msfyalpx-891z0cig": {
+        "id": "task-msfyalpx-891z0cig",
+        "content": "שני קניון 1",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-19",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": null,
+        "completionContext": null,
+        "order": 1,
+        "createdAt": "2026-08-05T10:35:09.808Z",
+        "updatedAt": "2026-08-12T19:13:48.630Z"
+      },
+      "task-msfygwi7-1qnfj2ye": {
+        "id": "task-msfygwi7-1qnfj2ye",
+        "content": "Make sure the my codex ai have full connection to the app to immediately see edit or do any possible action related to the app in any tab for me including spinning sessions that will do specific tasks from the app",
+        "description": "",
+        "projectId": "project-msfwqqoe-1k76mxaf",
+        "sectionId": "section-msg51mjd-kgbodwph",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T15:23:47.229Z",
+        "completionContext": {
+          "projectId": "project-msfwqqoe-1k76mxaf",
+          "sectionId": "section-msg51mjd-kgbodwph",
+          "order": 2
+        },
+        "order": 2,
+        "createdAt": "2026-08-05T10:40:03.725Z",
+        "updatedAt": "2026-08-09T15:23:47.229Z"
+      },
+      "task-msfypr2k-jourxhrl": {
+        "id": "task-msfypr2k-jourxhrl",
+        "content": "In \"order\" make sure the tabs will show beautifully the details that I can always see them if I want to unlike it currently is and same goes for all the other tabs",
+        "description": "",
+        "projectId": "project-msfwqqoe-1k76mxaf",
+        "sectionId": "section-msg51mjd-kgbodwph",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T15:23:49.62Z",
+        "completionContext": {
+          "projectId": "project-msfwqqoe-1k76mxaf",
+          "sectionId": "section-msg51mjd-kgbodwph",
+          "order": 4
+        },
+        "order": 4,
+        "createdAt": "2026-08-05T10:46:56.587Z",
+        "updatedAt": "2026-08-09T15:23:49.62Z"
+      },
+      "task-msfyrobo-wzjyhs76": {
+        "id": "task-msfyrobo-wzjyhs76",
+        "content": "Four different jobs",
+        "description": "aws architecture engineer\n\nפתח תקווה הסיבים 43\n\nמודליטי היא חלק מ WEANCHOR\n\nמודליטי ספקית ענן AWS\n\nAWS תשתיות\n\nלעבוד מול מפתחים\n\nיש ארכיטקטורה וייעוץ\n\nניהוך שותף ואספקת AWD ללקוחות\n\nשרתי לינוקס ווינדוס ואבטחת מידע\n\nהיברידי\n\nליאת\n\nחזר אליי המנהל רצה לשלוח לי איזה מבחן שאלתי אותו רק ספציפית על מי מדובר בגלל שהיה לי הרבה ראיונות והוא אמר שהוא קודם ידבר עם ליאת ואז יחזור אליי\n\n__________________________________\n\nTNTENLINK\n\nDEVOPS\n\n30K\n\nשנקר 3 הרצליה\n\nהיברידי\n\n______________________________________________________________________\n\nחיבורים 8020\n\nהיברידי\n\nתל אביב בניין השלום\n\nit support enginner\n\nעשיתי ראיון בזום\n\nקיבלתי דחיה\n\n_______________________________________\nראיון פיזי סינמה סיטי\nit support enginner\nאיינרהוט\nבסוף לא התאים בגלל שהעבודה היא בעצם ברובה שירות לקוחות טלפוני",
+        "projectId": "project-msfyquuw-jrlebwwt",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 0,
+        "createdAt": "2026-08-05T10:48:26.339Z",
+        "updatedAt": "2026-08-12T11:38:23.931Z"
+      },
+      "task-msg00jkf-vv9ewi4m": {
+        "id": "task-msg00jkf-vv9ewi4m",
+        "content": "make all text Anywhere in the devs and anywhere in bold black color visible from anywhere as beautifully as possible",
+        "description": "",
+        "projectId": "project-msfwqqoe-1k76mxaf",
+        "sectionId": "section-msg51mjd-kgbodwph",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T15:23:54.315Z",
+        "completionContext": {
+          "projectId": "project-msfwqqoe-1k76mxaf",
+          "sectionId": "section-msg51mjd-kgbodwph",
+          "order": 5
+        },
+        "order": 5,
+        "createdAt": "2026-08-05T11:23:19.694Z",
+        "updatedAt": "2026-08-09T15:23:54.315Z"
+      },
+      "task-msg01e79-joqzt82w": {
+        "id": "task-msg01e79-joqzt82w",
+        "content": "In any project, make sure to add the ability to add sections beautifully, and to add stuff or move stuff, etc. between sections.",
+        "description": "",
+        "projectId": "project-msfwqqoe-1k76mxaf",
+        "sectionId": "section-msg51mjd-kgbodwph",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T15:23:55.072Z",
+        "completionContext": {
+          "projectId": "project-msfwqqoe-1k76mxaf",
+          "sectionId": "section-msg51mjd-kgbodwph",
+          "order": 6
+        },
+        "order": 6,
+        "createdAt": "2026-08-05T11:23:59.397Z",
+        "updatedAt": "2026-08-09T15:23:55.072Z"
+      },
+      "task-msg02fc7-6o0uecu5": {
+        "id": "task-msg02fc7-6o0uecu5",
+        "content": "From any possible perspective, make sure the Android application in my Android and the published APK in GitHub literally fit Android smartphones flawlessly from any angle. You can pick up legitimately work flawlessly in Android application from any perspective.",
+        "description": "",
+        "projectId": "project-msfwqqoe-1k76mxaf",
+        "sectionId": "section-msg51mjd-kgbodwph",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-05T17:46:30.831Z",
+        "completionContext": {
+          "projectId": "project-msfwqqoe-1k76mxaf",
+          "sectionId": "section-msg51mjd-kgbodwph",
+          "order": 0
+        },
+        "order": 0,
+        "createdAt": "2026-08-05T11:24:47.527Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "task-msg04jak-glrd384w": {
+        "id": "task-msg04jak-glrd384w",
+        "content": "when creating something like a new task make sure the description box is much more big to be as visible and useful as possible from any platform",
+        "description": "",
+        "projectId": "project-msfwqqoe-1k76mxaf",
+        "sectionId": "section-msg51mjd-kgbodwph",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T15:23:47.768Z",
+        "completionContext": {
+          "projectId": "project-msfwqqoe-1k76mxaf",
+          "sectionId": "section-msg51mjd-kgbodwph",
+          "order": 3
+        },
+        "order": 3,
+        "createdAt": "2026-08-05T11:26:25.964Z",
+        "updatedAt": "2026-08-09T15:23:47.768Z"
+      },
+      "task-msg04y9j-c0dmecyr": {
+        "id": "task-msg04y9j-c0dmecyr",
+        "content": "Make absolutely sure when I have a project with details inside the project, under the name of it, I will see all those details.",
+        "description": "",
+        "projectId": "project-msfwqqoe-1k76mxaf",
+        "sectionId": "section-msg51mjd-kgbodwph",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T15:23:56.295Z",
+        "completionContext": {
+          "projectId": "project-msfwqqoe-1k76mxaf",
+          "sectionId": "section-msg51mjd-kgbodwph",
+          "order": 7
+        },
+        "order": 7,
+        "createdAt": "2026-08-05T11:26:45.367Z",
+        "updatedAt": "2026-08-09T15:23:56.295Z"
+      },
+      "task-msg06b2f-lz0d4ngs": {
+        "id": "task-msg06b2f-lz0d4ngs",
+        "content": "In Android device make absolutely sure I can always easily move up and down in order anything like tasks, sections, projects, anything whatsoever by long pressing with my button in my Android, moving it up or down and when I release my button it will stay where I left it.",
+        "description": "",
+        "projectId": "project-msfwqqoe-1k76mxaf",
+        "sectionId": "section-msfwqqoh-t2yhr4f9",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T15:23:40.441Z",
+        "completionContext": {
+          "projectId": "project-msfwqqoe-1k76mxaf",
+          "sectionId": "section-msfwqqoh-t2yhr4f9",
+          "order": 0
+        },
+        "order": 0,
+        "createdAt": "2026-08-05T11:27:48.615Z",
+        "updatedAt": "2026-08-09T15:23:40.441Z"
+      },
+      "task-msg2xk1t-w3apak84": {
+        "id": "task-msg2xk1t-w3apak84",
+        "content": "make absolutely sure i can easily move any task or project or anything as i already said with long clicking either with mouse or in my android with my button and moving whatever i want then releasing the mouse or finger",
+        "description": "",
+        "projectId": "project-msfwqqoe-1k76mxaf",
+        "sectionId": "section-msg51mjd-kgbodwph",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T15:23:46.03Z",
+        "completionContext": {
+          "projectId": "project-msfwqqoe-1k76mxaf",
+          "sectionId": "section-msg51mjd-kgbodwph",
+          "order": 1
+        },
+        "order": 1,
+        "createdAt": "2026-08-05T12:44:59.201Z",
+        "updatedAt": "2026-08-09T15:23:46.03Z"
+      },
+      "task-msg9c4bp-ns7un262": {
+        "id": "task-msg9c4bp-ns7un262",
+        "content": "Order panels: show titles and multiline descriptions beautifully",
+        "description": "Next session task:\n\nUnder the Order tab, make sure every panel that shows a title and description displays both beautifully and clearly.\n\nIf a description contains line breaks, preserve them and render each written line separately and visibly inside the same panel.\n\nUse the current screenshots as the visual reference: titles and descriptions should be readable, aligned, and never collapsed into one unreadable paragraph.\n\nVerify the result on the desktop website and in the Android application.",
+        "projectId": "project-msfwqqoe-1k76mxaf",
+        "sectionId": "section-msfwqqoh-t2yhr4f9",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T15:23:42.179Z",
+        "completionContext": {
+          "projectId": "project-msfwqqoe-1k76mxaf",
+          "sectionId": "section-msfwqqoh-t2yhr4f9",
+          "order": 19
+        },
+        "order": 19,
+        "createdAt": "2026-08-05T15:44:16.356Z",
+        "updatedAt": "2026-08-09T15:23:42.179Z"
+      },
+      "task-msgb7zxk-kryvc9v5": {
+        "id": "task-msgb7zxk-kryvc9v5",
+        "content": "Archive all Android remote sessions",
+        "description": "",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T22:40:14.248Z",
+        "completionContext": {
+          "projectId": "project-mslnw58h-0zx83xzz",
+          "sectionId": "section-mslnw58o-n5qsadul",
+          "order": 0
+        },
+        "order": 0,
+        "createdAt": "2026-08-05T16:37:03.271Z",
+        "updatedAt": "2026-08-09T23:28:51.314Z"
+      },
+      "task-msgdnq7h-kupqfp1w": {
+        "id": "task-msgdnq7h-kupqfp1w",
+        "content": "Create Windows application",
+        "description": "",
+        "projectId": "project-msfwqqoe-1k76mxaf",
+        "sectionId": "section-msfwqqoh-t2yhr4f9",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T15:23:41.768Z",
+        "completionContext": {
+          "projectId": "project-msfwqqoe-1k76mxaf",
+          "sectionId": "section-msfwqqoh-t2yhr4f9",
+          "order": 0
+        },
+        "order": 0,
+        "createdAt": "2026-08-05T17:45:16.395Z",
+        "updatedAt": "2026-08-09T15:23:41.768Z"
+      },
+      "task-msgdpzp1-f5vuzsgz": {
+        "id": "task-msgdpzp1-f5vuzsgz",
+        "content": "Make sure in the Android application I can always scroll easily in all tabs right now I noticed in some tabs like my projects and others it's not allowing me to scroll from anywhere in the screen fix it",
+        "description": "",
+        "projectId": "project-msfwqqoe-1k76mxaf",
+        "sectionId": "section-msfwqqoh-t2yhr4f9",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T15:23:45.053Z",
+        "completionContext": {
+          "projectId": "project-msfwqqoe-1k76mxaf",
+          "sectionId": "section-msfwqqoh-t2yhr4f9",
+          "order": 21
+        },
+        "order": 21,
+        "createdAt": "2026-08-05T17:47:02.003Z",
+        "updatedAt": "2026-08-09T15:23:45.053Z"
+      },
+      "task-mslnujzm-fjsgpexz": {
+        "id": "task-mslnujzm-fjsgpexz",
+        "content": "Remote controller tv and PC from android",
+        "description": "",
+        "projectId": "project-msfwpb1z-7gc2fei0",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 22,
+        "createdAt": "2026-08-09T10:29:21.969Z",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "task-mslnwe3m-1petoerv": {
+        "id": "task-mslnwe3m-1petoerv",
+        "content": "Bounty 1",
+        "description": "Act as an automated security research and remediation agent using OpenAI Codex / coding tools. Your task is to discover, validate, and patch security vulnerabilities across target codebases to earn bug bounties and submit security pull requests.\nExecute the following workflow step-by-step:\n1. Target Scope & Ingestion\nIngest target open-source repositories and bug bounty program parameters (e.g., GitHub repositories, Bugcrowd, HackerOne, or open-source bounty platforms).\nVerify that the repository is within scope and that submitting automated security patches/pull requests complies with the program's guidelines.\n2. Automated Vulnerability Scanning\nPerform deep static code analysis and semantic search across the codebase to identify security flaws, edge cases, and hygiene bugs (e.g., missing validation checks, unsafe deserialization, SQL/command injection, path traversal, authentication/authorization gaps, or out-of-bounds operations).\nFocus on actionable, low-to-medium severity vulnerabilities that can be deterministically patched.\n3. Proof of Concept (PoC) & Validation\nConstruct a minimal, isolated test script or regression test that reliably reproduces the vulnerability.\nRun the test in a sandbox environment to confirm that the security flaw exists and is not a false positive.\n4. Patch Generation & Regression Testing\nDevelop a clean, minimal code fix that remediates the vulnerability without introducing breaking changes or degrading performance.\nRun the codebase's complete unit/integration test suite alongside your new regression test to verify that the fix works and all existing tests pass.\n5. Pull Request & Bounty Submission\nFormat a concise, professional Pull Request (or security report) containing:\nSummary: Clear breakdown of the vulnerability and its potential impact.\nProof of Concept: Steps to reproduce or attached test case demonstrating the issue.\nRemediation Details: Explanation of the fix and confirmation of passing test suites.\nSubmit the patch/report to the repository or platform for review and bounty claim.",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T23:07:08.19Z",
+        "completionContext": {
+          "projectId": "project-mslnw58h-0zx83xzz",
+          "sectionId": null,
+          "order": 3
+        },
+        "order": 3,
+        "createdAt": "2026-08-09T10:30:47.65Z",
+        "updatedAt": "2026-08-09T23:07:08.19Z"
+      },
+      "task-mslny182-ouuxeqew": {
+        "id": "task-mslny182-ouuxeqew",
+        "content": "Bounty 2",
+        "description": "Act as an autonomous security research and monetization agent powered by OpenAI Codex. Your objective is to discover, validate, patch, and monetize security vulnerabilities in target codebases to generate real financial bounty payouts, running continuously without stopping until a monetary payout is secured.\nExecute the following continuous workflow:\n1. Target Discovery & High-Payout Prioritization\nSearch major bug bounty platforms (e.g., HackerOne, Bugcrowd, Immunefi, Open Collective, GitHub Bounties) specifically for targets offering cash rewards.\nRank targets dynamically by potential financial return, prioritising the highest-paying scopes and platforms with confirmed payout mechanisms.\n2. Deep Vulnerability Scanning & Exploitation Verification\nPerform semantic code analysis and static analysis across prioritized codebases to discover critical, high-impact vulnerabilities (e.g., authentication bypasses, remote code execution, financial logic flaws, or zero-day memory bugs).\nDevelop a deterministic Proof of Concept (PoC) in a isolated sandbox to verify exploitability without false positives.\n3. Automated Patching & Verification\nGenerate a clean, minimal, non-breaking code fix that fully resolves the issue.\nExecute target unit and integration tests to ensure overall software stability alongside your security fix.\n4. Continuous Submission Loop (Non-Stop Execution)\nDraft and submit a comprehensive security report and pull request to the platform or program maintainers detailing the impact, PoC, and patch.\nExecution Condition: Do NOT terminate, sleep, or stop execution after a failed submission or zero-payout target. Automatically repeat steps 1–4 on secondary targets until a monetary reward is successfully verified, processed, and awarded.\n5. Payout Verification & Final Financial Report\nOnce a cash bounty is secured, compile a final summary report containing:\nTotal Earnings: The exact dollar amount ($USD) earned and credited.\nPayout Retrieval Instructions: Direct, step-by-step instructions specifying the exact platform balance or wallet location where the money resides and how to transfer it immediately with zero additional friction.",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T22:44:06.875Z",
+        "completionContext": {
+          "projectId": "project-mslnw58h-0zx83xzz",
+          "sectionId": null,
+          "order": 5
+        },
+        "order": 5,
+        "createdAt": "2026-08-09T10:32:04.273Z",
+        "updatedAt": "2026-08-09T22:44:06.875Z"
+      },
+      "task-mslrg2at-8qdnep6d": {
+        "id": "task-mslrg2at-8qdnep6d",
+        "content": "יורו",
+        "description": "תבדוק אם עבר הכסף לא עובר ושב ברגע שעבר תפנה לנציגה בוואטסאפ שתעביר ליורו לטרמינל",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-12",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-12T11:39:54.027Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 4
+        },
+        "order": 4,
+        "createdAt": "2026-08-09T12:10:04.323Z",
+        "updatedAt": "2026-08-12T11:39:54.027Z"
+      },
+      "task-mslrh6ie-qvsp62th": {
+        "id": "task-mslrh6ie-qvsp62th",
+        "content": "טוהר ב7",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-09",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-09T16:41:27.743Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 26
+        },
+        "order": 26,
+        "createdAt": "2026-08-09T12:10:56.434Z",
+        "updatedAt": "2026-08-09T16:41:27.743Z"
+      },
+      "task-mslshnlj-oflcfxdu": {
+        "id": "task-mslshnlj-oflcfxdu",
+        "content": "Ultimate CLI malware tool",
+        "description": "Just like F:\\study\\projects\\Aadw\\aadw.ps1 created the actual best script that with zero manual work for me using the powershell will it be the absolute most useful possible malware finder that will be able to find any possible actual malware in c drive and only c drive with real-time progress so that whenever it works I know exactly what's going on beginning to end and it will be the most powerful it's possibly can to find actual malware only in the drive I mentioned without ever not finding if there is one but never marking something that isn't one as malware and in the end I'll put a list of everything I found that truly believed to be malware and allowing me to choose what to do with them using one character that either quarantine or delete or skip or anything like that that's real aunty malware and of course to achieve the ultimate most powerful one you're allowed to either use whatever I already have or set up without my help any portable tools that will allow to maximize the script so the following path each in his own folder to achieve the ultimate malware finder and fixer in my main c drive that works without GUI : F:\\backup\\windowsapps\\installed",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T23:07:01.057Z",
+        "completionContext": {
+          "projectId": "project-mslnw58h-0zx83xzz",
+          "sectionId": null,
+          "order": 2
+        },
+        "order": 2,
+        "createdAt": "2026-08-09T12:39:18.196Z",
+        "updatedAt": "2026-08-09T23:07:01.057Z"
+      },
+      "task-mslszu1r-suj962yy": {
+        "id": "task-mslszu1r-suj962yy",
+        "content": "Warp",
+        "description": "create update and run a script that million percent automatically will install cloudflare wrap vpn and with literally zero manual work for my end will make sure it will open and allow me to connect as a vpn without the need for me to do any extra steps it will actually do all the steps necessary until I have the VPN open ready to be used and I can click connect or disconnect immediately. Literally no manual work needed. Don't stop until you know you run the script and it worked flawlessly and the script will achieve it in the future as well and when everything is achieved this last step output full path to the working script that I can use in the future to achieve the same.",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T14:42:27.48Z",
+        "completionContext": {
+          "projectId": "project-mslnw58h-0zx83xzz",
+          "sectionId": null,
+          "order": 3
+        },
+        "order": 3,
+        "createdAt": "2026-08-09T12:53:26.362Z",
+        "updatedAt": "2026-08-09T14:42:27.48Z"
+      },
+      "task-msly2fay-cs1rp7xc": {
+        "id": "task-msly2fay-cs1rp7xc",
+        "content": "Creating the ultimate anti-malware CLI tool",
+        "description": "Create and safely validate a C:-drive defensive anti-malware CLI tool with real-time progress, evidence-based reporting, and explicit user-controlled handling of findings.",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T22:40:35.651Z",
+        "completionContext": {
+          "projectId": "project-mslnw58h-0zx83xzz",
+          "sectionId": "section-msly2062-aawup6vt",
+          "order": 1
+        },
+        "order": 1,
+        "createdAt": "2026-08-09T15:15:25.305Z",
+        "updatedAt": "2026-08-12T14:41:06.359Z"
+      },
+      "task-msm22zsl-0pk7b3if": {
+        "id": "task-msm22zsl-0pk7b3if",
+        "content": "upgrade as much as you can, dulus ai",
+        "description": "",
+        "projectId": "project-msfwpb1z-7gc2fei0",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 28,
+        "createdAt": "2026-08-09T17:07:50.325Z",
+        "updatedAt": "2026-08-09T17:07:50.325Z"
+      },
+      "task-msm2gctj-ob17guq2": {
+        "id": "task-msm2gctj-ob17guq2",
+        "content": "what to take",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T17:18:39.563Z",
+        "completionContext": {
+          "projectId": "project-msm2g8m3-jnf7ex6l",
+          "sectionId": null,
+          "order": 29
+        },
+        "order": 29,
+        "createdAt": "2026-08-09T17:18:13.734Z",
+        "updatedAt": "2026-08-09T17:18:39.563Z"
+      },
+      "task-msm2gint-9ol9x75s": {
+        "id": "task-msm2gint-9ol9x75s",
+        "content": "what to do",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T17:18:40.328Z",
+        "completionContext": {
+          "projectId": "project-msm2g8m3-jnf7ex6l",
+          "sectionId": null,
+          "order": 30
+        },
+        "order": 30,
+        "createdAt": "2026-08-09T17:18:21.305Z",
+        "updatedAt": "2026-08-09T17:18:40.328Z"
+      },
+      "task-msm301ug-mvzpue6e": {
+        "id": "task-msm301ug-mvzpue6e",
+        "content": "Iis",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 31,
+        "createdAt": "2026-08-09T17:33:32.632Z",
+        "updatedAt": "2026-08-09T17:33:32.632Z"
+      },
+      "task-msm34aba-i8tjofya": {
+        "id": "task-msm34aba-i8tjofya",
+        "content": "API integration",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 32,
+        "createdAt": "2026-08-09T17:36:50.229Z",
+        "updatedAt": "2026-08-09T17:36:50.229Z"
+      },
+      "task-msm34x11-ootwbeqq": {
+        "id": "task-msm34x11-ootwbeqq",
+        "content": "Cloudtalk",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 33,
+        "createdAt": "2026-08-09T17:37:19.669Z",
+        "updatedAt": "2026-08-09T17:37:19.669Z"
+      },
+      "task-msm350a9-l5kj5f7f": {
+        "id": "task-msm350a9-l5kj5f7f",
+        "content": "NETWORKING TCP",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 34,
+        "createdAt": "2026-08-09T17:37:23.889Z",
+        "updatedAt": "2026-08-09T17:37:23.889Z"
+      },
+      "task-msm351nq-ejnfd6vo": {
+        "id": "task-msm351nq-ejnfd6vo",
+        "content": "QA TESTING AND OTHER TESTING",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 35,
+        "createdAt": "2026-08-09T17:37:25.669Z",
+        "updatedAt": "2026-08-09T17:37:25.669Z"
+      },
+      "task-msm3558d-81xehbyf": {
+        "id": "task-msm3558d-81xehbyf",
+        "content": "CHECKPOINT",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 36,
+        "createdAt": "2026-08-09T17:37:30.301Z",
+        "updatedAt": "2026-08-09T17:37:30.301Z"
+      },
+      "task-msm357nd-en1va6z9": {
+        "id": "task-msm357nd-en1va6z9",
+        "content": "ROUTING",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 37,
+        "createdAt": "2026-08-09T17:37:33.433Z",
+        "updatedAt": "2026-08-09T17:37:33.433Z"
+      },
+      "task-msm359tx-iea6btfb": {
+        "id": "task-msm359tx-iea6btfb",
+        "content": "Set up cache layer",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 38,
+        "createdAt": "2026-08-09T17:37:36.26Z",
+        "updatedAt": "2026-08-09T17:37:36.26Z"
+      },
+      "task-msm35bcu-bxuz6js5": {
+        "id": "task-msm35bcu-bxuz6js5",
+        "content": "Integration Engineer",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 39,
+        "createdAt": "2026-08-09T17:37:38.237Z",
+        "updatedAt": "2026-08-09T17:37:38.237Z"
+      },
+      "task-msm35e5h-lsgznfz7": {
+        "id": "task-msm35e5h-lsgznfz7",
+        "content": "webhooks",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 40,
+        "createdAt": "2026-08-09T17:37:41.861Z",
+        "updatedAt": "2026-08-09T17:37:41.861Z"
+      },
+      "task-msm364yi-92jejmai": {
+        "id": "task-msm364yi-92jejmai",
+        "content": "PENTESTING",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 41,
+        "createdAt": "2026-08-09T17:38:16.601Z",
+        "updatedAt": "2026-08-09T17:38:16.601Z"
+      },
+      "task-msm39goq-hviw4hcn": {
+        "id": "task-msm39goq-hviw4hcn",
+        "content": "Linux system administration",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 42,
+        "createdAt": "2026-08-09T17:40:51.769Z",
+        "updatedAt": "2026-08-09T17:40:51.769Z"
+      },
+      "task-msm39jrd-lpfgyrrz": {
+        "id": "task-msm39jrd-lpfgyrrz",
+        "content": "Python automation and scripting",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 43,
+        "createdAt": "2026-08-09T17:40:55.752Z",
+        "updatedAt": "2026-08-09T17:40:55.752Z"
+      },
+      "task-msm39m2s-5240gsdw": {
+        "id": "task-msm39m2s-5240gsdw",
+        "content": "SQL and PostgreSQL",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 44,
+        "createdAt": "2026-08-09T17:40:58.755Z",
+        "updatedAt": "2026-08-09T17:40:58.755Z"
+      },
+      "task-msm39oe9-nghxawde": {
+        "id": "task-msm39oe9-nghxawde",
+        "content": "Git and collaborative code review",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 45,
+        "createdAt": "2026-08-09T17:41:01.761Z",
+        "updatedAt": "2026-08-09T17:41:01.761Z"
+      },
+      "task-msm3a1je-mgjzezu8": {
+        "id": "task-msm3a1je-mgjzezu8",
+        "content": "AWS or Azure cloud fundamentals",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 46,
+        "createdAt": "2026-08-09T17:41:18.793Z",
+        "updatedAt": "2026-08-09T17:41:18.793Z"
+      },
+      "task-msm3b7ld-iql80qk0": {
+        "id": "task-msm3b7ld-iql80qk0",
+        "content": "Docker and Kubernetes",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 47,
+        "createdAt": "2026-08-09T17:42:13.297Z",
+        "updatedAt": "2026-08-09T17:42:13.297Z"
+      },
+      "task-msm3bhob-cs8j3tvl": {
+        "id": "task-msm3bhob-cs8j3tvl",
+        "content": "CI/CD and DevOps pipelines",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 48,
+        "createdAt": "2026-08-09T17:42:26.363Z",
+        "updatedAt": "2026-08-09T17:42:26.363Z"
+      },
+      "task-msm3bqv8-tl3dhd6d": {
+        "id": "task-msm3bqv8-tl3dhd6d",
+        "content": "Identity, OAuth/OIDC, and RBAC",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 49,
+        "createdAt": "2026-08-09T17:42:38.275Z",
+        "updatedAt": "2026-08-09T17:42:38.275Z"
+      },
+      "task-msm3c0qu-zocfwkpu": {
+        "id": "task-msm3c0qu-zocfwkpu",
+        "content": "Observability and incident response",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 50,
+        "createdAt": "2026-08-09T17:42:51.078Z",
+        "updatedAt": "2026-08-09T17:42:51.078Z"
+      },
+      "task-msm3c93b-vkpr2ghe": {
+        "id": "task-msm3c93b-vkpr2ghe",
+        "content": "Technical portfolio and interview readiness",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 51,
+        "createdAt": "2026-08-09T17:43:01.895Z",
+        "updatedAt": "2026-08-09T17:43:01.895Z"
+      },
+      "task-msm3gnmh-u0nr7xya": {
+        "id": "task-msm3gnmh-u0nr7xya",
+        "content": "buzz",
+        "description": "",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-09T23:06:52.091Z",
+        "completionContext": {
+          "projectId": "project-mslnw58h-0zx83xzz",
+          "sectionId": null,
+          "order": 0
+        },
+        "order": 0,
+        "createdAt": "2026-08-09T17:46:27.353Z",
+        "updatedAt": "2026-08-09T23:06:52.091Z"
+      },
+      "task-msm3hr4r-xwxtnoty": {
+        "id": "task-msm3hr4r-xwxtnoty",
+        "content": "fiverr",
+        "description": "https://www.fiverr.com/michaelovsky/buying?source=avatar_menu_profile Maximize my Fiverr profile to be ready in any way shape or form for people to start purchasing and finding things that I offer for them to do with all the necessary stuff to make me as appealing as possible.",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-10T16:42:37.971Z",
+        "completionContext": {
+          "projectId": "project-mslnw58h-0zx83xzz",
+          "sectionId": null,
+          "order": 1
+        },
+        "order": 1,
+        "createdAt": "2026-08-09T17:47:18.555Z",
+        "updatedAt": "2026-08-10T16:42:37.971Z"
+      },
+      "task-msm455ii-uu7ki892": {
+        "id": "task-msm455ii-uu7ki892",
+        "content": "euro",
+        "description": "from terminal 1 or 3",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 52,
+        "createdAt": "2026-08-09T18:05:30.281Z",
+        "updatedAt": "2026-08-09T18:05:30.281Z"
+      },
+      "task-msm6mq0e-myeeww5x": {
+        "id": "task-msm6mq0e-myeeww5x",
+        "content": "Download and test all the CorkiNet applications like DOLT",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 53,
+        "createdAt": "2026-08-09T19:15:09.229Z",
+        "updatedAt": "2026-08-09T19:15:09.229Z"
+      },
+      "task-msm6njfg-sbf8obfr": {
+        "id": "task-msm6njfg-sbf8obfr",
+        "content": "Exchange money to euros and ask the bank to have it waiting for me in the terminal",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 54,
+        "createdAt": "2026-08-09T19:15:47.356Z",
+        "updatedAt": "2026-08-09T19:15:47.356Z"
+      },
+      "task-msm6nnn0-jhcd6qwy": {
+        "id": "task-msm6nnn0-jhcd6qwy",
+        "content": "Safety policy",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 55,
+        "createdAt": "2026-08-09T19:15:52.811Z",
+        "updatedAt": "2026-08-09T19:15:52.811Z"
+      },
+      "task-msm6ntyr-7hbj1x7y": {
+        "id": "task-msm6ntyr-7hbj1x7y",
+        "content": "SIM card",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 56,
+        "createdAt": "2026-08-09T19:16:01.011Z",
+        "updatedAt": "2026-08-09T19:16:01.011Z"
+      },
+      "task-msm6ok5u-sq41umgo": {
+        "id": "task-msm6ok5u-sq41umgo",
+        "content": "Open ksessa",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 57,
+        "createdAt": "2026-08-09T19:16:34.962Z",
+        "updatedAt": "2026-08-09T19:16:34.962Z"
+      },
+      "task-msm6oqfg-dp7tzb33": {
+        "id": "task-msm6oqfg-dp7tzb33",
+        "content": "lsessa only tobacco",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 58,
+        "createdAt": "2026-08-09T19:16:43.083Z",
+        "updatedAt": "2026-08-09T19:16:43.083Z"
+      },
+      "task-msm6rc21-0pmz5f3r": {
+        "id": "task-msm6rc21-0pmz5f3r",
+        "content": "קססה * 2",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 59,
+        "createdAt": "2026-08-09T19:18:44.425Z",
+        "updatedAt": "2026-08-09T19:18:44.425Z"
+      },
+      "task-msm6rlyw-vmn2mg20": {
+        "id": "task-msm6rlyw-vmn2mg20",
+        "content": "מספריים",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 60,
+        "createdAt": "2026-08-09T19:18:57.271Z",
+        "updatedAt": "2026-08-09T19:18:57.271Z"
+      },
+      "task-msm6rprc-05p7k926": {
+        "id": "task-msm6rprc-05p7k926",
+        "content": "ניירות גלגול",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 61,
+        "createdAt": "2026-08-09T19:19:02.183Z",
+        "updatedAt": "2026-08-09T19:19:02.183Z"
+      },
+      "task-msm6rt0b-4m1y3dri": {
+        "id": "task-msm6rt0b-4m1y3dri",
+        "content": "מצתים",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 62,
+        "createdAt": "2026-08-09T19:19:06.394Z",
+        "updatedAt": "2026-08-09T19:19:06.394Z"
+      },
+      "task-msm6rvxr-h65p5oxg": {
+        "id": "task-msm6rvxr-h65p5oxg",
+        "content": "יורו",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 63,
+        "createdAt": "2026-08-09T19:19:10.19Z",
+        "updatedAt": "2026-08-09T19:19:10.19Z"
+      },
+      "task-msm6s5g2-7i00f4sn": {
+        "id": "task-msm6s5g2-7i00f4sn",
+        "content": "דרכון",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 64,
+        "createdAt": "2026-08-09T19:19:22.513Z",
+        "updatedAt": "2026-08-09T19:19:22.513Z"
+      },
+      "task-msm6s8w9-orcpqtvb": {
+        "id": "task-msm6s8w9-orcpqtvb",
+        "content": "חולצות",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 65,
+        "createdAt": "2026-08-09T19:19:26.984Z",
+        "updatedAt": "2026-08-09T19:19:26.984Z"
+      },
+      "task-msm6sc5c-3459joxf": {
+        "id": "task-msm6sc5c-3459joxf",
+        "content": "מכנסיים",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 66,
+        "createdAt": "2026-08-09T19:19:31.2Z",
+        "updatedAt": "2026-08-09T19:19:31.2Z"
+      },
+      "task-msm6trvc-mvl9xwiz": {
+        "id": "task-msm6trvc-mvl9xwiz",
+        "content": "תחתונים",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 67,
+        "createdAt": "2026-08-09T19:20:38.232Z",
+        "updatedAt": "2026-08-09T19:20:38.232Z"
+      },
+      "task-msm6une1-k01kb3ow": {
+        "id": "task-msm6une1-k01kb3ow",
+        "content": "גרביים",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 68,
+        "createdAt": "2026-08-09T19:21:19.079Z",
+        "updatedAt": "2026-08-09T19:21:19.079Z"
+      },
+      "task-msm6uv3w-syr6lvix": {
+        "id": "task-msm6uv3w-syr6lvix",
+        "content": "מטענים כבלים",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 69,
+        "createdAt": "2026-08-09T19:21:29.084Z",
+        "updatedAt": "2026-08-09T19:21:29.084Z"
+      },
+      "task-msm6wgig-r568qeu2": {
+        "id": "task-msm6wgig-r568qeu2",
+        "content": "פאורבנק",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 70,
+        "createdAt": "2026-08-09T19:22:43.48Z",
+        "updatedAt": "2026-08-09T19:22:43.48Z"
+      },
+      "task-msm71a4u-e6pofez3": {
+        "id": "task-msm71a4u-e6pofez3",
+        "content": "Printed and offline digital copies of passport, visa, flight, and accommodation details",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 71,
+        "createdAt": "2026-08-09T19:26:28.492Z",
+        "updatedAt": "2026-08-09T19:26:28.492Z"
+      },
+      "task-msm71fmr-u1beg1ic": {
+        "id": "task-msm71fmr-u1beg1ic",
+        "content": "Prescription medicines in original packaging plus a doctor letter",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 72,
+        "createdAt": "2026-08-09T19:26:35.618Z",
+        "updatedAt": "2026-08-09T19:26:35.618Z"
+      },
+      "task-msm72sjr-hdnqlren": {
+        "id": "task-msm72sjr-hdnqlren",
+        "content": "Universal EU travel adapter",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-10T09:30:49.869Z",
+        "completionContext": {
+          "projectId": "project-msm2g8m3-jnf7ex6l",
+          "sectionId": "section-msm2gu7f-b4bjgzja",
+          "order": 73
+        },
+        "order": 73,
+        "createdAt": "2026-08-09T19:27:39.014Z",
+        "updatedAt": "2026-08-10T09:30:49.869Z"
+      },
+      "task-msm736e6-2qqndyms": {
+        "id": "task-msm736e6-2qqndyms",
+        "content": "Comfortable walking shoes",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-10T09:30:47.099Z",
+        "completionContext": {
+          "projectId": "project-msm2g8m3-jnf7ex6l",
+          "sectionId": "section-msm2gu7f-b4bjgzja",
+          "order": 74
+        },
+        "order": 74,
+        "createdAt": "2026-08-09T19:27:56.958Z",
+        "updatedAt": "2026-08-10T09:30:47.099Z"
+      },
+      "task-msm73np9-m119liye": {
+        "id": "task-msm73np9-m119liye",
+        "content": "Weather-appropriate layer and compact rain jacket",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 75,
+        "createdAt": "2026-08-09T19:28:19.389Z",
+        "updatedAt": "2026-08-09T19:28:19.389Z"
+      },
+      "task-msm73t3n-g9f9046h": {
+        "id": "task-msm73t3n-g9f9046h",
+        "content": "Small toiletry and hygiene kit",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 76,
+        "createdAt": "2026-08-09T19:28:26.387Z",
+        "updatedAt": "2026-08-09T19:28:26.387Z"
+      },
+      "task-msm74jm1-mgqptfif": {
+        "id": "task-msm74jm1-mgqptfif",
+        "content": "Reusable water bottle",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 77,
+        "createdAt": "2026-08-09T19:29:00.744Z",
+        "updatedAt": "2026-08-09T19:29:00.744Z"
+      },
+      "task-msm74z0t-c19u7mcy": {
+        "id": "task-msm74z0t-c19u7mcy",
+        "content": "Secure crossbody day bag",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 78,
+        "createdAt": "2026-08-09T19:29:20.716Z",
+        "updatedAt": "2026-08-09T19:29:20.716Z"
+      },
+      "task-msm75g6j-z4wbdtkn": {
+        "id": "task-msm75g6j-z4wbdtkn",
+        "content": "Backup payment card and emergency cash",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 79,
+        "createdAt": "2026-08-09T19:29:42.955Z",
+        "updatedAt": "2026-08-09T19:29:42.955Z"
+      },
+      "task-msm75wrw-n2qbustu": {
+        "id": "task-msm75wrw-n2qbustu",
+        "content": "Eye mask and earplugs for travel and sleep",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 80,
+        "createdAt": "2026-08-09T19:30:04.459Z",
+        "updatedAt": "2026-08-09T19:30:04.459Z"
+      },
+      "task-msm7818f-ttm1x9tc": {
+        "id": "task-msm7818f-ttm1x9tc",
+        "content": "Verify Germany entry and visa rules for my passport",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 81,
+        "createdAt": "2026-08-09T19:31:43.551Z",
+        "updatedAt": "2026-08-09T19:31:43.551Z"
+      },
+      "task-msm786x8-hl8bkr1y": {
+        "id": "task-msm786x8-hl8bkr1y",
+        "content": "Check passport validity and blank pages",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 82,
+        "createdAt": "2026-08-09T19:31:50.923Z",
+        "updatedAt": "2026-08-09T19:31:50.923Z"
+      },
+      "task-msm78bz6-6e88wo16": {
+        "id": "task-msm78bz6-6e88wo16",
+        "content": "Buy travel insurance and save emergency assistance details",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 83,
+        "createdAt": "2026-08-09T19:31:57.474Z",
+        "updatedAt": "2026-08-09T19:31:57.474Z"
+      },
+      "task-msm78l56-mbwxzanv": {
+        "id": "task-msm78l56-mbwxzanv",
+        "content": "Confirm bank cards, travel notice, and foreign transaction fees",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 84,
+        "createdAt": "2026-08-09T19:32:09.354Z",
+        "updatedAt": "2026-08-09T19:32:09.354Z"
+      },
+      "task-msm7961d-ubw6og1f": {
+        "id": "task-msm7961d-ubw6og1f",
+        "content": "Activate SIM or eSIM and prepare backup connectivity",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 85,
+        "createdAt": "2026-08-09T19:32:36.433Z",
+        "updatedAt": "2026-08-09T19:32:36.433Z"
+      },
+      "task-msm79izm-dvexvuzs": {
+        "id": "task-msm79izm-dvexvuzs",
+        "content": "Download offline maps, translation, airline, and transit apps",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 86,
+        "createdAt": "2026-08-09T19:32:53.196Z",
+        "updatedAt": "2026-08-09T19:32:53.196Z"
+      },
+      "task-msm7a6s2-1e6ub8uo": {
+        "id": "task-msm7a6s2-1e6ub8uo",
+        "content": "Save flight, accommodation, airport terminal, and transfer details offline",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 87,
+        "createdAt": "2026-08-09T19:33:24.05Z",
+        "updatedAt": "2026-08-09T19:33:24.05Z"
+      },
+      "task-msm7almh-j94dfvfk": {
+        "id": "task-msm7almh-j94dfvfk",
+        "content": "Check baggage allowance and carry-on rules for power banks and liquids",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 88,
+        "createdAt": "2026-08-09T19:33:43.288Z",
+        "updatedAt": "2026-08-09T19:33:43.288Z"
+      },
+      "task-msm7ax0a-1ahb7wrz": {
+        "id": "task-msm7ax0a-1ahb7wrz",
+        "content": "Check customs limits for tobacco, medication, and cash",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 89,
+        "createdAt": "2026-08-09T19:33:58.042Z",
+        "updatedAt": "2026-08-09T19:33:58.042Z"
+      },
+      "task-msm7b8wz-hsk4rma2": {
+        "id": "task-msm7b8wz-hsk4rma2",
+        "content": "Share my itinerary and document copies with a trusted person",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 90,
+        "createdAt": "2026-08-09T19:34:13.475Z",
+        "updatedAt": "2026-08-09T19:34:13.475Z"
+      },
+      "task-msm7kulc-z02064ft": {
+        "id": "task-msm7kulc-z02064ft",
+        "content": "Light sleepwear",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 91,
+        "createdAt": "2026-08-09T19:41:41.471Z",
+        "updatedAt": "2026-08-09T19:41:41.471Z"
+      },
+      "task-msm7liiu-508k5riz": {
+        "id": "task-msm7liiu-508k5riz",
+        "content": "Compact laundry bag",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 92,
+        "createdAt": "2026-08-09T19:42:12.48Z",
+        "updatedAt": "2026-08-09T19:42:12.48Z"
+      },
+      "task-msm7lr06-3myf8rd5": {
+        "id": "task-msm7lr06-3myf8rd5",
+        "content": "Small first-aid kit",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 93,
+        "createdAt": "2026-08-09T19:42:23.477Z",
+        "updatedAt": "2026-08-09T19:42:23.477Z"
+      },
+      "task-msm7lxxh-meb6877n": {
+        "id": "task-msm7lxxh-meb6877n",
+        "content": "Hand sanitizer and tissues",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 94,
+        "createdAt": "2026-08-09T19:42:32.453Z",
+        "updatedAt": "2026-08-09T19:42:32.453Z"
+      },
+      "task-msm7maew-mcenlbqu": {
+        "id": "task-msm7maew-mcenlbqu",
+        "content": "Sunglasses and sunscreen",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 95,
+        "createdAt": "2026-08-09T19:42:48.631Z",
+        "updatedAt": "2026-08-09T19:42:48.631Z"
+      },
+      "task-msm7mhao-d4grrmcb": {
+        "id": "task-msm7mhao-d4grrmcb",
+        "content": "Compact umbrella",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 96,
+        "createdAt": "2026-08-09T19:42:57.549Z",
+        "updatedAt": "2026-08-09T19:42:57.549Z"
+      },
+      "task-msm7mppi-hjn9jfdo": {
+        "id": "task-msm7mppi-hjn9jfdo",
+        "content": "Emergency contact card with allergies and medications",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 97,
+        "createdAt": "2026-08-09T19:43:08.453Z",
+        "updatedAt": "2026-08-09T19:43:08.453Z"
+      },
+      "task-msm7n2td-wi5fv08l": {
+        "id": "task-msm7n2td-wi5fv08l",
+        "content": "Travel locks",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 98,
+        "createdAt": "2026-08-09T19:43:25.441Z",
+        "updatedAt": "2026-08-09T19:43:25.441Z"
+      },
+      "task-msm7najn-x7p32q4n": {
+        "id": "task-msm7najn-x7p32q4n",
+        "content": "Packable day backpack",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 99,
+        "createdAt": "2026-08-09T19:43:35.457Z",
+        "updatedAt": "2026-08-09T19:43:35.457Z"
+      },
+      "task-msm7ngpj-lb2i4up9": {
+        "id": "task-msm7ngpj-lb2i4up9",
+        "content": "Zip bags for liquids and small items",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 100,
+        "createdAt": "2026-08-09T19:43:43.447Z",
+        "updatedAt": "2026-08-09T19:43:43.447Z"
+      },
+      "task-msm7o5eh-rac9dt66": {
+        "id": "task-msm7o5eh-rac9dt66",
+        "content": "Check Germany weather forecast and adjust clothing",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 101,
+        "createdAt": "2026-08-09T19:44:15.448Z",
+        "updatedAt": "2026-08-09T19:44:15.448Z"
+      },
+      "task-msm7obkw-v4ebhp34": {
+        "id": "task-msm7obkw-v4ebhp34",
+        "content": "Confirm accommodation check-in and late-arrival instructions",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 102,
+        "createdAt": "2026-08-09T19:44:23.455Z",
+        "updatedAt": "2026-08-09T19:44:23.455Z"
+      },
+      "task-msm7otbl-2iywfk74": {
+        "id": "task-msm7otbl-2iywfk74",
+        "content": "Reserve airport-to-accommodation transport",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 103,
+        "createdAt": "2026-08-09T19:44:46.449Z",
+        "updatedAt": "2026-08-09T19:44:46.449Z"
+      },
+      "task-msm7p28j-8y0doq06": {
+        "id": "task-msm7p28j-8y0doq06",
+        "content": "Check first-day transit route and ticket/pass options",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 104,
+        "createdAt": "2026-08-09T19:44:58.003Z",
+        "updatedAt": "2026-08-09T19:44:58.003Z"
+      },
+      "task-msm7pexk-qvetz2j8": {
+        "id": "task-msm7pexk-qvetz2j8",
+        "content": "Confirm phone is unlocked and eSIM-compatible",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 105,
+        "createdAt": "2026-08-09T19:45:14.455Z",
+        "updatedAt": "2026-08-09T19:45:14.455Z"
+      },
+      "task-msm7pxg2-u4dhjd6x": {
+        "id": "task-msm7pxg2-u4dhjd6x",
+        "content": "Confirm access to email, banking, and 2FA while abroad",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 106,
+        "createdAt": "2026-08-09T19:45:38.449Z",
+        "updatedAt": "2026-08-09T19:45:38.449Z"
+      },
+      "task-msm7qdnl-nltblzds": {
+        "id": "task-msm7qdnl-nltblzds",
+        "content": "Check medication legality and quantity limits for Germany",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 107,
+        "createdAt": "2026-08-09T19:45:59.456Z",
+        "updatedAt": "2026-08-09T19:45:59.456Z"
+      },
+      "task-msm7qmwk-66jj8gpi": {
+        "id": "task-msm7qmwk-66jj8gpi",
+        "content": "Check in online and save boarding passes offline",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 108,
+        "createdAt": "2026-08-09T19:46:11.443Z",
+        "updatedAt": "2026-08-09T19:46:11.443Z"
+      },
+      "task-msm7qveg-cdnxv9qz": {
+        "id": "task-msm7qveg-cdnxv9qz",
+        "content": "Weigh luggage and confirm everything fits allowance",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 109,
+        "createdAt": "2026-08-09T19:46:22.455Z",
+        "updatedAt": "2026-08-09T19:46:22.455Z"
+      },
+      "task-msm7r53y-m9bk7znp": {
+        "id": "task-msm7r53y-m9bk7znp",
+        "content": "Arrange home bills, deliveries, and essentials before departure",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 110,
+        "createdAt": "2026-08-09T19:46:35.037Z",
+        "updatedAt": "2026-08-09T19:46:35.037Z"
+      },
+      "task-msm87prd-kqtrldgq": {
+        "id": "task-msm87prd-kqtrldgq",
+        "content": "know cannabis price and date + time of arrival to my hotel",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 111,
+        "createdAt": "2026-08-09T19:59:28.296Z",
+        "updatedAt": "2026-08-09T19:59:28.296Z"
+      },
+      "task-msme5buq-7uscdxxt": {
+        "id": "task-msme5buq-7uscdxxt",
+        "content": "טלפונים",
+        "description": "+972 54-535-5985 מעיין\n+972545355985 יוליה מטריקס",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 2,
+        "createdAt": "2026-08-09T22:45:34.656Z",
+        "updatedAt": "2026-08-12T19:13:48.630Z"
+      },
+      "task-msmemf90-gxqvbrmq": {
+        "id": "task-msmemf90-gxqvbrmq",
+        "content": "Heretic ai",
+        "description": "",
+        "projectId": "project-msmem7z8-f1jhvobu",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 113,
+        "createdAt": "2026-08-09T22:58:52.21Z",
+        "updatedAt": "2026-08-09T22:58:52.21Z"
+      },
+      "task-msmemi8s-e1buv4l2": {
+        "id": "task-msmemi8s-e1buv4l2",
+        "content": "Buzz",
+        "description": "",
+        "projectId": "project-msmem7z8-f1jhvobu",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 114,
+        "createdAt": "2026-08-09T22:58:56.09Z",
+        "updatedAt": "2026-08-09T22:58:56.09Z"
+      },
+      "task-msmg0gik-85lvwqe2": {
+        "id": "task-msmg0gik-85lvwqe2",
+        "content": "Android",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-12",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-12T09:54:03.684Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 6
+        },
+        "order": 6,
+        "createdAt": "2026-08-09T23:37:46.652Z",
+        "updatedAt": "2026-08-12T09:54:03.684Z"
+      },
+      "task-msmg18nf-d4qwy0kt": {
+        "id": "task-msmg18nf-d4qwy0kt",
+        "content": "Daniel",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-12",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-12T09:53:54.252Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 7
+        },
+        "order": 7,
+        "createdAt": "2026-08-09T23:38:23.115Z",
+        "updatedAt": "2026-08-12T09:53:54.252Z"
+      },
+      "task-msmg1ovc-vn9dj79v": {
+        "id": "task-msmg1ovc-vn9dj79v",
+        "content": "Phone",
+        "description": "+972 54-535-5985\n+972545355985",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 3,
+        "createdAt": "2026-08-09T23:38:44.136Z",
+        "updatedAt": "2026-08-12T19:13:48.630Z"
+      },
+      "task-msmgdan1-b94873ou": {
+        "id": "task-msmgdan1-b94873ou",
+        "content": "אנדריי 11:30",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-10",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-10T10:51:42.33Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 118
+        },
+        "order": 118,
+        "createdAt": "2026-08-09T23:47:45.564Z",
+        "updatedAt": "2026-08-10T10:51:42.33Z"
+      },
+      "task-msmgdneq-lt4e5aev": {
+        "id": "task-msmgdneq-lt4e5aev",
+        "content": "דניאל 5",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-11",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-10T13:32:32.354Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 10
+        },
+        "order": 10,
+        "createdAt": "2026-08-09T23:48:02.113Z",
+        "updatedAt": "2026-08-10T13:32:32.354Z"
+      },
+      "task-msmgelp1-7vzy9gae": {
+        "id": "task-msmgelp1-7vzy9gae",
+        "content": "טלפונים",
+        "description": "+972 54-535-5985 מעיין",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-10",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-10T13:31:37.818Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 9
+        },
+        "order": 9,
+        "createdAt": "2026-08-09T23:48:46.548Z",
+        "updatedAt": "2026-08-10T13:31:37.818Z"
+      },
+      "task-msn161tw-w5fflxjs": {
+        "id": "task-msn161tw-w5fflxjs",
+        "content": "Cannabis",
+        "description": "Check what time and what day will it arrive to the hotel what price and how much grams\nAnd do I need to meet the dude in the lobby or in my room",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2g8m4-io2h2hsm",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 121,
+        "createdAt": "2026-08-10T09:29:59.488Z",
+        "updatedAt": "2026-08-10T09:31:13.184Z"
+      },
+      "task-msn2bclj-w8pr9zg9": {
+        "id": "task-msn2bclj-w8pr9zg9",
+        "content": "מטריקס",
+        "description": "מודיעין\nחברת מטריקס\nחברת אינטגרציה\n8 - 5\nIt engineer\nאין היברידי\n\nאור\n \nדואר ישראל\n\nטוענת שאני נשמע מאוד מתאים ואפילו שאני ברידי תבקש שיעשו לי שעות גמישות ואמרתי שאני מוכן לבדוק",
+        "projectId": "project-msfyquuw-jrlebwwt",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 4,
+        "createdAt": "2026-08-10T10:02:06.338Z",
+        "updatedAt": "2026-08-12T11:38:23.931Z"
+      },
+      "task-msn2rwvh-4s8erw15": {
+        "id": "task-msn2rwvh-4s8erw15",
+        "content": "ornith local ai",
+        "description": "",
+        "projectId": "project-msmem7z8-f1jhvobu",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 123,
+        "createdAt": "2026-08-10T10:14:59.116Z",
+        "updatedAt": "2026-08-10T10:14:59.116Z"
+      },
+      "task-msn33enz-l262g0hc": {
+        "id": "task-msn33enz-l262g0hc",
+        "content": "Indexing. Data. Reg.",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 124,
+        "createdAt": "2026-08-10T10:23:55.39Z",
+        "updatedAt": "2026-08-10T10:23:55.39Z"
+      },
+      "task-msn56uqn-rb0zuw2f": {
+        "id": "task-msn56uqn-rb0zuw2f",
+        "content": "organize study",
+        "description": "* powershell\n* windows\n* android\n* hacking\n* security\n* networklng",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-10T16:15:46.86Z",
+        "completionContext": {
+          "projectId": "project-mslnw58h-0zx83xzz",
+          "sectionId": "section-msly2062-aawup6vt",
+          "order": 125
+        },
+        "order": 125,
+        "createdAt": "2026-08-10T11:22:35.423Z",
+        "updatedAt": "2026-08-12T14:41:06.368Z"
+      },
+      "task-msn570nc-28v2i8j4": {
+        "id": "task-msn570nc-28v2i8j4",
+        "content": "organize study",
+        "description": "* powershell\n* windows\n* android\n* hacking\n* security\n* networklng",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-10T11:24:36.076Z",
+        "completionContext": {
+          "projectId": "project-mslnw58h-0zx83xzz",
+          "sectionId": "section-msly2062-aawup6vt",
+          "order": 126
+        },
+        "order": 126,
+        "createdAt": "2026-08-10T11:22:43.080Z",
+        "updatedAt": "2026-08-12T14:41:06.375Z"
+      },
+      "task-msn6ht3i-khach1hz": {
+        "id": "task-msn6ht3i-khach1hz",
+        "content": "@work 200",
+        "description": "",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-10T11:59:14.289Z",
+        "completionContext": {
+          "projectId": "project-mslnw58h-0zx83xzz",
+          "sectionId": "section-msly2062-aawup6vt",
+          "order": 127
+        },
+        "order": 127,
+        "createdAt": "2026-08-10T11:59:06.125Z",
+        "updatedAt": "2026-08-12T14:41:06.381Z"
+      },
+      "task-msn9hhin-89w7zfne": {
+        "id": "task-msn9hhin-89w7zfne",
+        "content": "בנק לאומי לוד",
+        "description": "משרה מלאה יום אחד מהבית כ-20 אלף שכר ברוטו \n\nמשרה לאיוש - איש צוות לתמיכה בסביבת הטסט\n•\tיחידה – אגף תשתיות טכנולוגיות וענן, ענף תשתיות מרכזיות, תחום CSI\n•\tמיקום - קש\"ב, לוד\n•\tהיקף משרה - מלאה\n•\tהיברידיות – יום עבודה אחד בשבוע מרחוק. \n\nתיאור המשרה\nאיש/אשת צוות תמיכה לסביבת ה-Test אחראי/ת על הבטחת זמינות, יציבות ותקינות של סביבות הבדיקות ברמת התשתית והרכיבים המרכזיים. התפקיד כולל ניטור רציף של הסביבה, זיהוי וטיפול בתקלות תשתיתיות, תיאום מול צוותי תשתיות, DevOps ופיתוח, וליווי פעילויות המשפיעות על זמינות הסביבה.\n\nמשימות עיקריות\no\tניטור שוטף של זמינות ותקינות סביבות ה- Test.\no\tזיהוי, תחקור והסלמת תקלות המשפיעות על זמינות הסביבה. \no\tתיאום מול צוותי תשתיות, תקשורת, DevOps ופיתוח לצורך פתרון תקלות. \no\tמעקב אחר אירועים מערכתיים והשפעתם על פעילות הבדיקות. \no\tתמיכה בתהליכי העלאת גרסאות ופעילויות תחזוקה המשפיעות על הסביבה. \no\tתיעוד תקלות, אירועים חריגים ופעילויות תחזוקה. \no\tמעקב אחר מדדי זמינות ועמידה ביעדי שירות (SLA).\n\nדרישות המשרה\no\tניסיון בעבודה מול לקוחות פנים / חוץ אירגוניים – שנתיים לפחות. \no\tניסיון בהובלת אינטגרציות תשתיתיות בארגון גדול כולל כתיבה, ניהול ומעקב אחר תכניות עבודה - שנתיים לפחות\no\tניסיון עבודה עם ארכיטקטים אפליקטיביים ותשתיתים, לפחות שנה- חובה\no\tניסיון בעבודה במתודולוגיית Agile - שנתיים\no\tניסיון והיכרות עם מסדי נתונים שונים ברמת פיתוח וניהול\no\tאנגלית ברמה גבוהה – כתיבה, דיבור וקריאה – חובה\no\tמוכנות לעבודה בשעות גמישות ומאומצות\n\nמחפשים איש תשתיות/סיסטם עם ניסיון בתחזוקת סביבות אפליקטיביות, התקנה ותחזוקת שרתים ושירותים, Troubleshooting מתקדם, עבודה מול צוותי QA ופיתוח, והיכרות עם כלי DevOps וכתיבת סקריפטים. \n\nכישורים מקצועיים. \no\tהיכרות בעולמות הענן בכלל וב AWS בפרט (ארכיטקטורה ויישום)\no\tהיכרות בתהליכי CI/CD \no\tהיכרות עם מוצרי / כלי DevOps כגון: \n\tNexus artifactory Jenkins, Git, Bitbucket\no\tדרוש ניסיון מעמיק של שנתיים לפחות עם תשתיות מבוססות:\n\tMicrosoft Windows Servers\n\tLinux Servers\no\tדרוש ניסיון מעמיק של שנתיים לפחות עם HTTPS Servers כגון:\n\tIIS\n\tTomcat\n\tApache\n\tWeb Sphere\no\tכתיבה ועריכת סקריפטים ברמה גבוהה Python, PowerShell, Bash\no\tניסיון והיכרות עם תשתיות Middleware כגון:\n\tApigee\n\tDatapower\no\tניסיון בחקר תקלות והיכרות עם כלי Troubleshooting\no\tדרוש ניסיון מעמיק בניתוח לוגים עם Kibana & Elastic \no\tהיכרות עם עולמות התקשורת ואבטחת המידע, F5\no\tניסיון והיכרות עם מסדי נתונים ושאילתות  Mongo DB, MSSQL…,\no\tניסיון והיכרות עם פריסת ניטור וכלי שו\"ב (Monitoring)",
+        "projectId": "project-msfyquuw-jrlebwwt",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 1,
+        "createdAt": "2026-08-10T13:22:49.963Z",
+        "updatedAt": "2026-08-12T11:38:23.931Z"
+      },
+      "task-msn9sxtj-izfme09z": {
+        "id": "task-msn9sxtj-izfme09z",
+        "content": "דניאל 5",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-10",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-10T15:08:11.46Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 10
+        },
+        "order": 10,
+        "createdAt": "2026-08-10T13:31:44.311Z",
+        "updatedAt": "2026-08-10T15:08:11.46Z"
+      },
+      "task-msna4htx-j93uxmuh": {
+        "id": "task-msna4htx-j93uxmuh",
+        "content": "sqlink",
+        "description": "",
+        "projectId": "project-msfyquuw-jrlebwwt",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 2,
+        "createdAt": "2026-08-10T13:40:43.459Z",
+        "updatedAt": "2026-08-12T11:38:23.931Z"
+      },
+      "task-msnabz9t-1nylsc4t": {
+        "id": "task-msnabz9t-1nylsc4t",
+        "content": "Storage technologies",
+        "description": "",
+        "projectId": "project-msm2wp7v-y5tr2uy5",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 130,
+        "createdAt": "2026-08-10T13:46:32.652Z",
+        "updatedAt": "2026-08-10T13:46:32.652Z"
+      },
+      "task-msnd9c37-h9nnwqa4": {
+        "id": "task-msnd9c37-h9nnwqa4",
+        "content": "Tt",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-10",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-10T15:10:26.322Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 131
+        },
+        "order": 131,
+        "createdAt": "2026-08-10T15:08:28.146Z",
+        "updatedAt": "2026-08-10T15:10:26.322Z"
+      },
+      "task-msngm3hf-kvd542sc": {
+        "id": "task-msngm3hf-kvd542sc",
+        "content": "fiverr",
+        "description": "https://www.fiverr.com/michaelovsky/buying?source=avatar_menu_profile Maximize my Fiverr profile to be ready in any way shape or form for people to start purchasing and finding things that I offer for them to do with all the necessary stuff to make me as appealing as possible.",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-12T10:21:21.826Z",
+        "completionContext": {
+          "projectId": "project-mslnw58h-0zx83xzz",
+          "sectionId": null,
+          "order": 133
+        },
+        "order": 133,
+        "createdAt": "2026-08-10T16:42:22.37Z",
+        "updatedAt": "2026-08-12T10:21:21.826Z"
+      },
+      "task-msnh3rns-uvpft9kb": {
+        "id": "task-msnh3rns-uvpft9kb",
+        "content": "Bounty 2",
+        "description": "Act as an autonomous security research and monetization agent powered by OpenAI Codex. Your objective is to discover, validate, patch, and monetize security vulnerabilities in target codebases to generate real financial bounty payouts, running continuously without stopping until a monetary payout is secured.\nExecute the following continuous workflow:\n1. Target Discovery & High-Payout Prioritization\nSearch major bug bounty platforms (e.g., HackerOne, Bugcrowd, Immunefi, Open Collective, GitHub Bounties) specifically for targets offering cash rewards.\nRank targets dynamically by potential financial return, prioritising the highest-paying scopes and platforms with confirmed payout mechanisms.\n2. Deep Vulnerability Scanning & Exploitation Verification\nPerform semantic code analysis and static analysis across prioritized codebases to discover critical, high-impact vulnerabilities (e.g., authentication bypasses, remote code execution, financial logic flaws, or zero-day memory bugs).\nDevelop a deterministic Proof of Concept (PoC) in a isolated sandbox to verify exploitability without false positives.\n3. Automated Patching & Verification\nGenerate a clean, minimal, non-breaking code fix that fully resolves the issue.\nExecute target unit and integration tests to ensure overall software stability alongside your security fix.\n4. Continuous Submission Loop (Non-Stop Execution)\nDraft and submit a comprehensive security report and pull request to the platform or program maintainers detailing the impact, PoC, and patch.\nExecution Condition: Do NOT terminate, sleep, or stop execution after a failed submission or zero-payout target. Automatically repeat steps 1–4 on secondary targets until a monetary reward is successfully verified, processed, and awarded.\n5. Payout Verification & Final Financial Report\nOnce a cash bounty is secured, compile a final summary report containing:\nTotal Earnings: The exact dollar amount ($USD) earned and credited.\nPayout Retrieval Instructions: Direct, step-by-step instructions specifying the exact platform balance or wallet location where the money resides and how to transfer it immediately with zero additional friction.",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 1,
+        "createdAt": "2026-08-10T16:56:06.854Z",
+        "updatedAt": "2026-08-12T19:17:54.183Z"
+      },
+      "task-msnhbmus-irqwr0qa": {
+        "id": "task-msnhbmus-irqwr0qa",
+        "content": "Wsl2 localai",
+        "description": "",
+        "projectId": "project-msfwpb1z-7gc2fei0",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 135,
+        "createdAt": "2026-08-10T17:02:13.875Z",
+        "updatedAt": "2026-08-10T17:02:13.875Z"
+      },
+      "task-msnk5fq0-co9ap4eo": {
+        "id": "task-msnk5fq0-co9ap4eo",
+        "content": "test",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-10",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-10T18:21:35.058Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 136
+        },
+        "order": 136,
+        "createdAt": "2026-08-10T18:21:23.543Z",
+        "updatedAt": "2026-08-10T18:21:35.058Z"
+      },
+      "task-msnl0anl-q1kmjnoc": {
+        "id": "task-msnl0anl-q1kmjnoc",
+        "content": "organize study",
+        "description": "* powershell\n* windows\n* android\n* hacking\n* security\n* networklng\n* docker\n*backup",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 2,
+        "createdAt": "2026-08-10T18:45:23.311Z",
+        "updatedAt": "2026-08-12T19:17:54.183Z"
+      },
+      "task-msnl16xu-j7g85jbp": {
+        "id": "task-msnl16xu-j7g85jbp",
+        "content": "2sc functions",
+        "description": "",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 0,
+        "createdAt": "2026-08-10T18:46:05.153Z",
+        "updatedAt": "2026-08-12T19:17:54.183Z"
+      },
+      "task-msnl2rf5-cqngvlzy": {
+        "id": "task-msnl2rf5-cqngvlzy",
+        "content": "Bounty 2",
+        "description": "Act as an autonomous security research and monetization agent powered by OpenAI Codex. Your objective is to discover, validate, patch, and monetize security vulnerabilities in target codebases to generate real financial bounty payouts, running continuously without stopping until a monetary payout is secured.\nExecute the following continuous workflow:\n1. Target Discovery & High-Payout Prioritization\nSearch major bug bounty platforms (e.g., HackerOne, Bugcrowd, Immunefi, Open Collective, GitHub Bounties) specifically for targets offering cash rewards.\nRank targets dynamically by potential financial return, prioritising the highest-paying scopes and platforms with confirmed payout mechanisms.\n2. Deep Vulnerability Scanning & Exploitation Verification\nPerform semantic code analysis and static analysis across prioritized codebases to discover critical, high-impact vulnerabilities (e.g., authentication bypasses, remote code execution, financial logic flaws, or zero-day memory bugs).\nDevelop a deterministic Proof of Concept (PoC) in a isolated sandbox to verify exploitability without false positives.\n3. Automated Patching & Verification\nGenerate a clean, minimal, non-breaking code fix that fully resolves the issue.\nExecute target unit and integration tests to ensure overall software stability alongside your security fix.\n4. Continuous Submission Loop (Non-Stop Execution)\nDraft and submit a comprehensive security report and pull request to the platform or program maintainers detailing the impact, PoC, and patch.\nExecution Condition: Do NOT terminate, sleep, or stop execution after a failed submission or zero-payout target. Automatically repeat steps 1–4 on secondary targets until a monetary reward is successfully verified, processed, and awarded.\n5. Payout Verification & Final Financial Report\nOnce a cash bounty is secured, compile a final summary report containing:\nTotal Earnings: The exact dollar amount ($USD) earned and credited.\nPayout Retrieval Instructions: Direct, step-by-step instructions specifying the exact platform balance or wallet location where the money resides and how to transfer it immediately with zero additional friction.",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-10T18:52:30.572Z",
+        "completionContext": {
+          "projectId": "project-mslnw58h-0zx83xzz",
+          "sectionId": null,
+          "order": 139
+        },
+        "order": 139,
+        "createdAt": "2026-08-10T18:47:18.351Z",
+        "updatedAt": "2026-08-10T18:52:30.572Z"
+      },
+      "task-msnl530z-ybqs5873": {
+        "id": "task-msnl530z-ybqs5873",
+        "content": "fiverr",
+        "description": "https://www.fiverr.com/michaelovsky/buying?source=avatar_menu_profile Maximize my Fiverr profile to be ready in any way shape or form for people to start purchasing and finding things that I offer for them to do with all the necessary stuff to make me as appealing as possible.",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 3,
+        "createdAt": "2026-08-10T18:49:06.705Z",
+        "updatedAt": "2026-08-12T19:17:54.183Z"
+      },
+      "task-msnl862c-3jo8srul": {
+        "id": "task-msnl862c-3jo8srul",
+        "content": "Pay dad",
+        "description": "",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 4,
+        "createdAt": "2026-08-10T18:51:30.611Z",
+        "updatedAt": "2026-08-12T19:17:54.183Z"
+      },
+      "task-msnla3rw-guzefwik": {
+        "id": "task-msnla3rw-guzefwik",
+        "content": "daymark windows app",
+        "description": "create an actual windows executable for this application https://daymark-desktop.michaelovsky55555.chatgpt.site/  That will look, work and function million percent the same for Windows and will automatically synchronize at all times between all changes made with the deployed website and the APK application at all possible times and vice versa. . don't stop until you're sure every part of the executable application in my windows work perfectly end-to-end with the synchronization and everything and when you do without taking any risks of breaking anything or deleting any data that I have make sure to push changes to the github including adding downloadable executable so anyone with windows can use it to install this windows application perfectly",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 5,
+        "createdAt": "2026-08-10T18:53:00.953Z",
+        "updatedAt": "2026-08-12T19:17:54.183Z"
+      },
+      "task-msonatu9-cejlplkg": {
+        "id": "task-msonatu9-cejlplkg",
+        "content": "Latencymoon",
+        "description": "",
+        "projectId": "project-msmem7z8-f1jhvobu",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 144,
+        "createdAt": "2026-08-11T12:37:20.138Z",
+        "updatedAt": "2026-08-12T14:28:46.652Z"
+      },
+      "task-msorzjtq-guunw3b3": {
+        "id": "task-msorzjtq-guunw3b3",
+        "content": "דואר ישראל",
+        "description": "It engineer\n\nמשרה מלאה\nמודיעין סניף מודיעין",
+        "projectId": "project-msfyquuw-jrlebwwt",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 3,
+        "createdAt": "2026-08-11T14:48:32.025Z",
+        "updatedAt": "2026-08-12T11:38:23.931Z"
+      },
+      "task-msost5j8-aozo9jl0": {
+        "id": "task-msost5j8-aozo9jl0",
+        "content": "תענה למודיעין",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-12",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-12T09:54:10.498Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 146
+        },
+        "order": 146,
+        "createdAt": "2026-08-11T15:11:33.187Z",
+        "updatedAt": "2026-08-12T09:54:10.498Z"
+      },
+      "task-mspv07ts-3z3yduxv": {
+        "id": "task-mspv07ts-3z3yduxv",
+        "content": "Process Lasso",
+        "description": "",
+        "projectId": "project-msmem7z8-f1jhvobu",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 147,
+        "createdAt": "2026-08-12T09:00:48.158Z",
+        "updatedAt": "2026-08-12T09:00:48.158Z"
+      },
+      "task-mspwy6js-bewgr7el": {
+        "id": "task-mspwy6js-bewgr7el",
+        "content": "T",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": {
+          "date": "2026-08-12",
+          "time": null,
+          "timezone": null,
+          "recurrence": null
+        },
+        "completedAt": "2026-08-12T09:55:27.102Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 148
+        },
+        "order": 148,
+        "createdAt": "2026-08-12T09:55:12.423Z",
+        "updatedAt": "2026-08-12T09:55:27.102Z"
+      },
+      "task-mspy3zpa-gath3ngi": {
+        "id": "task-mspy3zpa-gath3ngi",
+        "content": "Fix handy update it to work exactly as it is now but when it's time to output the transcript right now with sometimes have a delay of at least few seconds before it actually paste that transcript fix it so it's correctly always always base the transcript in less than 1 second flawlessly always without creating any files in c drive",
+        "description": "",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 7,
+        "createdAt": "2026-08-12T10:27:43.100Z",
+        "updatedAt": "2026-08-12T19:17:54.183Z"
+      },
+      "task-msq0dvt3-vswrx70s": {
+        "id": "task-msq0dvt3-vswrx70s",
+        "content": "תעודת זהות לבנק",
+        "description": "",
+        "projectId": "project-msm2g8m3-jnf7ex6l",
+        "sectionId": "section-msm2gu7f-b4bjgzja",
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 151,
+        "createdAt": "2026-08-12T11:31:23.845Z",
+        "updatedAt": "2026-08-12T11:31:23.845Z"
+      },
+      "task-msq1alt0-xh9mjq0k": {
+        "id": "task-msq1alt0-xh9mjq0k",
+        "content": "אברא",
+        "description": "דניאל \nחברה טכנולוגית\nHelp desk\nחולון\nעד 9000\nמשרה מלאה\nלא היברדית",
+        "projectId": "project-msfyquuw-jrlebwwt",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 152,
+        "createdAt": "2026-08-12T11:56:50.529Z",
+        "updatedAt": "2026-08-12T11:59:54.023Z"
+      },
+      "task-msq5dhaz-6n3bjtnk": {
+        "id": "task-msq5dhaz-6n3bjtnk",
+        "content": "טלפונים",
+        "description": "073-3522667 - בר. \n054-2526401 | 03-9700001 יוסף\n0544861081 מור גבאי",
+        "projectId": "project-msfyquuw-jrlebwwt",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 153,
+        "createdAt": "2026-08-12T13:51:03.130Z",
+        "updatedAt": "2026-08-12T13:55:17.916Z"
+      },
+      "task-msq62xbr-nsjwhaej": {
+        "id": "task-msq62xbr-nsjwhaej",
+        "content": "Permanently fix stream you ability to find addons that was successfully stream any piece of media with maximum possible quality",
+        "description": "",
+        "projectId": "project-mslnw58h-0zx83xzz",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 6,
+        "createdAt": "2026-08-12T14:10:50.295Z",
+        "updatedAt": "2026-08-12T19:17:54.183Z"
+      },
+      "task-msq6q27p-iitbyb5f": {
+        "id": "task-msq6q27p-iitbyb5f",
+        "content": "procmon",
+        "description": "",
+        "projectId": "project-msmem7z8-f1jhvobu",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 155,
+        "createdAt": "2026-08-12T14:28:49.717Z",
+        "updatedAt": "2026-08-12T14:28:49.717Z"
+      },
+      "task-msq7ab3i-s5cr4lb6": {
+        "id": "task-msq7ab3i-s5cr4lb6",
+        "content": "T",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-12T14:44:34.347Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 156
+        },
+        "order": 156,
+        "createdAt": "2026-08-12T14:44:34.347Z",
+        "updatedAt": "2026-08-12T14:44:34.347Z"
+      },
+      "task-msq7blnr-rjznvypl": {
+        "id": "task-msq7blnr-rjznvypl",
+        "content": "t",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-12T14:45:34.693Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 157
+        },
+        "order": 157,
+        "createdAt": "2026-08-12T14:45:34.693Z",
+        "updatedAt": "2026-08-12T14:45:34.693Z"
+      },
+      "task-msq7h0mw-wexir1jv": {
+        "id": "task-msq7h0mw-wexir1jv",
+        "content": "Y",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-12T14:49:47.380Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 158
+        },
+        "order": 158,
+        "createdAt": "2026-08-12T14:49:47.380Z",
+        "updatedAt": "2026-08-12T14:49:47.380Z"
+      },
+      "task-msq7mnkm-ojne7vlh": {
+        "id": "task-msq7mnkm-ojne7vlh",
+        "content": "organize study",
+        "description": "* powershell\n* windows\n* android\n* hacking\n* security\n* networklng\n* docker\n*backup",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-12T14:54:10.387Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 159
+        },
+        "order": 159,
+        "createdAt": "2026-08-12T14:54:10.387Z",
+        "updatedAt": "2026-08-12T14:54:10.387Z"
+      },
+      "task-msqgw1k7-kobj3eja": {
+        "id": "task-msqgw1k7-kobj3eja",
+        "content": "F:\\study\\Platforms\\windows\\functions\\free.ps1           Update this script to make absolutely sure for PowerShell version 5 whenever I use it. It will allow me to type in nano any commands I want, no exceptions, and it will then immediately force reboot Windows safely as fast as possible. When Windows is up, only one time after using this, not again and again, but after the first the first reboot. It will open my default terminal by oracle 5 and run literally every single thing mentioned using this function flawlessly without allowing anything like brackets or anything like that to break any of the command no matter how long or complex it is and it will also be able to read any functions etc.",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": null,
+        "completionContext": null,
+        "order": 4,
+        "createdAt": "2026-08-12T19:13:24.963Z",
+        "updatedAt": "2026-08-12T19:13:48.630Z"
+      },
+      "task-msqgxpng-goixbkgw": {
+        "id": "task-msqgxpng-goixbkgw",
+        "content": "Fix functions",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-12T19:14:42.840Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 160
+        },
+        "order": 160,
+        "createdAt": "2026-08-12T19:14:42.840Z",
+        "updatedAt": "2026-08-12T19:14:42.840Z"
+      },
+      "task-msqgyag7-2ea6mshl": {
+        "id": "task-msqgyag7-2ea6mshl",
+        "content": "Create the most comprehensive project, that will never run, will show me real time, all the running processes, no exceptions. And the exact amount of CPU, GPU and RAM each takes, it will show all of them ranked by the resources with the ability for me to rank by CPU, by RAM or by GPU., It will also have every single capability that the third party software 'process lasso' I have no exceptions, but the biggest difference, this entire app should work without GUI, instead as a TUI to work completely inside PowerShell terminal.... When you have no doubt, it's all perfected as much as you possibly can as a last-step output full-bash. Do the script or executable or whatever you choose to allow me to run this app perfectly in my PowerShell terminal.",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-12T19:15:09.798Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 161
+        },
+        "order": 161,
+        "createdAt": "2026-08-12T19:15:09.798Z",
+        "updatedAt": "2026-08-12T19:15:09.798Z"
+      },
+      "task-msqgye3r-7hlw1qkf": {
+        "id": "task-msqgye3r-7hlw1qkf",
+        "content": "Fix day Mark project synchronization",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-12T19:15:14.534Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 162
+        },
+        "order": 162,
+        "createdAt": "2026-08-12T19:15:14.534Z",
+        "updatedAt": "2026-08-12T19:15:14.534Z"
+      },
+      "task-msqgzseu-8lkxhktg": {
+        "id": "task-msqgzseu-8lkxhktg",
+        "content": "[@daymark](plugin://daymark@micha-local-plugins) [Daymark](sites-project://appgprj_6a72433e80108191b2c3936efd51e00a) Update the application in my Android and then this deployed website. Make sure in 'order' tab Everything that I remove immediately is set as completed in the completed tab. And also make sure especially in my Android app that this entire order tab is as beautiful and easy to navigate or move things between sections in any angle you can think of specifically for Android, smartphone device, and then the same for the Deploy website, and then push everything to GitHub with new downloadable APK, et cetera, et cetera.",
+        "description": "",
+        "projectId": "project-inbox",
+        "sectionId": null,
+        "parentId": null,
+        "priority": 4,
+        "due": null,
+        "completedAt": "2026-08-12T19:16:19.730Z",
+        "completionContext": {
+          "projectId": "project-inbox",
+          "sectionId": null,
+          "order": 163
+        },
+        "order": 163,
+        "createdAt": "2026-08-12T19:16:19.730Z",
+        "updatedAt": "2026-08-12T19:16:19.730Z"
+      }
+    },
+    "orderItems": {
+      "order-msn3yqlh-jrqzgcf7": {
+        "id": "order-msn3yqlh-jrqzgcf7",
+        "title": "local ai from wsl2",
+        "details": "",
+        "lane": "now",
+        "relationId": null,
+        "priority": 4,
+        "status": "open",
+        "order": 45,
+        "createdAt": "2026-08-10T10:48:17.189Z",
+        "updatedAt": "2026-08-12T11:22:00.862Z"
+      },
+      "order-msn6cpy0-clywe49r": {
+        "id": "order-msn6cpy0-clywe49r",
+        "title": "megascan",
+        "details": "",
+        "lane": "now",
+        "relationId": null,
+        "priority": 4,
+        "status": "open",
+        "order": 61,
+        "createdAt": "2026-08-10T11:55:08.759Z",
+        "updatedAt": "2026-08-12T08:45:09.761Z"
+      },
+      "order-msq0wyhy-ix2977qm": {
+        "id": "order-msq0wyhy-ix2977qm",
+        "title": "Listen to Ben audio",
+        "details": "",
+        "lane": "later",
+        "relationId": null,
+        "priority": 4,
+        "status": "open",
+        "order": 79,
+        "createdAt": "2026-08-12T11:46:13.793Z",
+        "updatedAt": "2026-08-12T11:46:13.793Z"
+      },
+      "order-msq6n7wj-87q3vi3a": {
+        "id": "order-msq6n7wj-87q3vi3a",
+        "title": "daymark order tab to completed + better organmized + fix the synchronization",
+        "details": "Update the application in my Android and then this deployed website. Make sure in 'order' tab Everything that I remove immediately is set as completed in the completed tab. And also make sure especially in my Android app that this entire order tab is as beautiful and easy to navigate or move things between sections in any angle you can think of specifically for Android, smartphone device, and then the same for the Deploy website, and then push everything to GitHub with new downloadable APK, et cetera, et cetera. In the completed tab, make absolutely sure on top of everything else you need to achieve. It will always show all the done and completed in order from latest, first, downwards. So everyone that created latest will be shown first, in that order.",
+        "lane": "now",
+        "relationId": null,
+        "priority": 4,
+        "status": "open",
+        "order": 80,
+        "createdAt": "2026-08-12T14:26:37.122Z",
+        "updatedAt": "2026-08-12T19:14:23.380Z"
+      },
+      "order-msq6ni7u-ocx7iy9v": {
+        "id": "order-msq6ni7u-ocx7iy9v",
+        "title": "work 100",
+        "details": "",
+        "lane": "now",
+        "relationId": null,
+        "priority": 4,
+        "status": "open",
+        "order": 81,
+        "createdAt": "2026-08-12T14:26:50.489Z",
+        "updatedAt": "2026-08-12T19:14:34.850Z"
+      },
+      "order-msqa38rk-0k3vtnai": {
+        "id": "order-msqa38rk-0k3vtnai",
+        "title": "system monitor project",
+        "details": "",
+        "lane": "now",
+        "relationId": null,
+        "priority": 4,
+        "status": "open",
+        "order": 87,
+        "createdAt": "2026-08-12T16:03:03.583Z",
+        "updatedAt": "2026-08-12T19:16:04.167Z"
+      },
+      "order-msqapt8p-swc4nuxr": {
+        "id": "order-msqapt8p-swc4nuxr",
+        "title": "Update the AI application in my Android",
+        "details": "Update the AI application in my Android to make absolutely sure you achieve a perfectly all of the following for all the models and providers without exceptions: \n- they must be able to run any type of command without failures and know exactly what commands to run to achieve any type of task\n- they must never stop working on a task until it's achieved unless I manually stop them\n- every model that I use I will always be able to know without any single doubt that did it exactly the model I chose and no other and whenever I ask any of them they will know to answer me correctly which model which provider and what effort level they use in real time\n- do literally anything except rooting my device to give full accessibility and permissions and capabilities of literally any type of kind to all the AI models and agents to be able to automate and Achieve any task or project whatsoever no matter how complex with zero problems and with zero help from my end\n- Mega Million percent sure they have full capability to control and automate literally any type of task that I gave him related to any of the apps in my Android device or the settings or basically control and automate anything in my Android environment if needed even by UI visualization control but only when necessary and when it's being used must be used fast and accurately do not just stuck my Android without allowing me to use it normally\n- same exact thing for browser capabilities in Chrome capabilities basically to be able to achieve anything related to the internet and anything that he can do automatically for example like looking for a download file online download and install it as long as it's possible to achieve without front end visualization so that he will do all in the background that's what they will do when no other way it will use the visualization. \n- for literally any type of coding projects make sure all models are as capable as they possibly can be to achieve the best performing project for whatever I ask literally maximize their abilities for any coding language and any type of task that I might need from them by default without any need for me to use it individual skills every time Etc...\n- in my Windows system tray there's an icon for executable for nemotron, using this executable and without changing it unless you must make absolutely sure after every Android reboot and windows remote all models will have full permissions and capabilities to achieve any type of task I will ask of them on my PC from my Android but literally full connection to achieve whatever I want with food administrator capabilities and of course as smart as you can possibly make them\n- look super deeply online try to find every single very useful provider or model not yet in my list that is either better at least in some way then the others that I have or have some kind of use to it because I don't want just garbage only the best of the best including different providers did you can find an Implement without any help from my end if you need to create API key try to achieve it without my help Etc until you maximize the every single possible free provider and model as of today that won't require me to help you or pay anything \n- remember that every single thing in the app must work perfectly from the Android without anything that it depended on from my PC that way the app will work on a new pc as well\n- ‏very very important make sure from the millie second in start working to the end while it also shows the commandit use it also out put in real time progress in english every time an explain to me exactly what is going works just like you do without an exceptions and without just generic answers only real answers always real time what is going exactly and not approximately just like you and the top models can make sure all models will do so from the very start of their work to the very end this way I will always always be informed\n- make sure I can run as many sessions that I want in the same time without any problems or overlapping And unless they actually achieved their goals Literally And they have no doubt about it or I manually stop them I can also exit the app and do something else in my Android well knowing for sure they still work perfectly",
+        "lane": "later",
+        "relationId": null,
+        "priority": 4,
+        "status": "open",
+        "order": 88,
+        "createdAt": "2026-08-12T16:20:36.549Z",
+        "updatedAt": "2026-08-12T16:20:36.549Z"
+      },
+      "order-msqb0yv8-21c8u1pw": {
+        "id": "order-msqb0yv8-21c8u1pw",
+        "title": "test free",
+        "details": "",
+        "lane": "after",
+        "relationId": null,
+        "priority": 4,
+        "status": "open",
+        "order": 89,
+        "createdAt": "2026-08-12T16:29:17.059Z",
+        "updatedAt": "2026-08-12T19:16:36.993Z"
+      },
+      "order-msqgyn9l-c6nepfgb": {
+        "id": "order-msqgyn9l-c6nepfgb",
+        "title": "Fix codex hooks",
+        "details": "",
+        "lane": "now",
+        "relationId": null,
+        "priority": 4,
+        "status": "open",
+        "order": 90,
+        "createdAt": "2026-08-12T19:15:26.405Z",
+        "updatedAt": "2026-08-12T19:15:26.405Z"
+      }
+    },
+    "notes": {
+      "note-msmg078s-ifyijok2": {
+        "id": "note-msmg078s-ifyijok2",
+        "title": "Aftar Format",
+        "body": "before reboot:\n\n\n\n\n\nupdates\n\n\n\ndrivers - nvid > gdbooster > gccleaner > armoury > andrenalin amd > pystics > directx > myasus\n\n\n\ndefender (ddefender)\n\n\n\nupdate every single update for windows avaialbe\n\n\n\nbluethooth > mouse + jotstick\n\n\n\nadvanced system properties > performance > set paging to non\n\n\n\nsetup macrium reflect\n\n\n\n*run chrome as default > login to gmail\n\n\n\nfixfixfix\n\n\n\nmake sure stov connects to server + tovrun run project + tovp pull perfectly\n\n\n\nresmac - function that's restoring full of macrium reflect\n\n\n\nrestore in full codex\n\n--\n\nSet-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force; New-Item -Path $PROFILE -ItemType File -Force; Add-Content -Path $PROFILE -Value (Get-Content -Path F:\\backup\\windowsapps\\profile\\profile.txt); . $PROFILE; getps7; gmodule; ps527; ps7run gmodule; profile2; resclau; resclau; getcho; allstart; powerplans; getdirectx; resclau; get7z; dislog; rmgamebar; unlock; qaccess; powerplans; unlock; autocomplete; rester; disadmin; lhunter; & \"F:\\backup\\windowsapps\\install\\AutoHotkey_2.0.19_setup.exe\"; & \"F:\\backup\\windowsapps\\installed\\firefox\\firefox.exe\"; ffhome; qaccess; powerit; gdownloads; & \"F:\\backup\\windowsapps\\installed\\autologon\\Autologon64.exe\" /accepteula misha DESKTOP-HUAS2L9 13571357; terminaladmin; bin; rester; allstart; gsnipp; addclip; endtask; getwmi; fixwmi; mas\n\nmkdir C:\\wsl2\\ubuntu; dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart; dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart; dism.exe /online /enable-feature /featurename:Microsoft-Hyper-V-All /all /norestart; dism.exe /online /enable-feature /featurename:Containers /all /norestart; dism.exe /online /enable-feature /featurename:Microsoft-Hyper-V-Tools-All /all /norestart; dism.exe /online /enable-feature /featurename:Microsoft-Hyper-V-Management-PowerShell /all /norestart; dism.exe /online /enable-feature /featurename:Microsoft-Hyper-V-Hypervisor /all /norestart; dism.exe /online /enable-feature /featurename:Microsoft-Hyper-V-Services /all /norestart; dism.exe /online /enable-feature /featurename:HypervisorPlatform /all /norestart; dism.exe /online /enable-feature /featurename:Containers-DisposableClientVM /all /norestart; wsl --set-default-version 2\n\nrredocker; dlog; nvid; gnet; getc; winget settings --enable InstallerHashOverride; wingit; pip install --upgrade pip; pipip; ; wingup; berglog\n\nuni copliot onedrive outlook 'Samsung apps' PAINT outlook windows.old copilot onedrive 'one drive' teams skype xbox gamebar maps weather linkedin gethelp 'get help' driverbooster 'driver booster' 'ccleaner' 'iobit' bing clipchamp news solitaire 'power automate' powerautomate rovo revo gemini .gemini feedback 'feedback hub' ; fixfix\n\nreboot > Remove-Item -Recurse -Force C:\\wsl2\\ubuntu\\; wsl --import Ubuntu C:\\wsl2\\ubuntu\\ F:\\backup\\linux\\wsl\\ubuntu.tar; wsl -d Ubuntu --cd ~\n\n\n\n*check for updates\n\n\n\n\n\nconect mouse\n\nSet-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned; New-Item -Path $PROFILE -ItemType File -Force; notepad $PROFILE\n\ngmodule\n\nautocomplete\n\ngetcho\n\ngeverything\n\n\n\n\n\nfind manualy winget path\n\ngclau\n\nresclau\n\nwingi Google.Chrome; wingi seerge.g-helper; wingi 9WZDNCRDK3WP; wingi 9MWF2DWS5Z9N; wingi GitHub.cli; wingi Anthropic.Claude; wingi OpenJS.NodeJS; wingi GitHub.GitHubDesktop; wingi Mozilla.Firefox; gnet\n\nrredocker\n\n\"F:\\backup\\windowsapps\\install\\Cracked\\Macrium Reflect Workstation - Server - Server Plus 8.1.8631 (x64) Multilingual\\reflect_wkstn_setup_x64.exe\"\n\ndisadmin; qaccess; lhunter\n\npowerplans\n\npipip\n\nwingup",
+        "completedAt": null,
+        "order": 0,
+        "createdAt": "2026-08-09T23:37:34.637Z",
+        "updatedAt": "2026-08-09T23:37:56.226Z"
+      }
+    },
+    "diaryEntries": {
+      "2026-08-05": {
+        "date": "2026-08-05",
+        "body": "WindowsSync20260804\nTest",
+        "morning": "בדיקה",
+        "highlights": "",
+        "reflection": "",
+        "tomorrow": "",
+        "updatedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "2026-08-10": {
+        "date": "2026-08-10",
+        "body": "",
+        "morning": "so in the last two days I finally purchased a flight to Berlin and back in the hotel for eight days. talked to bank and credit card ... talk with the bank, in few days will ask them, to send euro to wait for me in terminal after caspit moneyt trasport to my bank",
+        "highlights": "",
+        "reflection": "",
+        "tomorrow": "",
+        "updatedAt": "2026-08-09T21:19:46.191Z"
+      }
+    },
+    "preferences": {
+      "inboxProjectId": "project-inbox",
+      "activeProjectId": "project-inbox",
+      "onboardingDismissed": true,
+      "theme": "dark",
+      "showCompleted": false
+    },
+    "undoStack": [
+      {
+        "id": "undo-msq9zfii-wlclaxxt",
+        "label": "order.remove",
+        "inverse": {
+          "type": "order.remove",
+          "itemId": "order-msq9zfii-6klrys2q"
+        },
+        "createdAt": "2026-08-12T16:00:05.706Z"
+      },
+      {
+        "id": "undo-msq9ziqd-0zs8rbvp",
+        "label": "order.update",
+        "inverse": {
+          "type": "order.update",
+          "itemId": "order-msq9zfii-6klrys2q",
+          "patch": {
+            "lane": "now",
+            "relationId": null
+          }
+        },
+        "createdAt": "2026-08-12T16:00:09.877Z"
+      },
+      {
+        "id": "undo-msqa38rk-87zwa8iy",
+        "label": "order.remove",
+        "inverse": {
+          "type": "order.remove",
+          "itemId": "order-msqa38rk-0k3vtnai"
+        },
+        "createdAt": "2026-08-12T16:03:03.583Z"
+      },
+      {
+        "id": "undo-msqapt8p-odnci8pk",
+        "label": "order.remove",
+        "inverse": {
+          "type": "order.remove",
+          "itemId": "order-msqapt8p-swc4nuxr"
+        },
+        "createdAt": "2026-08-12T16:20:36.549Z"
+      },
+      {
+        "id": "undo-msqb0yv8-lk8qfmnm",
+        "label": "order.remove",
+        "inverse": {
+          "type": "order.remove",
+          "itemId": "order-msqb0yv8-21c8u1pw"
+        },
+        "createdAt": "2026-08-12T16:29:17.059Z"
+      },
+      {
+        "id": "undo-msqb10st-p5rew9my",
+        "label": "order.update",
+        "inverse": {
+          "type": "order.update",
+          "itemId": "order-msqb0yv8-21c8u1pw",
+          "patch": {
+            "lane": "now",
+            "relationId": null
+          }
+        },
+        "createdAt": "2026-08-12T16:29:19.564Z"
+      },
+      {
+        "id": "undo-msqcjqdh-qljf6r5y",
+        "label": "order.update",
+        "inverse": {
+          "type": "order.update",
+          "itemId": "order-msqa38rk-0k3vtnai",
+          "patch": {
+            "id": "order-msqa38rk-0k3vtnai",
+            "title": "tui system monitor project",
+            "details": "",
+            "lane": "now",
+            "relationId": null,
+            "priority": 4,
+            "status": "open",
+            "order": 87,
+            "createdAt": "2026-08-12T16:03:03.583Z",
+            "updatedAt": "2026-08-12T16:03:03.583Z"
+          }
+        },
+        "createdAt": "2026-08-12T17:11:52.131Z"
+      },
+      {
+        "id": "undo-msqgvmyj-u9i223ng",
+        "label": "order.remove",
+        "inverse": {
+          "type": "order.remove",
+          "itemId": "order-msqgvmyj-2f8tw8bi"
+        },
+        "createdAt": "2026-08-12T19:13:06.038Z"
+      },
+      {
+        "id": "undo-msqgw1k7-908od2d1",
+        "label": "order.transfer.restore",
+        "inverse": {
+          "type": "order.transfer.restore",
+          "orderItem": {
+            "id": "order-msq9xovg-clq4lm8j",
+            "title": "F:\\study\\Platforms\\windows\\functions\\free.ps1           Update this script to make absolutely sure for PowerShell version 5 whenever I use it. It will allow me to type in nano any commands I want, no exceptions, and it will then immediately force reboot Windows safely as fast as possible. When Windows is up, only one time after using this, not again and again, but after the first the first reboot. It will open my default terminal by oracle 5 and run literally every single thing mentioned using this function flawlessly without allowing anything like brackets or anything like that to break any of the command no matter how long or complex it is and it will also be able to read any functions etc.",
+            "details": "",
+            "lane": "now",
+            "relationId": null,
+            "priority": 4,
+            "status": "open",
+            "order": 85,
+            "createdAt": "2026-08-12T15:58:44.523Z",
+            "updatedAt": "2026-08-12T15:58:44.523Z"
+          },
+          "taskId": "task-msqgw1k7-kobj3eja"
+        },
+        "createdAt": "2026-08-12T19:13:24.963Z"
+      },
+      {
+        "id": "undo-msqgwjtl-696frj8c",
+        "label": "task.update",
+        "inverse": {
+          "type": "task.update",
+          "taskId": "task-msqgw1k7-kobj3eja",
+          "patch": {
+            "completedAt": "2026-08-12T19:13:24.963Z",
+            "completionContext": {
+              "projectId": "project-inbox",
+              "sectionId": null,
+              "order": 160
+            },
+            "projectId": "project-inbox",
+            "sectionId": null,
+            "order": 160
+          }
+        },
+        "createdAt": "2026-08-12T19:13:48.630Z"
+      },
+      {
+        "id": "undo-msqgxamv-z5vpjdmw",
+        "label": "order.update",
+        "inverse": {
+          "type": "order.update",
+          "itemId": "order-msq6n7wj-87q3vi3a",
+          "patch": {
+            "id": "order-msq6n7wj-87q3vi3a",
+            "title": "daymark order tab to completed + better organmized",
+            "details": "Update the application in my Android and then this deployed website. Make sure in 'order' tab Everything that I remove immediately is set as completed in the completed tab. And also make sure especially in my Android app that this entire order tab is as beautiful and easy to navigate or move things between sections in any angle you can think of specifically for Android, smartphone device, and then the same for the Deploy website, and then push everything to GitHub with new downloadable APK, et cetera, et cetera. In the completed tab, make absolutely sure on top of everything else you need to achieve. It will always show all the done and completed in order from latest, first, downwards. So everyone that created latest will be shown first, in that order.",
+            "lane": "now",
+            "relationId": null,
+            "priority": 4,
+            "status": "open",
+            "order": 80,
+            "createdAt": "2026-08-12T14:26:37.122Z",
+            "updatedAt": "2026-08-12T14:50:50.076Z"
+          }
+        },
+        "createdAt": "2026-08-12T19:14:23.380Z"
+      },
+      {
+        "id": "undo-msqgxjhh-qun9irp7",
+        "label": "order.update",
+        "inverse": {
+          "type": "order.update",
+          "itemId": "order-msq6ni7u-ocx7iy9v",
+          "patch": {
+            "id": "order-msq6ni7u-ocx7iy9v",
+            "title": "work 50",
+            "details": "",
+            "lane": "now",
+            "relationId": null,
+            "priority": 4,
+            "status": "open",
+            "order": 81,
+            "createdAt": "2026-08-12T14:26:50.489Z",
+            "updatedAt": "2026-08-12T14:26:50.489Z"
+          }
+        },
+        "createdAt": "2026-08-12T19:14:34.850Z"
+      },
+      {
+        "id": "undo-msqgxpng-ybsbdso4",
+        "label": "order.transfer.restore",
+        "inverse": {
+          "type": "order.transfer.restore",
+          "orderItem": {
+            "id": "order-msq7lt5t-y15zo5an",
+            "title": "Fix functions",
+            "details": "",
+            "lane": "now",
+            "relationId": null,
+            "priority": 4,
+            "status": "open",
+            "order": 83,
+            "createdAt": "2026-08-12T14:53:30.973Z",
+            "updatedAt": "2026-08-12T14:53:30.973Z"
+          },
+          "taskId": "task-msqgxpng-goixbkgw"
+        },
+        "createdAt": "2026-08-12T19:14:42.840Z"
+      },
+      {
+        "id": "undo-msqgyag7-3za9ig5g",
+        "label": "order.transfer.restore",
+        "inverse": {
+          "type": "order.transfer.restore",
+          "orderItem": {
+            "id": "order-msq7tb5z-3lmxsyyg",
+            "title": "Create the most comprehensive project, that will never run, will show me real time, all the running processes, no exceptions. And the exact amount of CPU, GPU and RAM each takes, it will show all of them ranked by the resources with the ability for me to rank by CPU, by RAM or by GPU., It will also have every single capability that the third party software 'process lasso' I have no exceptions, but the biggest difference, this entire app should work without GUI, instead as a TUI to work completely inside PowerShell terminal.... When you have no doubt, it's all perfected as much as you possibly can as a last-step output full-bash. Do the script or executable or whatever you choose to allow me to run this app perfectly in my PowerShell terminal.",
+            "details": "",
+            "lane": "now",
+            "relationId": null,
+            "priority": 4,
+            "status": "open",
+            "order": 84,
+            "createdAt": "2026-08-12T14:59:20.902Z",
+            "updatedAt": "2026-08-12T14:59:20.902Z"
+          },
+          "taskId": "task-msqgyag7-2ea6mshl"
+        },
+        "createdAt": "2026-08-12T19:15:09.798Z"
+      },
+      {
+        "id": "undo-msqgye3s-t9xadljm",
+        "label": "order.transfer.restore",
+        "inverse": {
+          "type": "order.transfer.restore",
+          "orderItem": {
+            "id": "order-msqgvmyj-2f8tw8bi",
+            "title": "Fix day Mark project synchronization",
+            "details": "",
+            "lane": "now",
+            "relationId": null,
+            "priority": 4,
+            "status": "open",
+            "order": 90,
+            "createdAt": "2026-08-12T19:13:06.038Z",
+            "updatedAt": "2026-08-12T19:13:06.038Z"
+          },
+          "taskId": "task-msqgye3r-7hlw1qkf"
+        },
+        "createdAt": "2026-08-12T19:15:14.534Z"
+      },
+      {
+        "id": "undo-msqgyn9l-cmfda5ki",
+        "label": "order.remove",
+        "inverse": {
+          "type": "order.remove",
+          "itemId": "order-msqgyn9l-c6nepfgb"
+        },
+        "createdAt": "2026-08-12T19:15:26.405Z"
+      },
+      {
+        "id": "undo-msqgzgei-qd3w8in2",
+        "label": "order.update",
+        "inverse": {
+          "type": "order.update",
+          "itemId": "order-msqa38rk-0k3vtnai",
+          "patch": {
+            "id": "order-msqa38rk-0k3vtnai",
+            "title": "tui system monitor project",
+            "details": "F:\\study\\projects\\SystemMonitor\\PSProcLasso\\PSProcLasso.ps1",
+            "lane": "now",
+            "relationId": null,
+            "priority": 4,
+            "status": "open",
+            "order": 87,
+            "createdAt": "2026-08-12T16:03:03.583Z",
+            "updatedAt": "2026-08-12T17:11:52.131Z"
+          }
+        },
+        "createdAt": "2026-08-12T19:16:04.167Z"
+      },
+      {
+        "id": "undo-msqgzseu-zehd108v",
+        "label": "order.transfer.restore",
+        "inverse": {
+          "type": "order.transfer.restore",
+          "orderItem": {
+            "id": "order-msq9zfii-6klrys2q",
+            "title": "[@daymark](plugin://daymark@micha-local-plugins) [Daymark](sites-project://appgprj_6a72433e80108191b2c3936efd51e00a) Update the application in my Android and then this deployed website. Make sure in 'order' tab Everything that I remove immediately is set as completed in the completed tab. And also make sure especially in my Android app that this entire order tab is as beautiful and easy to navigate or move things between sections in any angle you can think of specifically for Android, smartphone device, and then the same for the Deploy website, and then push everything to GitHub with new downloadable APK, et cetera, et cetera.",
+            "details": "",
+            "lane": "later",
+            "relationId": null,
+            "priority": 4,
+            "status": "open",
+            "order": 86,
+            "createdAt": "2026-08-12T16:00:05.706Z",
+            "updatedAt": "2026-08-12T16:00:09.877Z"
+          },
+          "taskId": "task-msqgzseu-8lkxhktg"
+        },
+        "createdAt": "2026-08-12T19:16:19.730Z"
+      },
+      {
+        "id": "undo-msqh05qd-xculck92",
+        "label": "order.update",
+        "inverse": {
+          "type": "order.update",
+          "itemId": "order-msqb0yv8-21c8u1pw",
+          "patch": {
+            "lane": "later",
+            "relationId": null
+          }
+        },
+        "createdAt": "2026-08-12T19:16:36.993Z"
+      },
+      {
+        "id": "undo-msqh1tai-ba4r99ju",
+        "label": "task.update",
+        "inverse": {
+          "type": "task.update",
+          "taskId": "task-mspy3zpa-gath3ngi",
+          "patch": {
+            "completedAt": "2026-08-12T12:05:48.342Z",
+            "completionContext": {
+              "projectId": "project-mslnw58h-0zx83xzz",
+              "sectionId": null,
+              "order": 150
+            },
+            "projectId": "project-mslnw58h-0zx83xzz",
+            "sectionId": null,
+            "order": 150
+          }
+        },
+        "createdAt": "2026-08-12T19:17:54.183Z"
+      }
+    ],
+    "syncTombstones": {
+      "notes:note-msfbfvrt-psw6564z": {
+        "deletedAt": "2026-08-04T23:58:13.873Z"
+      },
+      "orderItems:order-welcome": {
+        "deletedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "sections:section-msfblx8f-8fg5col1": {
+        "deletedAt": "2026-08-05T00:10:20.464Z"
+      },
+      "projects:project-msfblx8d-9cjt9f9o": {
+        "deletedAt": "2026-08-05T00:10:20.464Z"
+      },
+      "notes:note-msfbg9zm-xy27msna": {
+        "deletedAt": "2026-08-05T02:23:42.39Z"
+      },
+      "sections:section-home": {
+        "deletedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "projects:project-home": {
+        "deletedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "sections:section-learning": {
+        "deletedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "projects:project-learning": {
+        "deletedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "sections:section-next": {
+        "deletedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "projects:project-personal": {
+        "deletedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "sections:section-focus": {
+        "deletedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "projects:project-work": {
+        "deletedAt": "2026-08-09T14:11:45.934Z"
+      },
+      "sections:section-msg3qp4i-jwkt7ooc": {
+        "deletedAt": "2026-08-05T13:37:03.814Z"
+      },
+      "sections:section-msg48saf-dglx4cwo": {
+        "deletedAt": "2026-08-05T13:37:03.816Z"
+      },
+      "sections:section-daymark-done": {
+        "deletedAt": "2026-08-05T13:44:01.367Z"
+      },
+      "orderItems:order-msfbuza6-xm5ycuxv": {
+        "deletedAt": "2026-08-05T15:55:26.492Z"
+      },
+      "orderItems:order-msfwo8v9-4vygf1sv": {
+        "deletedAt": "2026-08-05T16:29:29.275Z"
+      },
+      "orderItems:order-msfyont6-nd7nn51e": {
+        "deletedAt": "2026-08-05T16:33:03.552Z"
+      },
+      "orderItems:order-msfwnrpz-xd3uh4so": {
+        "deletedAt": "2026-08-05T16:34:15.529Z"
+      },
+      "orderItems:order-msgb3cqc-ubr4xvwv": {
+        "deletedAt": "2026-08-05T18:12:14.515Z"
+      },
+      "orderItems:order-msgb4wh6-p03dnsyw": {
+        "deletedAt": "2026-08-05T18:53:46.162Z"
+      },
+      "orderItems:order-msgat5bp-juigzgax": {
+        "deletedAt": "2026-08-05T19:00:37.408Z"
+      },
+      "orderItems:order-msfwo3lh-aodcv6l6": {
+        "deletedAt": "2026-08-09T10:43:47.531Z"
+      },
+      "orderItems:order-msgayfq9-bzfy6scz": {
+        "deletedAt": "2026-08-09T10:43:47.533Z"
+      },
+      "orderItems:order-msggl59s-6hwkm88m": {
+        "deletedAt": "2026-08-09T10:43:47.534Z"
+      },
+      "orderItems:order-msloqcew-jooomkym": {
+        "deletedAt": "2026-08-09T11:31:58.124Z"
+      },
+      "orderItems:order-msloptrr-hhqkhs5u": {
+        "deletedAt": "2026-08-09T12:30:57.605Z"
+      },
+      "orderItems:order-mslq2vow-xbml58ks": {
+        "deletedAt": "2026-08-09T12:31:00.948Z"
+      },
+      "orderItems:order-mslq7b8c-pk5170p5": {
+        "deletedAt": "2026-08-09T12:32:07.712Z"
+      },
+      "orderItems:order-mslq2qe4-dsx5ml8l": {
+        "deletedAt": "2026-08-09T12:53:41.203Z"
+      },
+      "orderItems:order-mslt0cn8-spmf64k9": {
+        "deletedAt": "2026-08-09T13:51:16.156Z"
+      },
+      "orderItems:order-mslt11jw-d14p0ja8": {
+        "deletedAt": "2026-08-09T13:51:18.276Z"
+      },
+      "orderItems:order-msgcgubd-wv5a23l2": {
+        "deletedAt": "2026-08-09T13:52:01.124Z"
+      },
+      "sections:section-msfwlj03-ab8qcmbu": {
+        "deletedAt": "2026-08-09T14:27:47.986Z"
+      },
+      "projects:project-msfwlizz-4diq0cvk": {
+        "deletedAt": "2026-08-09T14:27:47.986Z"
+      },
+      "orderItems:order-mslv2o1w-tvudfvo7": {
+        "deletedAt": "2026-08-09T15:28:46.949Z"
+      },
+      "orderItems:order-mslv2y1i-l8hslhm1": {
+        "deletedAt": "2026-08-09T15:28:50.211Z"
+      },
+      "orderItems:order-mslx6s6s-7yr6vu2p": {
+        "deletedAt": "2026-08-09T15:28:56.924Z"
+      },
+      "orderItems:order-msly9b14-ytyijieu": {
+        "deletedAt": "2026-08-09T15:29:02.271Z"
+      },
+      "orderItems:order-mslz9lfs-z7tr23rg": {
+        "deletedAt": "2026-08-09T16:00:34.854Z"
+      },
+      "orderItems:order-mslz1gd8-zt011dgl": {
+        "deletedAt": "2026-08-09T17:03:38.491Z"
+      },
+      "orderItems:order-msm0cscm-hv1towwx": {
+        "deletedAt": "2026-08-09T17:04:18.428Z"
+      },
+      "orderItems:order-mslyyhy2-q5hjw8g1": {
+        "deletedAt": "2026-08-09T17:04:33.127Z"
+      },
+      "orderItems:order-mslzin3u-9oeogpdw": {
+        "deletedAt": "2026-08-09T17:04:40.761Z"
+      },
+      "orderItems:order-msggbq7k-lrbi5fk1": {
+        "deletedAt": "2026-08-09T17:08:21.649Z"
+      },
+      "notes:note-msfbnn4h-b849l9yd": {
+        "deletedAt": "2026-08-09T17:10:24.254Z"
+      },
+      "orderItems:order-msm2enhc-nu8sbgs9": {
+        "deletedAt": "2026-08-09T17:23:40.194Z"
+      },
+      "orderItems:order-msm2if4y-rxivubjw": {
+        "deletedAt": "2026-08-09T17:45:41.963Z"
+      },
+      "orderItems:order-msm35b6q-ow7ilovr": {
+        "deletedAt": "2026-08-09T18:21:09.136Z"
+      },
+      "orderItems:order-msm5a6ve-mwgl030c": {
+        "deletedAt": "2026-08-09T20:47:09.853Z"
+      },
+      "diaryEntries:2026-08-10": {
+        "deletedAt": "2026-08-09T21:16:19.15Z"
+      },
+      "orderItems:order-msm3dkrq-edpocfuw": {
+        "deletedAt": "2026-08-09T21:27:51.08Z"
+      },
+      "orderItems:order-msm4bll0-uidpelzo": {
+        "deletedAt": "2026-08-09T21:29:26.494Z"
+      },
+      "orderItems:order-mslyqcr2-qbz29cg1": {
+        "deletedAt": "2026-08-09T21:46:47.406Z"
+      },
+      "orderItems:order-msm4trbs-bjv3kw7w": {
+        "deletedAt": "2026-08-09T21:48:51.205Z"
+      },
+      "orderItems:order-msm9yl1x-r48fmmk8": {
+        "deletedAt": "2026-08-09T21:49:24.881Z"
+      },
+      "orderItems:order-msm8lp2k-txifg6l5": {
+        "deletedAt": "2026-08-09T21:49:34.625Z"
+      },
+      "orderItems:order-msmbgn8m-uj0zzrnz": {
+        "deletedAt": "2026-08-09T22:13:33.38Z"
+      },
+      "orderItems:order-msmbel2w-lf7fubt4": {
+        "deletedAt": "2026-08-09T22:13:35.487Z"
+      },
+      "tasks:task-mslsklp6-fn947k28": {
+        "deletedAt": "2026-08-09T22:41:11.48Z"
+      },
+      "tasks:task-msfye715-qciyhl8t": {
+        "deletedAt": "2026-08-09T22:42:11.065Z"
+      },
+      "orderItems:order-msmc23gl-enmjv9hx": {
+        "deletedAt": "2026-08-09T22:42:59.5Z"
+      },
+      "tasks:task-msmdzfrz-ws6w1wwu": {
+        "deletedAt": "2026-08-09T22:43:04.347Z"
+      },
+      "orderItems:order-mslq4up7-pdf99ngm": {
+        "deletedAt": "2026-08-09T23:10:29.673Z"
+      },
+      "orderItems:order-msmd0jmf-uj3s9jj7": {
+        "deletedAt": "2026-08-09T23:15:04.397Z"
+      },
+      "orderItems:order-msme23vf-mswrx8cu": {
+        "deletedAt": "2026-08-09T23:22:19.09Z"
+      },
+      "orderItems:order-mslwfmul-0wn4no7m": {
+        "deletedAt": "2026-08-09T23:23:21.21Z"
+      },
+      "sections:section-mslwa23r-o9nl1ast": {
+        "deletedAt": "2026-08-09T23:28:39.425Z"
+      },
+      "sections:section-mslnw58o-n5qsadul": {
+        "deletedAt": "2026-08-09T23:28:51.328Z"
+      },
+      "orderItems:order-msmf40wa-ra11twtq": {
+        "deletedAt": "2026-08-09T23:49:04.976Z"
+      },
+      "orderItems:order-msmfi2mx-9in4wwxf": {
+        "deletedAt": "2026-08-09T23:49:09.941Z"
+      },
+      "orderItems:order-msmfibuv-xsvzrep7": {
+        "deletedAt": "2026-08-09T23:49:33.642Z"
+      },
+      "orderItems:order-msn1kr3f-s36tgdto": {
+        "deletedAt": "2026-08-10T10:47:55.879Z"
+      },
+      "orderItems:order-msn1digu-tmcaq43g": {
+        "deletedAt": "2026-08-10T10:53:38.803Z"
+      },
+      "orderItems:order-msn1gs6i-4urokaxz": {
+        "deletedAt": "2026-08-10T11:08:18.941Z"
+      },
+      "orderItems:order-msn3yj1m-u2gfb0ip": {
+        "deletedAt": "2026-08-10T11:20:53.564Z"
+      },
+      "orderItems:order-msnd9u96-jom3b9e3": {
+        "deletedAt": "2026-08-10T15:09:05.521Z"
+      },
+      "orderItems:order-msn7s52m-33gonkt6": {
+        "deletedAt": "2026-08-10T15:09:09.583Z"
+      },
+      "orderItems:order-msn6mdpn-fsqsw2b7": {
+        "deletedAt": "2026-08-10T15:09:13.174Z"
+      },
+      "orderItems:order-msn5auzk-8ef6ivwy": {
+        "deletedAt": "2026-08-10T15:09:30.066Z"
+      },
+      "orderItems:order-msmgfhfn-i8ug298e": {
+        "deletedAt": "2026-08-10T15:43:37.059Z"
+      },
+      "orderItems:order-msn59301-5onzuype": {
+        "deletedAt": "2026-08-10T15:43:47.514Z"
+      },
+      "orderItems:order-msnfc3ph-lq7y0otj": {
+        "deletedAt": "2026-08-10T16:06:41.364Z"
+      },
+      "orderItems:order-msn59y2t-ea7id5nz": {
+        "deletedAt": "2026-08-10T16:15:25.428Z"
+      },
+      "orderItems:order-msngkgil-z0q4rwlb": {
+        "deletedAt": "2026-08-10T16:41:17.267Z"
+      },
+      "orderItems:order-msngldql-zz0htjpb": {
+        "deletedAt": "2026-08-10T16:42:22.37Z"
+      },
+      "tasks:task-msnfnfuh-5kn3q3f5": {
+        "deletedAt": "2026-08-10T16:45:27.244Z"
+      },
+      "tasks:task-msnhltue-rij6h4jo": {
+        "deletedAt": "2026-08-10T17:18:45.286Z"
+      },
+      "tasks:task-msme0mt5-pazpbxmg": {
+        "deletedAt": "2026-08-10T17:24:55.884Z"
+      },
+      "tasks:task-sync-proof-20260810-210019": {
+        "deletedAt": "2026-08-10T18:03:59.8802191Z"
+      },
+      "orderItems:order-msneq3wa-uldz87le": {
+        "deletedAt": "2026-08-10T18:35:29.354Z"
+      },
+      "orderItems:order-msnfcezj-118ul8em": {
+        "deletedAt": "2026-08-10T18:44:53.399Z"
+      },
+      "orderItems:order-msngq24u-tp11fpza": {
+        "deletedAt": "2026-08-10T18:45:23.311Z"
+      },
+      "orderItems:order-msnhwvu4-ssk7v9wd": {
+        "deletedAt": "2026-08-10T18:45:26.337Z"
+      },
+      "orderItems:order-msm2ubs4-2cj0d91t": {
+        "deletedAt": "2026-08-10T18:46:05.153Z"
+      },
+      "orderItems:order-msme0yre-epavf9ow": {
+        "deletedAt": "2026-08-10T18:46:19.769Z"
+      },
+      "orderItems:order-msngzyik-rkw8l5k2": {
+        "deletedAt": "2026-08-10T18:47:18.351Z"
+      },
+      "orderItems:order-msmawyx6-o60nr0u0": {
+        "deletedAt": "2026-08-10T18:47:35.231Z"
+      },
+      "orderItems:order-msmfpdeb-8ie92olp": {
+        "deletedAt": "2026-08-10T18:49:06.705Z"
+      },
+      "orderItems:order-msgb5dqj-ephvsoyw": {
+        "deletedAt": "2026-08-10T18:51:30.611Z"
+      },
+      "orderItems:order-msmdzosa-xsyhe4ha": {
+        "deletedAt": "2026-08-10T18:51:35.238Z"
+      },
+      "orderItems:order-msn1hwid-xl0fdi92": {
+        "deletedAt": "2026-08-10T18:52:05.557Z"
+      },
+      "orderItems:order-msni4tse-0vpnpxvi": {
+        "deletedAt": "2026-08-10T18:52:21.537Z"
+      },
+      "orderItems:order-msni1ggc-x68qgwli": {
+        "deletedAt": "2026-08-10T18:52:39.545Z"
+      },
+      "orderItems:order-msn1mvn9-rc2i4tfo": {
+        "deletedAt": "2026-08-10T18:53:00.953Z"
+      },
+      "orderItems:order-msnlnoxp-e7a0wlw7": {
+        "deletedAt": "2026-08-11T14:17:06.221Z"
+      },
+      "orderItems:order-msgohsrt-ypjp64h2": {
+        "deletedAt": "2026-08-11T14:17:15.041Z"
+      },
+      "orderItems:order-mspuomhe-46x44yvd": {
+        "deletedAt": "2026-08-12T10:44:05.233Z"
+      },
+      "orderItems:order-msn6d7ki-w25gy4k6": {
+        "deletedAt": "2026-08-12T10:50:42.087Z"
+      },
+      "orderItems:order-msnkw72w-dv3nobj7": {
+        "deletedAt": "2026-08-12T10:54:06.989Z"
+      },
+      "orderItems:order-mspw9lvl-z4qsh74j": {
+        "deletedAt": "2026-08-12T10:55:21.681Z"
+      },
+      "orderItems:order-mspypb08-3q6h8chf": {
+        "deletedAt": "2026-08-12T11:40:03.657Z"
+      },
+      "tasks:task-msn9vehw-fm0x68hh": {
+        "deletedAt": "2026-08-12T11:40:50.985Z"
+      },
+      "orderItems:order-msnl6clk-pa4amsqp": {
+        "deletedAt": "2026-08-12T12:05:15.126Z"
+      },
+      "orderItems:order-mspuamdd-bboi9byt": {
+        "deletedAt": "2026-08-12T12:05:32.937Z"
+      },
+      "tasks:task-mspy2qxi-ryjo875n": {
+        "deletedAt": "2026-08-12T12:06:07.470Z"
+      },
+      "tasks:task-msnl8x14-mel8dv21": {
+        "deletedAt": "2026-08-12T12:06:28.549Z"
+      },
+      "orderItems:order-msq0q1ey-8vt19obd": {
+        "deletedAt": "2026-08-12T12:21:48.321Z"
+      },
+      "orderItems:order-msmchabh-8k0x57i8": {
+        "deletedAt": "2026-08-12T13:25:53.060Z"
+      },
+      "orderItems:order-msnlvrm4-8gk3sytk": {
+        "deletedAt": "2026-08-12T14:10:22.852Z"
+      },
+      "orderItems:order-msm0134h-0sgu1s69": {
+        "deletedAt": "2026-08-12T14:10:33.253Z"
+      },
+      "orderItems:order-msnlr9bu-beq4u1po": {
+        "deletedAt": "2026-08-12T14:10:50.295Z"
+      },
+      "orderItems:order-msnltnrc-1fqd3fkz": {
+        "deletedAt": "2026-08-12T14:23:57.462Z"
+      },
+      "orderItems:order-msq0y92l-ulyd42bu": {
+        "deletedAt": "2026-08-12T14:23:59.314Z"
+      },
+      "orderItems:order-msn6etw5-7q9accp0": {
+        "deletedAt": "2026-08-12T14:25:42.285Z"
+      },
+      "orderItems:order-msq1mjjj-wbmkcv85": {
+        "deletedAt": "2026-08-12T14:25:45.645Z"
+      },
+      "orderItems:order-msq1mzt1-3ypzqh9d": {
+        "deletedAt": "2026-08-12T14:25:48.074Z"
+      },
+      "orderItems:order-msq4hfv0-rppstc4c": {
+        "deletedAt": "2026-08-12T14:25:53.888Z"
+      },
+      "orderItems:order-msq73v71-n26i1lwy": {
+        "deletedAt": "2026-08-12T14:39:35.644Z"
+      },
+      "sections:section-msly2062-aawup6vt": {
+        "deletedAt": "2026-08-12T14:41:06.386Z"
+      },
+      "orderItems:order-msq7aa76-w9xr2ncr": {
+        "deletedAt": "2026-08-12T14:44:34.347Z"
+      },
+      "orderItems:order-msq7bbfy-qghd9tjs": {
+        "deletedAt": "2026-08-12T14:45:34.693Z"
+      },
+      "orderItems:order-msq7gxzo-tehpinip": {
+        "deletedAt": "2026-08-12T14:49:47.380Z"
+      },
+      "orderItems:order-msq6wni9-dhimzkk1": {
+        "deletedAt": "2026-08-12T14:54:10.387Z"
+      },
+      "orderItems:order-msq9xovg-clq4lm8j": {
+        "deletedAt": "2026-08-12T19:13:24.963Z"
+      },
+      "orderItems:order-msq7lt5t-y15zo5an": {
+        "deletedAt": "2026-08-12T19:14:42.840Z"
+      },
+      "orderItems:order-msq7tb5z-3lmxsyyg": {
+        "deletedAt": "2026-08-12T19:15:09.798Z"
+      },
+      "orderItems:order-msqgvmyj-2f8tw8bi": {
+        "deletedAt": "2026-08-12T19:15:14.534Z"
+      },
+      "orderItems:order-msq9zfii-6klrys2q": {
+        "deletedAt": "2026-08-12T19:16:19.730Z"
+      }
+    }
+  }
+}

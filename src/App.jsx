@@ -17,6 +17,7 @@ import {
   pushSyncState,
   rebaseSyncConflict,
   syncStatesMatch,
+  waitForSyncChange,
 } from './core/sync'
 import { clearLegacyJournal, readLegacyJournal } from './features/journal/model'
 import { UpcomingCalendar as IntegratedUpcomingCalendar } from './features/calendar/UpcomingCalendar'
@@ -2255,37 +2256,38 @@ function App() {
   useEffect(() => {
     if (!syncReady) return undefined
     let cancelled = false
-    const refreshRemote = async () => {
-      try {
-        const remote = await pullSyncState(syncKey)
-        if (cancelled || !remote.state) return
-        applyIncomingRemoteState(remote.state, remote.revision)
-      } catch {
-        if (!cancelled) setSyncStatus('offline')
+    let controller = new AbortController()
+    const streamChanges = async () => {
+      while (!cancelled) {
+        try {
+          const remote = await waitForSyncChange(
+            syncKey,
+            syncRemoteRevisionRef.current,
+            controller.signal,
+          )
+          if (cancelled) return
+          if (remote.state) applyIncomingRemoteState(remote.state, remote.revision)
+          setSyncStatus('synced')
+        } catch (error) {
+          if (cancelled || error?.name === 'AbortError') return
+          setSyncStatus('offline')
+          await new Promise((resolve) => window.setTimeout(resolve, 250))
+        }
       }
     }
-    let timer = null
-    const schedule = () => {
-      timer = window.setTimeout(async () => {
-        if (!taskEditorOpenRef.current) await refreshRemote()
-        if (!cancelled) schedule()
-      }, taskEditorOpenRef.current
-        ? 3000
-        : document.visibilityState === 'hidden'
-          ? 5000
-          : 1500)
+    const reconnectImmediately = () => {
+      controller.abort()
+      controller = new AbortController()
+      streamChanges()
     }
-    const refreshImmediately = () => {
-      if (!taskEditorOpenRef.current) refreshRemote()
-    }
-    window.addEventListener('online', refreshImmediately)
-    document.addEventListener('visibilitychange', refreshImmediately)
-    schedule()
+    window.addEventListener('online', reconnectImmediately)
+    document.addEventListener('visibilitychange', reconnectImmediately)
+    streamChanges()
     return () => {
       cancelled = true
-      if (timer) window.clearTimeout(timer)
-      window.removeEventListener('online', refreshImmediately)
-      document.removeEventListener('visibilitychange', refreshImmediately)
+      controller.abort()
+      window.removeEventListener('online', reconnectImmediately)
+      document.removeEventListener('visibilitychange', reconnectImmediately)
     }
   }, [syncKey, syncReady])
 

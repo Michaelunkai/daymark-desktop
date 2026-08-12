@@ -108,3 +108,47 @@ test('Sites worker exposes non-sensitive Daymark health diagnostics', async () =
   assert.equal('state' in payload, false)
   assert.equal('syncKey' in payload, false)
 })
+
+test('Sites worker returns a changed workspace immediately from the revision stream', async () => {
+  const state = {
+    schemaVersion: 5,
+    revision: 1876,
+    updatedAt: '2026-08-12T19:50:00.000Z',
+    projects: {},
+    sections: {},
+    filters: {},
+    tasks: {},
+    orderItems: {},
+    notes: {},
+    diaryEntries: {},
+    preferences: {},
+    undoStack: [],
+  }
+  const db = {
+    prepare(statement) {
+      assert.match(statement, /daymark_sync_states/)
+      return {
+        bind(syncKey) {
+          assert.equal(syncKey, 'A1b2C3d4E5f6G7h8I9j0K_')
+          return {
+            async first() {
+              return {
+                revision: 1876,
+                state_json: JSON.stringify(state),
+                updated_at: state.updatedAt,
+              }
+            },
+          }
+        },
+      }
+    },
+  }
+  const response = await worker.fetch(
+    new Request('https://daymark.test/api/sync/A1b2C3d4E5f6G7h8I9j0K_/changes?after=1875'),
+    { DB: db },
+  )
+  const payload = await response.json()
+  assert.equal(response.status, 200)
+  assert.equal(payload.revision, 1876)
+  assert.deepEqual(payload.state, state)
+})

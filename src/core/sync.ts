@@ -163,6 +163,21 @@ export async function pullSyncState(key: string): Promise<{ state: AppState | nu
   return { state: payload.state ?? null, revision: Number(payload.revision ?? payload.state?.revision ?? 0) };
 }
 
+export async function waitForSyncChange(
+  key: string,
+  afterRevision: number,
+  signal?: AbortSignal,
+): Promise<{ state: AppState | null; revision: number }> {
+  const response = await fetch(
+    `/api/sync/${encodeURIComponent(key)}/changes?after=${encodeURIComponent(afterRevision)}`,
+    { headers: { Accept: "application/json" }, signal },
+  );
+  if (response.status === 204) return { state: null, revision: afterRevision };
+  if (!response.ok) throw new Error(`Sync change stream failed (${response.status}).`);
+  const payload = await response.json();
+  return { state: payload.state ?? null, revision: Number(payload.revision ?? 0) };
+}
+
 export async function pushSyncState(
   key: string,
   state: AppState,

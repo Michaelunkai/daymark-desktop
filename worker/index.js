@@ -20,6 +20,7 @@ const worker = {
       }, env.DB ? 200 : 503)
     }
     const syncMatch = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})$/)
+    const syncChangesMatch = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})\/changes$/)
     if (pathname === "/.well-known/daymark-ai.json" && request.method === "GET") {
       return json(agentDiscovery(url.origin))
     }
@@ -46,6 +47,11 @@ const worker = {
         ? handleAgentApi(request, env.DB, pathname)
         : json({ error: "agent_api_unavailable" }, 503)
     }
+    if (syncChangesMatch) {
+      return env.DB
+        ? handleSyncChanges(request, env.DB, syncChangesMatch[1])
+        : json({ error: "sync_unavailable" }, 503)
+    }
     if (syncMatch) {
       return env.DB
         ? handleSync(request, env.DB, syncMatch[1])
@@ -68,6 +74,30 @@ const worker = {
 
     return env.ASSETS.fetch(request)
   },
+}
+
+async function handleSyncChanges(request, db, syncKey) {
+  if (request.method !== "GET") return json({ error: "method_not_allowed" }, 405)
+  const afterRevision = Number(new URL(request.url).searchParams.get("after") ?? -1)
+  if (!Number.isInteger(afterRevision) || afterRevision < 0) {
+    return json({ error: "invalid_revision" }, 400)
+  }
+
+  for (let attempt = 0; attempt < 80; attempt += 1) {
+    const row = await db
+      .prepare("SELECT revision, state_json, updated_at FROM daymark_sync_states WHERE sync_key = ?1")
+      .bind(syncKey)
+      .first()
+    if (row && Number(row.revision) > afterRevision) {
+      return json({
+        revision: row.revision,
+        state: JSON.parse(row.state_json),
+        updatedAt: row.updated_at,
+      })
+    }
+    await sleep(250)
+  }
+  return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } })
 }
 
 async function handleSync(request, db, syncKey) {
@@ -1611,6 +1641,10 @@ function json(value, status = 200) {
       "Content-Type": "application/json; charset=utf-8",
     },
   })
+}
+
+function sleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds))
 }
 
 async function noStoreAssetResponse(response) {
