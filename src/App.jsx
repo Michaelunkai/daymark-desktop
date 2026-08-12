@@ -3716,7 +3716,23 @@ function App() {
           <div className="sidebar__footer">
             <SidebarRow icon="companion" label="Codex companion" onClick={() => setCompanionOpen(true)} />
             <SidebarRow active={route === 'settings'} icon="settings" label="Settings" onClick={() => navigate('settings')} />
-            <span className="sidebar__version">LOCAL SHELL 0.1</span>
+            <span
+              aria-live="polite"
+              className={`sidebar__sync sidebar__sync--${syncStatus}`}
+              role="status"
+            >
+              Device sync: {
+                syncStatus === 'starting'
+                  ? 'connecting'
+                  : syncStatus === 'syncing'
+                    ? 'syncing'
+                    : syncStatus === 'synced'
+                      ? 'up to date'
+                      : syncStatus === 'conflict'
+                        ? 'resolving'
+                        : 'offline'
+              }
+            </span>
           </div>
         </aside>
         {sidebarOpen ? (

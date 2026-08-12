@@ -513,13 +513,22 @@ kbd {
   border-top: 1px solid rgba(144, 167, 159, 0.25);
 }
 
-.sidebar__version {
+.sidebar__sync {
   display: block;
   padding: 12px 10px 0;
   color: #9aa7a4;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.12em;
+}
+
+.sidebar__sync--synced {
+  color: #7cc8a1;
+}
+
+.sidebar__sync--offline,
+.sidebar__sync--conflict {
+  color: #e6a66b;
 }
 
 .main-content {
