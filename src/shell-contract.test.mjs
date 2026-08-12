@@ -8,6 +8,8 @@ const taskEditor = await readFile(
   'utf8',
 )
 const styles = await readFile(new URL('./styles/app-shell.css', import.meta.url), 'utf8')
+const main = await readFile(new URL('./main.jsx', import.meta.url), 'utf8')
+const smoothWheel = await readFile(new URL('./core/smooth-wheel.ts', import.meta.url), 'utf8')
 
 test('global shell exposes the required settings and repository affordances', () => {
   assert.match(app, /SettingsPanel/)
@@ -101,6 +103,16 @@ test('shell styles include keyboard focus, mobile layout, and dark theme coverag
   assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) repeat\(4, 34px\)/)
   assert.match(styles, /\.topbar__controls \.agent-connection \{[\s\S]*?font-size: 0;/)
   assert.match(styles, /\.topbar__controls \.topbar__divider \{[\s\S]*?display: none;/)
+  assert.match(styles, /\.main-content \{[\s\S]*?scroll-behavior: smooth;/)
+  assert.match(styles, /\.sidebar__scroll \{[\s\S]*?scrollbar-gutter: stable;/)
+})
+
+test('coarse mouse wheels are smoothed without replacing precise or accessible scrolling', () => {
+  assert.equal([...main.matchAll(/installSmoothWheelScrolling\(\)/g)].length, 1)
+  assert.match(smoothWheel, /passive: false/)
+  assert.match(smoothWheel, /prefers-reduced-motion: reduce/)
+  assert.match(smoothWheel, /isDiscreteMouseWheel/)
+  assert.match(smoothWheel, /findScrollTarget\(path, "x", deltaY\)/)
 })
 
 test('transfer selects capture WebView values before scheduling state updates', () => {

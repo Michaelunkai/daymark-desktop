@@ -192,6 +192,9 @@
   min-height: 0;
   flex: 1;
   overflow: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
   padding: 4px 10px 18px;
   scrollbar-color: color-mix(in srgb, var(--sidebar-muted) 35%, transparent) transparent;
 }

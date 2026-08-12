@@ -5,6 +5,8 @@
   inset: 0;
   justify-content: center;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
   padding: 12vh 16px 32px;
   position: fixed;
   z-index: 50;
@@ -87,6 +89,9 @@
 .discovery-results {
   max-height: min(60vh, 510px);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
   padding: 8px;
 }
 

@@ -1,6 +1,7 @@
 import { Component, StrictMode, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import { installSmoothWheelScrolling } from './core/smooth-wheel'
 import { ThemeProvider } from './styles/theme'
 import './components/ui/ui.css'
 import './styles/theme.css'
@@ -88,3 +89,8 @@ createRoot(document.getElementById('root')).render(
 )
 
 pairCanonicalWorkspace()
+
+const removeSmoothWheelScrolling = installSmoothWheelScrolling()
+if (import.meta.hot) {
+  import.meta.hot.dispose(removeSmoothWheelScrolling)
+}

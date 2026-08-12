@@ -35,6 +35,9 @@ npm run desktop:verify
 The generated artifacts are written to `release/windows`. The installer keeps
 Daymark's local Windows session data when uninstalling so an accidental
 uninstall does not silently erase the desktop pairing and cached workspace.
+Windows `1.4.23` adds momentum-style coarse mouse-wheel scrolling across
+projects, task views, dialogs, utility panels, and horizontal boards while
+preserving native precision-trackpad and reduced-motion behavior.
 
 The next signed package is `1.4.22`, package `com.michaelunkai.daymark`,
 version code `26`. It preserves completed Order items as completed tasks,

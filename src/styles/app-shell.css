@@ -312,6 +312,8 @@ kbd {
   overflow: auto;
   padding: 22px 12px 18px;
   overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -537,6 +539,8 @@ kbd {
   overflow: auto;
   background: var(--canvas);
   overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -1421,6 +1425,9 @@ kbd {
 .utility-panel {
   min-width: 0;
   overflow: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
   padding: 47px 22px 30px;
   border-left: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.43);
@@ -1582,6 +1589,8 @@ kbd {
   background: var(--surface);
   box-shadow: var(--shadow);
   overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
 
 .task-preview__heading {
