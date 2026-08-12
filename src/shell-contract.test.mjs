@@ -114,6 +114,8 @@ test('coarse mouse wheels are smoothed without replacing precise or accessible s
   assert.match(smoothWheel, /isDiscreteMouseWheel/)
   assert.match(smoothWheel, /findScrollTarget\(path, "x", deltaY\)/)
   assert.match(smoothWheel, /daymark-smooth-wheel-active/)
+  assert.match(smoothWheel, /findVisibleSidebarFallback/)
+  assert.match(smoothWheel, /\.sidebar__scroll/)
   assert.match(styles, /\.daymark-smooth-wheel-active \{[\s\S]*?scroll-behavior: auto !important;/)
 })
 

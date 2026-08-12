@@ -133,6 +133,66 @@ async function verifyRoute(page, route, label) {
   };
 }
 
+async function verifyBlankWorkspaceRoutesWheelToProjects(page, projects) {
+  const emptyProject = projects.find((project) => project.pendingTasks === 0);
+  if (!emptyProject) throw new Error("No empty project exists for the blank-workspace wheel regression test.");
+
+  const route = `project:${emptyProject.id}`;
+  const navigation = await page.evaluate((nextRoute) => window.DaymarkAI.navigate(nextRoute), route);
+  if (!navigation?.ok) throw new Error(`Navigation was rejected for empty project ${emptyProject.name}.`);
+  await page.waitForFunction(
+    (nextRoute) => window.DaymarkAI?.getViewState?.().route === nextRoute,
+    route,
+    { timeout: 10000 },
+  );
+  await page.waitForTimeout(180);
+
+  const geometry = await page.evaluate(() => {
+    const sidebar = document.querySelector(".sidebar__scroll");
+    const main = document.querySelector(".main-content");
+    if (!(sidebar instanceof HTMLElement) || !(main instanceof HTMLElement)) return null;
+    sidebar.classList.add("daymark-smooth-wheel-active");
+    sidebar.scrollTop = 0;
+    sidebar.classList.remove("daymark-smooth-wheel-active");
+    const mainRect = main.getBoundingClientRect();
+    return {
+      maxSidebarY: Math.max(0, sidebar.scrollHeight - sidebar.clientHeight),
+      mainMaxY: Math.max(0, main.scrollHeight - main.clientHeight),
+      x: Math.max(1, Math.min(innerWidth - 1, mainRect.left + (mainRect.width * 0.75))),
+      y: Math.max(1, Math.min(innerHeight - 1, mainRect.top + (mainRect.height * 0.5))),
+    };
+  });
+  if (!geometry || geometry.maxSidebarY <= 1 || geometry.mainMaxY > 1) {
+    throw new Error(`The screenshot regression layout was not reproduced: ${JSON.stringify(geometry)}`);
+  }
+
+  await page.mouse.move(geometry.x, geometry.y);
+  await page.mouse.wheel(0, wheelDelta);
+  const down = await sampleScroll(page, ".sidebar__scroll");
+  const downEnd = down.at(-1);
+  if (downEnd.y <= 1 || distinctPositions(down) < 3 || downEnd.active) {
+    throw new Error(`Blank-workspace wheel did not scroll the Projects navigation down: ${JSON.stringify({ geometry, down })}`);
+  }
+
+  await page.mouse.wheel(0, -wheelDelta);
+  const up = await sampleScroll(page, ".sidebar__scroll");
+  const upEnd = up.at(-1);
+  if (upEnd.y > 2 || distinctPositions(up) < 3 || upEnd.active) {
+    throw new Error(`Blank-workspace wheel did not scroll the Projects navigation back up: ${JSON.stringify({ geometry, down, up })}`);
+  }
+
+  return {
+    route,
+    project: emptyProject.name,
+    pointerRegion: "blank main workspace",
+    sidebarMaxY: Math.round(geometry.maxSidebarY),
+    downFrames: distinctPositions(down),
+    downEnd: Math.round(downEnd.y * 10) / 10,
+    upFrames: distinctPositions(up),
+    upEnd: Math.round(upEnd.y * 10) / 10,
+  };
+}
+
 try {
   const page = await desktop.firstWindow({ timeout: 60000 });
   await desktop.evaluate(({ BrowserWindow }) => {
@@ -151,7 +211,12 @@ try {
   const baselineState = await page.evaluate(() => window.DaymarkAI.getState());
   const baseline = summarizeState(baselineState);
   const projects = Object.values(baselineState.projects ?? {})
-    .map((project) => ({ id: project.id, name: project.name ?? project.title ?? project.id }))
+    .map((project) => ({
+      id: project.id,
+      name: project.name ?? project.title ?? project.id,
+      pendingTasks: Object.values(baselineState.tasks ?? {})
+        .filter((task) => task.projectId === project.id && !task.completedAt).length,
+    }))
     .sort((a, b) => a.name.localeCompare(b.name));
   const routes = [
     ...fixedRoutes.map((route) => ({ route, label: route })),
@@ -163,6 +228,7 @@ try {
 
   const results = [];
   for (const route of routes) results.push(await verifyRoute(page, route.route, route.label));
+  const blankWorkspaceSidebar = await verifyBlankWorkspaceRoutesWheelToProjects(page, projects);
 
   const final = summarizeState(await page.evaluate(() => window.DaymarkAI.getState()));
   if (JSON.stringify(final) !== JSON.stringify(baseline)) {
@@ -187,6 +253,7 @@ try {
     routesChecked: results.length,
     scrollableRoutes: scrollable.length,
     scrollableProjects: scrollableProjects.length,
+    blankWorkspaceSidebar,
     results,
   }));
 } finally {

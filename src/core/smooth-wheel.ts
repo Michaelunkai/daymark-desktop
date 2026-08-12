@@ -82,6 +82,30 @@ function findScrollTarget(
   return null;
 }
 
+function findVisibleSidebarFallback(
+  targetWindow: Window,
+  axis: ScrollAxis,
+  delta: number,
+): ScrollTarget | null {
+  if (axis !== "y") return null;
+  const sidebar = targetWindow.document.querySelector<HTMLElement>(".sidebar__scroll");
+  if (!sidebar || !hasScrollableOverflow(sidebar, axis) || !canScroll(sidebar, axis, delta)) {
+    return null;
+  }
+  const rect = sidebar.getBoundingClientRect();
+  if (
+    rect.width <= 0
+    || rect.height <= 0
+    || rect.right <= 0
+    || rect.bottom <= 0
+    || rect.left >= targetWindow.innerWidth
+    || rect.top >= targetWindow.innerHeight
+  ) {
+    return null;
+  }
+  return { axis, element: sidebar };
+}
+
 export function installSmoothWheelScrolling(targetWindow: Window = window): () => void {
   const animations = new WeakMap<HTMLElement, ScrollAnimation>();
   const reducedMotion = targetWindow.matchMedia("(prefers-reduced-motion: reduce)");
@@ -137,6 +161,10 @@ export function installSmoothWheelScrolling(targetWindow: Window = window): () =
 
     if (!scrollTarget && !prefersHorizontal && deltaY !== 0) {
       scrollTarget = findScrollTarget(path, "x", deltaY);
+      delta = deltaY;
+    }
+    if (!scrollTarget && !prefersHorizontal && deltaY !== 0) {
+      scrollTarget = findVisibleSidebarFallback(targetWindow, "y", deltaY);
       delta = deltaY;
     }
     if (!scrollTarget || delta === 0) return;
