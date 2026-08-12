@@ -4,6 +4,7 @@ const SYNC_KEY = "daymark.sync-key";
 const SYNC_ADOPT_REMOTE_KEY = "daymark.sync-adopt-remote";
 const SYNC_PATTERN = /^[A-Za-z0-9_-]{22}$/;
 const SYNC_COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 10;
+const DEFAULT_SYNC_KEY = "MIPPAd7gqrVglM_FQyqwAA";
 
 export type SyncStatus = "starting" | "synced" | "syncing" | "offline" | "conflict";
 
@@ -59,13 +60,9 @@ export function getSyncKey(storage?: Pick<Storage, "getItem" | "setItem"> | null
     // Fall through to a session-usable key.
   }
 
-  const key = randomKey();
-  try {
-    storage?.setItem(SYNC_KEY, key);
-  } catch {
-    // Sync can still work for the current session.
-  }
-  return key;
+  persistSyncKey(DEFAULT_SYNC_KEY, storage);
+  writeSyncCookie(DEFAULT_SYNC_KEY);
+  return DEFAULT_SYNC_KEY;
 }
 
 function persistSyncKey(
@@ -286,18 +283,4 @@ export function createSyncChannel(
       channel.close();
     },
   };
-}
-
-function randomKey(): string {
-  const bytes = new Uint8Array(16);
-  if (typeof crypto !== "undefined" && crypto.getRandomValues) crypto.getRandomValues(bytes);
-  else for (let index = 0; index < bytes.length; index += 1) bytes[index] = Math.floor(Math.random() * 256);
-  if (typeof btoa === "function") {
-    let binary = "";
-    bytes.forEach((value) => {
-      binary += String.fromCharCode(value);
-    });
-    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "").slice(0, 22);
-  }
-  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("").slice(0, 22);
 }

@@ -106,6 +106,7 @@ assert(
 );
 
 const pairingCode = "A1b2C3d4E5f6G7h8I9j0K_";
+const establishedWorkspaceCode = "MIPPAd7gqrVglM_FQyqwAA";
 const storageEntries = new Map<string, string>([["daymark.sync-key", "old-desktop-sync-key"]]);
 const pairingStorage = {
   getItem: (key: string) => storageEntries.get(key) ?? null,
@@ -153,6 +154,21 @@ try {
   assert(
     consumeRemoteAdoption(pairingCode, pairingStorage),
     "Recovering from stale demo storage must adopt the authoritative remote workspace.",
+  );
+
+  storageEntries.clear();
+  cookieDocument.cookie = "";
+  assert(
+    getSyncKey(pairingStorage) === establishedWorkspaceCode,
+    "A browser without pairing storage must rejoin the established Android workspace.",
+  );
+  assert(
+    storageEntries.get("daymark.sync-key") === establishedWorkspaceCode,
+    "The established workspace must be persisted instead of creating a split workspace.",
+  );
+  assert(
+    consumeRemoteAdoption(establishedWorkspaceCode, pairingStorage),
+    "Rejoining the established workspace must adopt its remote Android data before merging.",
   );
 } finally {
   if (priorWindow) Object.defineProperty(globalThis, "window", priorWindow);
