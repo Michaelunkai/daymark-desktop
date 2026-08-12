@@ -1,5 +1,15 @@
 # Daymark Android Release
 
+`daymark-android-1.4.20.apk` is the verified Android update for the
+incomplete-task rollover and cache-first launcher improvements. On every app
+open, incomplete scheduled tasks from earlier dates are moved to the current
+local day while completed and unscheduled tasks remain unchanged. The native
+shell no longer forces WebView cache bypass and enables offscreen preraster to
+reduce avoidable repeat-launch work. It uses package
+`com.michaelunkai.daymark`, version code `24`, and version name `1.4.20`.
+The tracked APK SHA-256 is
+`45F017CF6219C3EC076E72BFBF886BF1049D82659589110CC537FC52ABDD7AE0`.
+
 `daymark-android-1.4.19.apk` removes the unnecessary Order-item choice from
 task-to-Order moves and copies. Choosing Do now, Later, or After is now a
 complete destination, and After no longer creates an item relation. It uses
