@@ -176,10 +176,17 @@
 
 @media (max-width: 560px) {
   .discovery-overlay {
-    padding: 16px 8px;
+    padding:
+      max(16px, env(safe-area-inset-top))
+      max(8px, env(safe-area-inset-right))
+      max(16px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
   }
 
   .discovery-dialog {
-    min-height: calc(100vh - 32px);
+    min-height: calc(
+      var(--daymark-viewport-height, 100dvh) -
+        max(32px, calc(env(safe-area-inset-top) + env(safe-area-inset-bottom) + 16px))
+    );
   }
 }

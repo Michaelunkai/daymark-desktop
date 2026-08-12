@@ -37,7 +37,7 @@ class AppErrorBoundary extends Component {
           flexDirection: 'column',
           gap: 16,
           justifyContent: 'center',
-          minHeight: '100vh',
+          minHeight: 'var(--daymark-viewport-height)',
           padding: 24,
           textAlign: 'center',
         }}

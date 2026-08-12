@@ -163,11 +163,21 @@
 
 @media (max-width: 560px) {
   .command-overlay {
-    padding: 16px 8px;
+    padding:
+      max(16px, env(safe-area-inset-top))
+      max(8px, env(safe-area-inset-right))
+      max(16px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
   }
 
   .command-dialog,
   .shortcut-dialog {
-    min-height: min(420px, calc(100vh - 32px));
+    min-height: min(
+      420px,
+      calc(
+        var(--daymark-viewport-height, 100dvh) -
+          max(32px, calc(env(safe-area-inset-top) + env(safe-area-inset-bottom) + 16px))
+      )
+    );
   }
 }
