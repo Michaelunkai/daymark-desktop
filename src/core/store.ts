@@ -27,6 +27,7 @@ type MutationResult = { ok: true; inverse: UndoAction; changed?: boolean } | Inv
 export interface AppStore {
   getState(): AppState;
   dispatch(action: UserAction): DispatchResult;
+  rollOverIncompleteTasks(today: string): AppState;
   replace(next: AppState): AppState;
   reload(): AppState;
   reset(): AppState;
@@ -40,6 +41,17 @@ export function createAppStore(storage: StateStorage, fallback?: () => AppState)
 
   return {
     getState: () => state,
+    rollOverIncompleteTasks: (today) => {
+      const loaded = loadState(storage, fallback);
+      const durable = loaded.available ? loaded.state : state;
+      const rolledOver = rollOverIncompleteTasks(durable, today);
+      if (!rolledOver.changed) return state;
+
+      const saved = saveState(storage, rolledOver.state, durable.revision);
+      state = saved.state;
+      notify();
+      return state;
+    },
     replace: (next) => {
       state = structuredClone(next);
       try {
@@ -88,6 +100,32 @@ export function createAppStore(storage: StateStorage, fallback?: () => AppState)
       return { ok: true, state };
     },
   };
+}
+
+export function rollOverIncompleteTasks(
+  state: AppState,
+  today: string,
+  now = new Date().toISOString(),
+): { state: AppState; changed: boolean } {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(today)) {
+    throw new Error("Today must be a valid local date.");
+  }
+
+  const overdueTaskIds = Object.values(state.tasks)
+    .filter((task) => task.completedAt === null && task.due?.date && task.due.date < today)
+    .map((task) => task.id);
+  if (!overdueTaskIds.length) return { state, changed: false };
+
+  const next = structuredClone(state);
+  for (const taskId of overdueTaskIds) {
+    const task = next.tasks[taskId];
+    if (!task?.due) continue;
+    task.due.date = today;
+    task.updatedAt = now;
+  }
+  next.revision = state.revision + 1;
+  next.updatedAt = now;
+  return { state: next, changed: true };
 }
 
 export function reduce(state: AppState, action: StoreAction, now = new Date().toISOString()): DispatchResult {

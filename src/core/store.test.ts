@@ -1,5 +1,5 @@
 import { createSampleState } from "./sample-data";
-import { createAppStore, reduce } from "./store";
+import { createAppStore, reduce, rollOverIncompleteTasks } from "./store";
 import { loadState, migrate, saveState } from "./storage";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -51,6 +51,43 @@ const repeatedRestore = restoreApp.dispatch({ type: "task.uncomplete", taskId: "
 assert(
   repeatedRestore.ok && repeatedRestore.state.tasks["task-welcome"].completedAt === null,
   "Repeated restore should be idempotent.",
+);
+
+const rolloverSource = createSampleState(timestamp, "rollover-client");
+rolloverSource.tasks["task-welcome"].due = {
+  date: "2026-08-11",
+  time: "09:30",
+  timezone: "Asia/Jerusalem",
+  recurrence: "every day",
+};
+rolloverSource.tasks["task-welcome"].completedAt = null;
+rolloverSource.tasks["task-completed"] = {
+  ...rolloverSource.tasks["task-welcome"],
+  id: "task-completed",
+  due: {
+    ...rolloverSource.tasks["task-welcome"].due,
+    date: "2026-08-11",
+  },
+  completedAt: "2026-08-11T12:00:00.000Z",
+};
+rolloverSource.tasks["task-unscheduled"] = {
+  ...rolloverSource.tasks["task-welcome"],
+  id: "task-unscheduled",
+  due: null,
+};
+const rolledOver = rollOverIncompleteTasks(
+  rolloverSource,
+  "2026-08-12",
+  "2026-08-12T00:00:00.000Z",
+);
+assert(
+  rolledOver.changed &&
+    rolledOver.state.tasks["task-welcome"].due?.date === "2026-08-12" &&
+    rolledOver.state.tasks["task-welcome"].due?.time === "09:30" &&
+    rolledOver.state.tasks["task-welcome"].due?.recurrence === "every day" &&
+    rolledOver.state.tasks["task-completed"].due?.date === "2026-08-11" &&
+    rolledOver.state.tasks["task-unscheduled"].due === null,
+  "Opening Daymark should carry overdue incomplete tasks into today without changing completed or unscheduled tasks.",
 );
 
 const base = createSampleState(timestamp, "conflict-client");

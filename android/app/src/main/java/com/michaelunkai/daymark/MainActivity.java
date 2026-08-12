@@ -31,7 +31,7 @@ public final class MainActivity extends Activity {
     private static final String PREFS_NAME = "daymark";
     private static final String SYNC_KEY_PREF = "sync_key";
     private static final int SURFACE_COLOR = Color.BLACK;
-    private static final String NATIVE_RELEASE = "1.4.16";
+    private static final String NATIVE_RELEASE = "1.4.20";
     private static final int CONTENT_READY_TIMEOUT_MS = 9000;
     private static final int RUNTIME_HEALTH_CHECK_MS = 500;
     private WebView webView;
@@ -149,7 +149,10 @@ public final class MainActivity extends Activity {
         settings.setLoadWithOverviewMode(false);
         settings.setUseWideViewPort(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            settings.setOffscreenPreRaster(true);
+        }
         return nextWebView;
     }
 

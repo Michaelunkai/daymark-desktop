@@ -15,7 +15,7 @@ test("Android release exposes the shared responsive app with the premium launche
 
   assert.match(manifest, /android:icon="@drawable\/ic_daymark_launcher"/);
   assert.match(manifest, /android:roundIcon="@drawable\/ic_daymark_launcher"/);
-  assert.match(gradle, /versionName "1\.4\.19"/);
+  assert.match(gradle, /versionName "1\.4\.20"/);
   assert.match(activity, /daymark-desktop\.michaelovsky55555\.chatgpt\.site/);
   assert.match(activity, /setDomStorageEnabled\(true\)/);
   assert.match(activity, /addJavascriptInterface/);
@@ -33,7 +33,8 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(activity, /Loading Daymark/);
   assert.match(activity, /Daymark could not load/);
   assert.match(activity, /retryCurrentPage/);
-  assert.match(activity, /LOAD_NO_CACHE/);
+  assert.match(activity, /LOAD_DEFAULT/);
+  assert.match(activity, /setOffscreenPreRaster\(true\)/);
   assert.match(activity, /NATIVE_RELEASE/);
   assert.match(activity, /withLaunchMarker/);
   assert.match(activity, /onAppReady/);

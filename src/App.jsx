@@ -124,6 +124,7 @@ const DEFAULT_UI_SETTINGS = {
 }
 
 const appStore = createAppStore(createBrowserStorage())
+appStore.rollOverIncompleteTasks(toLocalDate(new Date()))
 const thoughtCaptureStore = createLocalThoughtCaptureStore(getBrowserStorage())
 
 function getBrowserStorage() {
@@ -2007,6 +2008,10 @@ function App() {
   const reorderPointerTargetRef = useRef(null)
   const composerRef = useRef(null)
   const captureReturnFocusRef = useRef(null)
+
+  useEffect(() => {
+    appStore.rollOverIncompleteTasks(toLocalDate(new Date()))
+  }, [state])
   const agentBridgeActionsRef = useRef(null)
   const agentSessionsRef = useRef(new Map())
   const agentSessionTimersRef = useRef(new Map())
@@ -2365,7 +2370,7 @@ function App() {
     if (route === 'inbox') scoped = availableTasks.filter((task) => task.project === state.preferences.inboxProjectId)
     if (route === 'upcoming') scoped = availableTasks.filter((task) => state.tasks[task.id]?.due?.date >= today)
     if (route.startsWith('project:')) scoped = availableTasks.filter((task) => task.project === route.slice('project:'.length))
-    if (route === 'today') scoped = availableTasks.filter((task) => state.tasks[task.id]?.due?.date === today)
+    if (route === 'today') scoped = availableTasks.filter((task) => state.tasks[task.id]?.due?.date <= today)
     if (route === 'completed') scoped = tasks.filter((task) => task.completed)
     if (route !== 'completed' && !state.preferences.showCompleted) scoped = scoped.filter((task) => !task.completed)
     return scoped
