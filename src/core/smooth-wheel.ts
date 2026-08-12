@@ -2,7 +2,7 @@ const SCROLLABLE_OVERFLOW = /^(auto|scroll|overlay)$/;
 const DISCRETE_WHEEL_THRESHOLD = 32;
 const WHEEL_DISTANCE_SCALE = 1.08;
 const EASING_FACTOR = 0.24;
-const SETTLED_DISTANCE = 1.1;
+const SETTLED_DISTANCE = 1.5;
 const ACTIVE_SCROLL_CLASS = "daymark-smooth-wheel-active";
 
 type ScrollAxis = "x" | "y";
