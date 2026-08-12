@@ -4,7 +4,7 @@ const SYNC_KEY = "daymark.sync-key";
 const SYNC_ADOPT_REMOTE_KEY = "daymark.sync-adopt-remote";
 const SYNC_PATTERN = /^[A-Za-z0-9_-]{22}$/;
 const SYNC_COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 10;
-const DEFAULT_SYNC_KEY = "MIPPAd7gqrVglM_FQyqwAA";
+const SYNC_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
 export type SyncStatus = "starting" | "synced" | "syncing" | "offline" | "conflict";
 
@@ -60,18 +60,26 @@ export function getSyncKey(storage?: Pick<Storage, "getItem" | "setItem"> | null
     // Fall through to a session-usable key.
   }
 
-  persistSyncKey(DEFAULT_SYNC_KEY, storage);
-  writeSyncCookie(DEFAULT_SYNC_KEY);
-  return DEFAULT_SYNC_KEY;
+  const key = createSyncKey();
+  persistSyncKey(key, storage, false);
+  writeSyncCookie(key);
+  return key;
+}
+
+function createSyncKey(): string {
+  const values = new Uint8Array(22);
+  globalThis.crypto?.getRandomValues?.(values);
+  return Array.from(values, (value) => SYNC_ALPHABET[value & 63]).join("");
 }
 
 function persistSyncKey(
   key: string,
   storage?: Pick<Storage, "getItem" | "setItem"> | null,
+  adoptRemote = true,
 ): void {
   try {
     const previous = storage?.getItem(SYNC_KEY) ?? "";
-    if (previous !== key) storage?.setItem(SYNC_ADOPT_REMOTE_KEY, key);
+    if (adoptRemote && previous !== key) storage?.setItem(SYNC_ADOPT_REMOTE_KEY, key);
     storage?.setItem(SYNC_KEY, key);
   } catch {
     // The URL or pairing cookie remains authoritative when storage is unavailable.
