@@ -243,6 +243,7 @@ export type UserAction =
   | { type: "project.delete"; projectId: EntityId }
   | { type: "order.add"; input: OrderItemInput }
   | { type: "order.update"; itemId: EntityId; patch: OrderItemPatch }
+  | { type: "order.complete"; itemId: EntityId }
   | { type: "order.delete"; itemId: EntityId }
   | { type: "order.transferToTask"; itemId: EntityId; input: TaskInput }
   | { type: "note.add"; input: NoteInput }
@@ -276,6 +277,7 @@ export type UndoAction =
   | { type: "project.delete"; projectId: EntityId }
   | { type: "order.add"; input: OrderItemInput }
   | { type: "order.update"; itemId: EntityId; patch: OrderItemPatch }
+  | { type: "order.remove"; itemId: EntityId }
   | { type: "order.delete"; itemId: EntityId }
   | { type: "order.transfer.restore"; orderItem: OrderItem; taskId: EntityId }
   | { type: "note.restore"; note: Note }

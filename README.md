@@ -14,13 +14,14 @@ https://daymark-desktop.michaelovsky55555.chatgpt.site
 
 Download the installable Android package from the repository:
 
-[Daymark Android 1.4.9 APK](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.9/daymark-android-1.4.9.apk)
+[Daymark Android 1.4.21 APK](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.21/daymark-android-1.4.21.apk)
 
 The Android shell targets Android 6.0+ and opens the same responsive Daymark
 application used by Windows and mobile browsers.
 
-The latest published package is `1.4.9`, matching the directly verified device
-package `com.michaelunkai.daymark` version code `13`, version name `1.4.9`.
+The latest package is `1.4.21`, package `com.michaelunkai.daymark`, version
+code `25`. It preserves completed Order items as completed tasks and includes
+the Android touch-navigation update.
 The older `1.4.6` release remains documented below as historical provenance.
 
 The deployed application supports the root route and client-side workspace

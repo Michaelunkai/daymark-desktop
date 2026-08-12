@@ -101,6 +101,7 @@ const AGENT_ACTION_TYPES = [
   'project.delete',
   'order.add',
   'order.update',
+  'order.complete',
   'order.delete',
   'note.add',
   'note.update',
@@ -2890,9 +2891,13 @@ function App() {
     if (!result.ok) setNotice(result.message)
   }
 
-  const deleteOrderItem = (item) => {
-    const result = appStore.dispatch({ type: 'order.delete', itemId: item.id })
+  const completeOrderItem = (item) => {
+    const result = appStore.dispatch({ type: 'order.complete', itemId: item.id })
     if (!result.ok) setNotice(result.message)
+    else {
+      setNotice('Order item completed.')
+      setUndoAvailable(true)
+    }
   }
 
   const moveOrderItem = (itemId, swapId, laneId = null) => {
@@ -3762,7 +3767,7 @@ function App() {
                 items={orderItems}
                 onAdd={addOrderItem}
                 onCopyToTask={copyOrderItemToTask}
-                onDelete={deleteOrderItem}
+                onComplete={completeOrderItem}
                 onMove={moveOrderItem}
                 onMoveToTask={moveOrderItemToTask}
                 onUpdate={updateOrderItem}

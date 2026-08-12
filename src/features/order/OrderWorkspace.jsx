@@ -22,7 +22,7 @@ function OrderItemCard({
   index,
   item,
   laneItems,
-  onDelete,
+  onComplete,
   onEdit,
   onMove,
   onSetDragging,
@@ -71,13 +71,13 @@ function OrderItemCard({
       onDragStart={() => onSetDragging(item.id)}
     >
       <button
-        aria-label={item.status === 'done' ? `Restore ${item.title}` : `Complete ${item.title}`}
+        aria-label={`Complete ${item.title}`}
         className={`order-item__complete ${item.status === 'done' ? 'is-completed' : ''}`}
-        onClick={() => onUpdate(item.id, { status: item.status === 'done' ? 'open' : 'done' })}
-        title={item.status === 'done' ? 'Restore item' : 'Complete item'}
+        onClick={() => onComplete(item)}
+        title="Complete and move to Completed"
         type="button"
       >
-        {item.status === 'done' ? '✓' : ''}
+        ✓
       </button>
       <button
         aria-label={`Drag ${item.title}`}
@@ -111,8 +111,23 @@ function OrderItemCard({
       <div className="order-item__actions">
         <button aria-label={`Move ${item.title} earlier`} disabled={index === 0} onClick={() => onMoveBy(item, -1, laneItems, onMove)} title="Move earlier" type="button">^</button>
         <button aria-label={`Move ${item.title} later`} disabled={index === laneItems.length - 1} onClick={() => onMoveBy(item, 1, laneItems, onMove)} title="Move later" type="button">v</button>
+        <div aria-label={`Move ${item.title} to another section`} className="order-item__lanes">
+          {LANES.map((lane) => (
+            <button
+              aria-label={`Move ${item.title} to ${lane.label}`}
+              className={item.lane === lane.id ? 'is-active' : ''}
+              disabled={item.lane === lane.id}
+              key={lane.id}
+              onClick={() => onUpdate(item.id, { lane: lane.id, relationId: null })}
+              title={`Move to ${lane.label}`}
+              type="button"
+            >
+              {lane.label.replace(' ', '\n')}
+            </button>
+          ))}
+        </div>
         <button aria-label={`Edit ${item.title}`} onClick={() => onEdit(item)} title="Edit item" type="button">Edit</button>
-        <button aria-label={`Delete ${item.title}`} onClick={() => onDelete(item)} title="Delete item" type="button">x</button>
+        <button aria-label={`Complete ${item.title}`} className="order-item__complete-action" onClick={() => onComplete(item)} title="Complete and move to Completed" type="button">Done</button>
       </div>
     </article>
   )
@@ -128,7 +143,7 @@ export function OrderWorkspace({
   items,
   onAdd,
   onUpdate,
-  onDelete,
+  onComplete,
   onMove,
   projects = [],
   sections = [],
@@ -250,7 +265,7 @@ export function OrderWorkspace({
                     item={item}
                     key={item.id}
                     laneItems={lane.items}
-                    onDelete={onDelete}
+                    onComplete={onComplete}
                     onEdit={openEdit}
                     onMove={onMove}
                     onSetDragging={setDraggingId}

@@ -275,6 +275,25 @@ assert(projectRestored.ok && projectRestored.state.projects["project-delete-me"]
 const orderAdded = reduce(base, { type: "order.add", input: { id: "order-test", title: "Sequence this", lane: "after", relationId: "order-welcome" } }, timestamp);
 assert(orderAdded.ok && orderAdded.state.orderItems["order-test"].relationId === "order-welcome", "Order relationships should persist.");
 assert(!reduce(orderAdded.state, { type: "order.update", itemId: "order-test", patch: { relationId: "order-test" } }, timestamp).ok, "Order items cannot relate to themselves.");
+const completedOrder = reduce(base, { type: "order.complete", itemId: "order-welcome" }, timestamp);
+assert(
+  completedOrder.ok &&
+    !completedOrder.state.orderItems["order-welcome"] &&
+    Object.values(completedOrder.state.tasks).some(
+      (task) =>
+        task.content === "Choose the next useful step" &&
+        task.description === "Keep this list small enough to act on." &&
+        task.completedAt === timestamp,
+    ),
+  "Completing an Order item should immediately move its task details into Completed.",
+);
+const legacyDeleteCompletesOrder = reduce(base, { type: "order.delete", itemId: "order-welcome" }, timestamp);
+assert(
+  legacyDeleteCompletesOrder.ok &&
+    !legacyDeleteCompletesOrder.state.orderItems["order-welcome"] &&
+    Object.values(legacyDeleteCompletesOrder.state.tasks).some((task) => task.content === "Choose the next useful step" && task.completedAt === timestamp),
+  "Removing an Order item should preserve it as a completed task.",
+);
 
 raw = "{bad-json";
 const recovered = createAppStore(storage);

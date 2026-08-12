@@ -1,5 +1,14 @@
 # Daymark Android Release
 
+`daymark-android-1.4.21.apk` is the Android Order completion and touch-navigation update.
+Removing or completing an Order item now immediately preserves it as a completed
+task, including its title, details, and priority. The Order workspace has
+thumb-sized completion, lane, ordering, and editor controls for Android while
+using the same shared web application as the deployed site. It uses package
+`com.michaelunkai.daymark`, version code `25`, and version name `1.4.21`.
+The tracked APK SHA-256 is
+`1038B508198DADC00EC68955D3C317B416349DCD6073F383674C09C04BF06E94`.
+
 `daymark-android-1.4.20.apk` is the verified Android update for the
 incomplete-task rollover and cache-first launcher improvements. On every app
 open, incomplete scheduled tasks from earlier dates are moved to the current
