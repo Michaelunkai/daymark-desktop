@@ -12,6 +12,7 @@ import {
   getSyncKey,
   getSyncLink,
   mergeSyncStates,
+  pairSyncKey,
   pullSyncState,
   pushSyncState,
   rebaseSyncConflict,
@@ -1467,6 +1468,7 @@ function SettingsPanel({
   onReset,
   onRevokeAgentKey,
   onCopySyncLink,
+  onPairSyncWorkspace,
   onThemeChange,
   onUiSettingsChange,
   settings,
@@ -1477,6 +1479,7 @@ function SettingsPanel({
   syncStatus,
 }) {
   const fileInputRef = useRef(null)
+  const [pairingInput, setPairingInput] = useState('')
   const storageAvailable = canUseBrowserStorage()
   const activeAgentKeys = agentKeys.filter((key) => !key.revokedAt)
   const stateSize = (() => {
@@ -1635,6 +1638,30 @@ function SettingsPanel({
               Open in Android
             </a>
           </div>
+          <form
+            className="settings-pairing"
+            onSubmit={(event) => {
+              event.preventDefault()
+              if (onPairSyncWorkspace(pairingInput)) setPairingInput('')
+            }}
+          >
+            <label className="settings-field">
+              <span>
+                <strong>Pair this browser</strong>
+                <small>Paste the Android sync link or pairing code to replace this browser's workspace.</small>
+              </span>
+              <input
+                aria-label="Android sync link or pairing code"
+                onChange={(event) => setPairingInput(event.target.value)}
+                placeholder="Paste Android sync link"
+                value={pairingInput}
+              />
+            </label>
+            <button className="secondary-button" type="submit">
+              <Icon name="command" size={16} />
+              Pair browser
+            </button>
+          </form>
           <p className="settings-help">The link contains a private, randomly generated workspace code. Keep it private.</p>
         </section>
 
@@ -1992,8 +2019,8 @@ function App() {
   const [captureNotice, setCaptureNotice] = useState('')
   const [companionOpen, setCompanionOpen] = useState(false)
   const [uiSettings, setUiSettings] = useState(() => readUiSettings())
-  const [syncKey] = useState(() => getSyncKey(getBrowserStorage()))
-  const [adoptRemoteOnJoin] = useState(() => consumeRemoteAdoption(syncKey, getBrowserStorage()))
+  const [syncKey, setSyncKey] = useState(() => getSyncKey(getBrowserStorage()))
+  const [adoptRemoteOnJoin, setAdoptRemoteOnJoin] = useState(() => consumeRemoteAdoption(syncKey, getBrowserStorage()))
   const [syncStatus, setSyncStatus] = useState('starting')
   const [syncReady, setSyncReady] = useState(false)
   const [agentKeys, setAgentKeys] = useState([])
@@ -2287,6 +2314,26 @@ function App() {
     } catch {
       setNotice(link)
     }
+  }
+
+  const pairWorkspace = (value) => {
+    const nextSyncKey = pairSyncKey(value, getBrowserStorage())
+    if (!nextSyncKey) {
+      setNotice('Paste a valid Android sync link or 22-character pairing code.')
+      return false
+    }
+    if (nextSyncKey === syncKey) {
+      setNotice('This browser is already paired to that workspace.')
+      return true
+    }
+    syncRemoteRevisionRef.current = 0
+    syncSkipNextPushRef.current = true
+    setSyncReady(false)
+    setSyncStatus('starting')
+    setAdoptRemoteOnJoin(consumeRemoteAdoption(nextSyncKey, getBrowserStorage()))
+    setSyncKey(nextSyncKey)
+    setNotice('Pairing this browser with the Android workspace.')
+    return true
   }
 
   const createAgentKey = async () => {
@@ -3826,6 +3873,7 @@ function App() {
                 onReset={resetWorkspace}
                 onRevokeAgentKey={requestRevokeAgentAccessKey}
                 onCopySyncLink={copySyncLink}
+                onPairSyncWorkspace={pairWorkspace}
                 onThemeChange={updateThemePreference}
                 onUiSettingsChange={updateUiSettings}
                 settings={uiSettings}

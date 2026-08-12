@@ -4,6 +4,7 @@ import {
   createInteractionSyncGate,
   getSyncKey,
   mergeSyncStates,
+  pairSyncKey,
   rebaseSyncConflict,
   syncStatesMatch,
 } from "./sync";
@@ -169,6 +170,18 @@ try {
   assert(
     !consumeRemoteAdoption(freshWorkspaceCode, pairingStorage),
     "A newly created workspace must not attempt to adopt unrelated remote data.",
+  );
+  assert(
+    pairSyncKey(`https://daymark.example/?sync=${pairingCode}`, pairingStorage) === pairingCode,
+    "A copied pairing link must be accepted when browser storage needs recovery.",
+  );
+  assert(
+    consumeRemoteAdoption(pairingCode, pairingStorage),
+    "Manual pairing must replace local data with the authoritative remote workspace first.",
+  );
+  assert(
+    pairSyncKey("not-a-pairing-code", pairingStorage) === null,
+    "Invalid pairing input must not change the active workspace.",
   );
 } finally {
   if (priorWindow) Object.defineProperty(globalThis, "window", priorWindow);

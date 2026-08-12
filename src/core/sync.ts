@@ -66,9 +66,33 @@ export function getSyncKey(storage?: Pick<Storage, "getItem" | "setItem"> | null
   return key;
 }
 
+export function pairSyncKey(
+  value: string,
+  storage?: Pick<Storage, "getItem" | "setItem"> | null,
+): string | null {
+  const candidate = value.trim();
+  const fromLink = (() => {
+    try {
+      return new URL(candidate).searchParams.get("sync") ?? "";
+    } catch {
+      return candidate;
+    }
+  })();
+  if (!SYNC_PATTERN.test(fromLink)) return null;
+  persistSyncKey(fromLink, storage);
+  writeSyncCookie(fromLink);
+  return fromLink;
+}
+
 function createSyncKey(): string {
   const values = new Uint8Array(22);
-  globalThis.crypto?.getRandomValues?.(values);
+  if (globalThis.crypto?.getRandomValues) {
+    globalThis.crypto.getRandomValues(values);
+  } else {
+    for (let index = 0; index < values.length; index += 1) {
+      values[index] = Math.floor(Math.random() * 256);
+    }
+  }
   return Array.from(values, (value) => SYNC_ALPHABET[value & 63]).join("");
 }
 
