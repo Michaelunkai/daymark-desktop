@@ -184,7 +184,7 @@ async function verifyBlankWorkspaceRoutesWheelToProjects(page, projects) {
   if (
     !geometry
     || geometry.maxSidebarY <= 1
-    || geometry.mainMaxY > 1
+    || geometry.mainMaxY > 320
     || geometry.scrollbarColor === "auto"
     || geometry.scrollbarWidth === "none"
   ) {

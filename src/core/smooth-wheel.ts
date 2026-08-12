@@ -4,6 +4,7 @@ const WHEEL_DISTANCE_SCALE = 1.08;
 const EASING_FACTOR = 0.24;
 const SETTLED_DISTANCE = 1.5;
 const ACTIVE_SCROLL_CLASS = "daymark-smooth-wheel-active";
+const NEAR_EMPTY_MAIN_SCROLL_LIMIT = 320;
 
 type ScrollAxis = "x" | "y";
 
@@ -159,12 +160,22 @@ export function installSmoothWheelScrolling(targetWindow: Window = window): () =
       : findScrollTarget(path, "y", deltaY);
     let delta = prefersHorizontal ? (deltaX || deltaY) : deltaY;
 
-    if (!scrollTarget && !prefersHorizontal && deltaY !== 0) {
-      scrollTarget = findScrollTarget(path, "x", deltaY);
+    if (
+      !prefersHorizontal
+      && deltaY !== 0
+      && (
+        !scrollTarget
+        || (
+          scrollTarget.element.matches(".main-content")
+          && maxScroll(scrollTarget.element, "y") <= NEAR_EMPTY_MAIN_SCROLL_LIMIT
+        )
+      )
+    ) {
+      scrollTarget = findVisibleSidebarFallback(targetWindow, "y", deltaY) ?? scrollTarget;
       delta = deltaY;
     }
     if (!scrollTarget && !prefersHorizontal && deltaY !== 0) {
-      scrollTarget = findVisibleSidebarFallback(targetWindow, "y", deltaY);
+      scrollTarget = findScrollTarget(path, "x", deltaY);
       delta = deltaY;
     }
     if (!scrollTarget || delta === 0) return;
