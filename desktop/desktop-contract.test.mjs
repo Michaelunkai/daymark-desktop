@@ -3,6 +3,10 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const main = await readFile(new URL("./main.mjs", import.meta.url), "utf8");
+const scrollVerifier = await readFile(
+  new URL("../scripts/verify-windows-scroll.mjs", import.meta.url),
+  "utf8",
+);
 const packageJson = JSON.parse(
   await readFile(new URL("../package.json", import.meta.url), "utf8"),
 );
@@ -40,4 +44,10 @@ test("Windows packaging preserves local data on uninstall", () => {
   assert.equal(packageJson.build.appId, "com.michaelunkai.daymark.windows");
   assert.equal(packageJson.build.nsis.deleteAppDataOnUninstall, false);
   assert.deepEqual(packageJson.build.protocols[0].schemes, ["daymark"]);
+});
+
+test("packaged scroll verification counts movement from the known start position", () => {
+  assert.match(scrollVerifier, /const start = await page\.locator\(target\.selector\)\.evaluate/);
+  assert.match(scrollVerifier, /distinctPositions\(\[start, \.\.\.down\]\)/);
+  assert.match(scrollVerifier, /distinctPositions\(\[downEnd, \.\.\.up\]\)/);
 });

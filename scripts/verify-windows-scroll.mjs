@@ -152,19 +152,24 @@ async function verifyRoute(page, route, label) {
   const target = await findPrimaryScrollTarget(page);
   if (!target) return { route, label, scrollable: false };
 
+  const start = await page.locator(target.selector).evaluate((element) => ({
+    active: element.classList.contains("daymark-smooth-wheel-active"),
+    x: element.scrollLeft,
+    y: element.scrollTop,
+  }));
   await page.mouse.move(target.x, target.y);
   await page.mouse.wheel(0, wheelDelta);
   const down = await sampleScroll(page, target.selector);
   const downEnd = down.at(-1);
-  if (downEnd.y <= 1 || distinctPositions(down) < 2 || downEnd.active) {
-    throw new Error(`Mouse-wheel down scrolling failed for ${label}: ${JSON.stringify({ target, down })}`);
+  if (downEnd.y <= start.y + 1 || distinctPositions([start, ...down]) < 2 || downEnd.active) {
+    throw new Error(`Mouse-wheel down scrolling failed for ${label}: ${JSON.stringify({ target, start, down })}`);
   }
 
   await page.mouse.wheel(0, -wheelDelta);
   const up = await sampleScroll(page, target.selector);
   const upEnd = up.at(-1);
-  if (upEnd.y >= downEnd.y - 1 || distinctPositions(up) < 2 || upEnd.active || upEnd.y > 2) {
-    throw new Error(`Mouse-wheel up scrolling failed for ${label}: ${JSON.stringify({ target, down, up })}`);
+  if (upEnd.y >= downEnd.y - 1 || distinctPositions([downEnd, ...up]) < 2 || upEnd.active || upEnd.y > 2) {
+    throw new Error(`Mouse-wheel up scrolling failed for ${label}: ${JSON.stringify({ target, start, down, up })}`);
   }
 
   return {
@@ -172,9 +177,9 @@ async function verifyRoute(page, route, label) {
     label,
     scrollable: true,
     maxY: Math.round(target.maxY),
-    downFrames: distinctPositions(down),
+    downFrames: distinctPositions([start, ...down]),
     downEnd: Math.round(downEnd.y * 10) / 10,
-    upFrames: distinctPositions(up),
+    upFrames: distinctPositions([downEnd, ...up]),
     upEnd: Math.round(upEnd.y * 10) / 10,
   };
 }

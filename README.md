@@ -25,18 +25,18 @@ dedicated, persistent desktop session. It uses the existing pairing code,
 optimistic revision checks, timestamp merges, and deletion tombstones rather
 than introducing a separate desktop data store.
 
-Download Daymark for Windows `1.4.27`:
+Download Daymark for Windows `1.4.28`:
 
-- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.27-windows/Daymark-Windows-Setup-1.4.27-x64.exe)
-- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.27-windows/Daymark-Windows-Portable-1.4.27-x64.exe)
-- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.27-windows)
+- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.28-windows/Daymark-Windows-Setup-1.4.28-x64.exe)
+- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.28-windows/Daymark-Windows-Portable-1.4.28-x64.exe)
+- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.28-windows)
 
 SHA-256:
 
 - Installer:
-  `9CE5CBA4E9E5AB91CB2A34B6769346DEA337ADCDBB13576AE04481EED60A71C9`
+  `6DB610A2EB0D96C6FA2C4B1C804609031CC197B45F3BB05931748DBF9CEDFE83`
 - Portable:
-  `26E1C2377DFD8EAB8AA164756637FE2C0A9DFE63F55ED8A8EF3B604972277550`
+  `B74C92DBC1FD4727CDAA490B90E0A275F36AC89BEF3B7C24ECD9E47769438D75`
 
 These Windows binaries are not Authenticode-signed, so Windows SmartScreen may
 display its standard warning on first download.
@@ -51,7 +51,7 @@ npm run desktop:verify
 The generated artifacts are written to `release/windows`. The installer keeps
 Daymark's local Windows session data when uninstalling so an accidental
 uninstall does not silently erase the desktop pairing and cached workspace.
-Windows `1.4.27` provides mouse-wheel scrolling and visible draggable
+Windows `1.4.28` provides mouse-wheel scrolling and visible draggable
 scrollbars across the projects sidebar and main workspace. Responsive layout
 checks cover narrow windows and 150% Windows display scaling so controls remain
 reachable instead of being cropped.
