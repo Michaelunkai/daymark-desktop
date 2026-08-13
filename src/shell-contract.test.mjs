@@ -109,23 +109,53 @@ test('task and Order layouts reserve readable width for complete titles and deta
   )
   assert.match(
     orderStyles,
-    /\.order-lanes \{[\s\S]*?grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/,
+    /\.order-lanes__secondary \{[\s\S]*?display: grid;[\s\S]*?gap: 22px;/,
   )
   assert.match(
     orderStyles,
-    /\.order-item \{[\s\S]*?grid-template-columns: 24px 24px minmax\(0, 1fr\);/,
+    /\.order-lanes \{[\s\S]*?grid-template-columns: minmax\(0, 1\.12fr\) minmax\(320px, \.88fr\);/,
   )
   assert.match(
     orderStyles,
-    /\.order-item__body \{[\s\S]*?grid-column: 3;/,
+    /\.order-lane--after \.order-lane__header \{[\s\S]*?border-top-color: var\(--amber\);/,
   )
   assert.match(
     orderStyles,
-    /\.order-item__actions \{[\s\S]*?grid-column: 3;/,
+    /\.order-item \{[\s\S]*?grid-template-columns: 34px 28px minmax\(0, 1fr\);/,
+  )
+  assert.match(
+    orderStyles,
+    /\.order-item__title \{[\s\S]*?font-size: 15px;[\s\S]*?line-height: 1\.35;/,
+  )
+  assert.match(
+    orderStyles,
+    /\.order-item__body p \{[\s\S]*?font-size: 12px;[\s\S]*?line-height: 1\.55;/,
+  )
+  assert.match(
+    orderStyles,
+    /\.order-item__actions \{[\s\S]*?grid-column: 1 \/ -1;/,
+  )
+  assert.match(
+    orderStyles,
+    /\.order-item__actions button \{[\s\S]*?min-height: 34px;/,
   )
   assert.match(
     orderStyles,
     /\.order-item__details \{[\s\S]*?white-space: pre-wrap;/,
+  )
+})
+
+test('Order restores After as a first-class readable section', () => {
+  assert.match(orderWorkspace, /\{ id: 'after', label: 'After'/)
+  assert.match(orderWorkspace, /className={`order-lane order-lane--\$\{lane\.id\}`}/)
+  assert.match(orderWorkspace, /onClick=\{\(\) => onAdd\(lane\.id\)\}/)
+  assert.match(orderWorkspace, /onAdd=\{openCreate\}/)
+  assert.match(orderWorkspace, /className="order-lanes__secondary"/)
+  assert.match(orderWorkspace, /grouped\.slice\(1\)\.map/)
+  assert.match(orderStyles, /\.order-lane-nav \{[\s\S]*?display: grid;/)
+  assert.match(
+    orderStyles,
+    /@media \(max-width: 1120px\) \{[\s\S]*?\.order-lanes \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/,
   )
 })
 

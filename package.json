@@ -1,7 +1,7 @@
 {
   "name": "daymark-desktop",
   "private": true,
-  "version": "1.4.31",
+  "version": "1.4.32",
   "description": "The official Daymark desktop application for Windows.",
   "author": "Michael Fedorovsky",
   "main": "desktop/main.mjs",

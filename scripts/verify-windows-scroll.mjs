@@ -182,6 +182,22 @@ async function verifyReadableLayout(page, route, label) {
     }
 
     const lanes = document.querySelector(".order-lanes");
+    const laneNav = document.querySelector(".order-lane-nav");
+    const laneElements = Object.fromEntries(
+      ["now", "later", "after"].map((lane) => [
+        lane,
+        document.querySelector(`.order-lane--${lane}`),
+      ]),
+    );
+    const laneRects = Object.fromEntries(
+      Object.entries(laneElements).map(([lane, element]) => [
+        lane,
+        element instanceof HTMLElement ? element.getBoundingClientRect().toJSON() : null,
+      ]),
+    );
+    const laneNavRect = laneNav instanceof HTMLElement
+      ? laneNav.getBoundingClientRect().toJSON()
+      : null;
     const cards = [...document.querySelectorAll(".order-item")]
       .filter((element) => element instanceof HTMLElement && element.getClientRects().length > 0);
     const cardMetrics = cards.map((card) => {
@@ -211,6 +227,20 @@ async function verifyReadableLayout(page, route, label) {
       ? Math.min(...cardMetrics.map((card) => card.titleWidth))
       : 0;
     const actionsBelowBody = cardMetrics.every((card) => card.actionsBelowBody);
+    const allLanesPresent = Object.values(laneElements)
+      .every((element) => element instanceof HTMLElement && element.getClientRects().length > 0);
+    const laneNavVisible = laneNavRect
+      && laneNavRect.width > 0
+      && laneNavRect.height > 0
+      && laneNavRect.left >= mainRect.left - tolerance
+      && laneNavRect.right <= mainRect.right + tolerance;
+    const wideLayout = innerWidth > 1120;
+    const afterPlacedNearTop = !wideLayout || (
+      laneRects.after
+      && laneRects.now
+      && laneRects.after.top < laneRects.now.bottom
+      && laneRects.after.top - laneRects.now.top < 900
+    );
 
     return {
       ok: main.scrollWidth <= main.clientWidth + tolerance
@@ -220,7 +250,10 @@ async function verifyReadableLayout(page, route, label) {
         && laneColumnCount <= 2
         && minimumBodyWidth >= 120
         && minimumTitleWidth >= 120
-        && actionsBelowBody,
+        && actionsBelowBody
+        && allLanesPresent
+        && laneNavVisible
+        && afterPlacedNearTop,
       ...layout,
       order: {
         cardCount: cards.length,
@@ -228,6 +261,10 @@ async function verifyReadableLayout(page, route, label) {
         minimumBodyWidth: Math.round(minimumBodyWidth),
         minimumTitleWidth: Math.round(minimumTitleWidth),
         actionsBelowBody,
+        allLanesPresent,
+        laneNavVisible,
+        afterPlacedNearTop,
+        laneRects,
       },
     };
   }, route);
@@ -235,6 +272,59 @@ async function verifyReadableLayout(page, route, label) {
   if (!result.ok) {
     throw new Error(`Content is cropped or unreadably compressed for ${label}: ${JSON.stringify(result)}`);
   }
+  return result;
+}
+
+async function verifyOrderLaneNavigation(page) {
+  const afterNav = page.locator(".order-lane-nav__item--after");
+  await afterNav.waitFor({ state: "visible", timeout: 10000 });
+  await page.screenshot({
+    path: path.join(evidenceDirectory, "order-workspace-top.png"),
+    fullPage: false,
+  });
+  await afterNav.click();
+  await page.waitForTimeout(500);
+
+  const result = await page.evaluate(() => {
+    const main = document.querySelector(".main-content");
+    const after = document.querySelector(".order-lane--after");
+    const nav = document.querySelector(".order-lane-nav");
+    if (
+      !(main instanceof HTMLElement)
+      || !(after instanceof HTMLElement)
+      || !(nav instanceof HTMLElement)
+    ) {
+      return { ok: false, error: "Order navigation elements are missing." };
+    }
+
+    const tolerance = 4;
+    const mainRect = main.getBoundingClientRect();
+    const afterRect = after.getBoundingClientRect();
+    const navRect = nav.getBoundingClientRect();
+    const visibleTop = Math.max(mainRect.top, navRect.bottom);
+    return {
+      ok: afterRect.top >= visibleTop - tolerance
+        && afterRect.top < mainRect.bottom - tolerance
+        && afterRect.bottom > visibleTop + tolerance,
+      mainScrollTop: Math.round(main.scrollTop),
+      visibleTop: Math.round(visibleTop),
+      afterRect: {
+        top: Math.round(afterRect.top),
+        bottom: Math.round(afterRect.bottom),
+        left: Math.round(afterRect.left),
+        right: Math.round(afterRect.right),
+      },
+    };
+  });
+
+  if (!result.ok) {
+    throw new Error(`The After selector did not reveal the After lane: ${JSON.stringify(result)}`);
+  }
+
+  await page.screenshot({
+    path: path.join(evidenceDirectory, "order-workspace-after.png"),
+    fullPage: false,
+  });
   return result;
 }
 
@@ -248,9 +338,12 @@ async function verifyRoute(page, route, label) {
   );
   await page.waitForTimeout(180);
   const layout = await verifyReadableLayout(page, route, label);
+  const orderNavigation = route === "order"
+    ? await verifyOrderLaneNavigation(page)
+    : null;
 
   const target = await findPrimaryScrollTarget(page);
-  if (!target) return { route, label, scrollable: false, layout };
+  if (!target) return { route, label, scrollable: false, layout, orderNavigation };
 
   const start = await page.locator(target.selector).evaluate((element) => ({
     active: element.classList.contains("daymark-smooth-wheel-active"),
@@ -282,6 +375,7 @@ async function verifyRoute(page, route, label) {
     upFrames: distinctPositions([downEnd, ...up]),
     upEnd: Math.round(upEnd.y * 10) / 10,
     layout,
+    orderNavigation,
   };
 }
 

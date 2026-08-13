@@ -7,7 +7,7 @@ import './order.css'
 const LANES = [
   { id: 'now', label: 'Do now', hint: 'The next actions worth attention.' },
   { id: 'later', label: 'Later', hint: 'Useful, but not for this moment.' },
-  { id: 'after', label: 'After', hint: 'Sequence after another item.' },
+  { id: 'after', label: 'After', hint: 'Continue after a related item is finished.' },
 ]
 
 const PRIORITIES = [
@@ -109,8 +109,10 @@ function OrderItemCard({
         </div>
       </div>
       <div className="order-item__actions">
-        <button aria-label={`Move ${item.title} earlier`} disabled={index === 0} onClick={() => onMoveBy(item, -1, laneItems, onMove)} title="Move earlier" type="button">^</button>
-        <button aria-label={`Move ${item.title} later`} disabled={index === laneItems.length - 1} onClick={() => onMoveBy(item, 1, laneItems, onMove)} title="Move later" type="button">v</button>
+        <div className="order-item__reorder-actions">
+          <button aria-label={`Move ${item.title} earlier`} disabled={index === 0} onClick={() => onMoveBy(item, -1, laneItems, onMove)} title="Move earlier" type="button">Move up</button>
+          <button aria-label={`Move ${item.title} later`} disabled={index === laneItems.length - 1} onClick={() => onMoveBy(item, 1, laneItems, onMove)} title="Move later" type="button">Move down</button>
+        </div>
         <div aria-label={`Move ${item.title} to another section`} className="order-item__lanes">
           {LANES.map((lane) => (
             <button
@@ -126,8 +128,10 @@ function OrderItemCard({
             </button>
           ))}
         </div>
-        <button aria-label={`Edit ${item.title}`} onClick={() => onEdit(item)} title="Edit item" type="button">Edit</button>
-        <button aria-label={`Complete ${item.title}`} className="order-item__complete-action" onClick={() => onComplete(item)} title="Complete and move to Completed" type="button">Done</button>
+        <div className="order-item__edit-actions">
+          <button aria-label={`Edit ${item.title}`} onClick={() => onEdit(item)} title="Edit item" type="button">Edit</button>
+          <button aria-label={`Complete ${item.title}`} className="order-item__complete-action" onClick={() => onComplete(item)} title="Complete and move to Completed" type="button">Done</button>
+        </div>
       </div>
     </article>
   )
@@ -137,6 +141,54 @@ function onMoveBy(item, direction, siblings, onMove) {
   const index = siblings.findIndex((candidate) => candidate.id === item.id)
   const next = siblings[index + direction]
   if (next) onMove(item.id, next.id, item.lane)
+}
+
+function OrderLane({
+  draggingId,
+  lane,
+  onAdd,
+  onComplete,
+  onDrop,
+  onEdit,
+  onMove,
+  onSetDragging,
+  onUpdate,
+  orderedItems,
+}) {
+  return (
+    <section
+      className={`order-lane order-lane--${lane.id}`}
+      data-order-lane={lane.id}
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={() => onDrop(lane.id)}
+    >
+      <div className="order-lane__header">
+        <div>
+          <h2>{lane.label}</h2>
+          <p>{lane.hint}</p>
+        </div>
+        <span aria-label={`${lane.items.length} items`} className="order-lane__count">{lane.items.length}</span>
+      </div>
+      <div className="order-lane__items">
+        {lane.items.length ? lane.items.map((item, index) => (
+          <OrderItemCard
+            dragging={draggingId === item.id}
+            index={index}
+            item={item}
+            key={item.id}
+            laneItems={lane.items}
+            onComplete={onComplete}
+            onEdit={onEdit}
+            onMove={onMove}
+            onSetDragging={onSetDragging}
+            onUpdate={onUpdate}
+            orderedItems={orderedItems}
+          />
+        )) : <p className="order-lane__empty">Drop an item here or add one below.</p>}
+      </div>
+      <button className="order-lane__add" onClick={() => onAdd(lane.id)} type="button"><span aria-hidden="true">+</span> Add to {lane.label.toLowerCase()}</button>
+    </section>
+  )
 }
 
 export function OrderWorkspace({
@@ -163,9 +215,9 @@ export function OrderWorkspace({
   const relationOptions = orderedItems.filter((item) => item.id !== draft?.id)
   const taskSectionOptions = sections.filter((section) => section.projectId === draft?.taskProjectId)
 
-  const openCreate = () => {
+  const openCreate = (lane = 'now') => {
     setEditing('create')
-    setDraft({ title: '', details: '', lane: 'now', relationId: null, priority: 4, status: 'open' })
+    setDraft({ title: '', details: '', lane, relationId: null, priority: 4, status: 'open' })
     setTransferError('')
   }
 
@@ -223,6 +275,10 @@ export function OrderWorkspace({
       block: 'start',
     })
   }
+  const dropIntoLane = (laneId) => {
+    if (draggingId) onUpdate(draggingId, { lane: laneId, relationId: null })
+    setDraggingId(null)
+  }
 
   return (
     <section aria-labelledby="order-title" className="order-workspace">
@@ -232,7 +288,7 @@ export function OrderWorkspace({
           <h1 id="order-title">Order</h1>
           <p>Turn loose thoughts into a sequence you can actually follow.</p>
         </div>
-        <button className="primary-button" onClick={openCreate} type="button">
+        <button className="primary-button" onClick={() => openCreate('now')} type="button">
           <span aria-hidden="true">+</span>
           Add item
         </button>
@@ -247,51 +303,51 @@ export function OrderWorkspace({
         <>
         <nav aria-label="Order sections" className="order-lane-nav">
           {grouped.map((lane) => (
-            <button key={lane.id} onClick={() => scrollToLane(lane.id)} type="button">
-              <span>{lane.label}</span>
-              <strong>{lane.items.length}</strong>
+            <button
+              className={`order-lane-nav__item order-lane-nav__item--${lane.id}`}
+              key={lane.id}
+              onClick={() => scrollToLane(lane.id)}
+              type="button"
+            >
+              <span aria-hidden="true" className="order-lane-nav__marker" />
+              <span className="order-lane-nav__copy">
+                <strong>{lane.label}</strong>
+                <small>{lane.hint}</small>
+              </span>
+              <span aria-label={`${lane.items.length} items`} className="order-lane-nav__count">{lane.items.length}</span>
             </button>
           ))}
         </nav>
         <div className="order-lanes">
-          {grouped.map((lane) => (
-            <section
-              className={`order-lane order-lane--${lane.id}`}
-              data-order-lane={lane.id}
-              key={lane.id}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={() => {
-                if (draggingId) onUpdate(draggingId, { lane: lane.id, relationId: null })
-                setDraggingId(null)
-              }}
-            >
-              <div className="order-lane__header">
-                <div>
-                  <h2>{lane.label}</h2>
-                  <p>{lane.hint}</p>
-                </div>
-                <span aria-label={`${lane.items.length} items`} className="order-lane__count">{lane.items.length}</span>
-              </div>
-              <div className="order-lane__items">
-                {lane.items.length ? lane.items.map((item, index) => (
-                  <OrderItemCard
-                    dragging={draggingId === item.id}
-                    index={index}
-                    item={item}
-                    key={item.id}
-                    laneItems={lane.items}
-                    onComplete={onComplete}
-                    onEdit={openEdit}
-                    onMove={onMove}
-                    onSetDragging={setDraggingId}
-                    onUpdate={onUpdate}
-                    orderedItems={orderedItems}
-                  />
-                )) : <p className="order-lane__empty">Drop an item here or add one below.</p>}
-              </div>
-              <button className="order-lane__add" onClick={openCreate} type="button"><span aria-hidden="true">+</span> Add to {lane.label.toLowerCase()}</button>
-            </section>
-          ))}
+          <OrderLane
+            draggingId={draggingId}
+            lane={grouped[0]}
+            onAdd={openCreate}
+            onComplete={onComplete}
+            onDrop={dropIntoLane}
+            onEdit={openEdit}
+            onMove={onMove}
+            onSetDragging={setDraggingId}
+            onUpdate={onUpdate}
+            orderedItems={orderedItems}
+          />
+          <div className="order-lanes__secondary">
+            {grouped.slice(1).map((lane) => (
+              <OrderLane
+                draggingId={draggingId}
+                key={lane.id}
+                lane={lane}
+                onAdd={openCreate}
+                onComplete={onComplete}
+                onDrop={dropIntoLane}
+                onEdit={openEdit}
+                onMove={onMove}
+                onSetDragging={setDraggingId}
+                onUpdate={onUpdate}
+                orderedItems={orderedItems}
+              />
+            ))}
+          </div>
         </div>
         </>
       ) : (
