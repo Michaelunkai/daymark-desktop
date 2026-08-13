@@ -8,6 +8,12 @@ import {
 } from 'react';
 
 import {
+  parseDateExpression,
+  toLocalDate,
+  type LocalDate,
+} from '../../core/dates';
+import { DatePicker } from '../calendar/DatePicker';
+import {
   getOrderTransferDestinationError,
   getTaskTransferDestinationError,
   updateTaskEditorDraft,
@@ -27,7 +33,13 @@ const PRIORITY_OPTIONS: Array<{ value: TaskPriority; label: string }> = [
   { value: 1, label: 'P1 - High' },
 ];
 
-type TransferAction = 'move' | 'copy' | 'moveToOrder' | 'copyToOrder';
+type TransferAction =
+  | 'move'
+  | 'copy'
+  | 'moveToDate'
+  | 'copyToDate'
+  | 'moveToOrder'
+  | 'copyToOrder';
 
 export function TaskEditor({
   isOpen,
@@ -53,6 +65,7 @@ export function TaskEditor({
   const titleId = useId().replace(/:/g, '');
   const surfaceRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+  const transferSectionRef = useRef<HTMLElement>(null);
   const [errors, setErrors] = useState<ReturnType<
     typeof validateTaskEditorDraft
   >['errors']>({});
@@ -72,6 +85,13 @@ export function TaskEditor({
 
   const isOrderTransfer =
     transferAction === 'moveToOrder' || transferAction === 'copyToOrder';
+  const isDateTransfer =
+    transferAction === 'moveToDate' || transferAction === 'copyToDate';
+  const today = toLocalDate(new Date());
+  const selectedTransferDate = parseDateExpression(
+    transferTarget.dueText,
+    today,
+  )?.date;
   const availableSections = sections.filter(
     (section) =>
       section.projectId ===
@@ -157,6 +177,22 @@ export function TaskEditor({
     }
     return undefined;
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!transferAction) {
+      return undefined;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      transferSectionRef.current?.scrollIntoView({
+        block: 'start',
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'auto'
+          : 'smooth',
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [transferAction]);
 
   if (!isOpen) {
     return null;
@@ -327,6 +363,23 @@ export function TaskEditor({
     }
   }
 
+  function finishDateTransfer(date?: LocalDate) {
+    if (!date || !isDateTransfer) {
+      return;
+    }
+
+    const nextDraft = updateTaskEditorDraft(
+      draft,
+      'dueText',
+      dueTextForSelectedDate(draft.dueText, date, today),
+    );
+    if (transferAction === 'moveToDate') {
+      onMoveTask?.(nextDraft);
+    } else {
+      onCopyTask?.(nextDraft);
+    }
+  }
+
   return (
     <div
       className={`task-editor__backdrop task-editor__backdrop--${presentation}`}
@@ -338,7 +391,7 @@ export function TaskEditor({
     >
       <section
         ref={surfaceRef}
-        className={`task-editor__surface task-editor__surface--${presentation}`}
+        className={`task-editor__surface task-editor__surface--${presentation}${isDateTransfer ? ' task-editor__surface--date-transfer' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={`${titleId}-heading`}
@@ -500,19 +553,49 @@ export function TaskEditor({
             </section>
 
             {mode === 'edit' && transferAction ? (
-              <section className="task-editor__section">
+              <section ref={transferSectionRef} className="task-editor__section task-editor__section--transfer">
                 <div className="task-editor__section-heading">
                   <div>
                     <p className="task-editor__eyebrow">Transfer</p>
                     <h3>
-                      {isOrderTransfer
+                      {isDateTransfer
+                        ? transferAction === 'moveToDate'
+                          ? 'Move to a calendar date'
+                          : 'Copy to a calendar date'
+                        : isOrderTransfer
                         ? 'Choose the Order section'
                         : 'Choose the task destination'}
                     </h3>
                   </div>
-                  <MoveIcon />
+                  {isDateTransfer ? <CalendarIcon /> : <MoveIcon />}
                 </div>
-                {isOrderTransfer ? (
+                {isDateTransfer ? (
+                  <div className="task-editor__date-transfer">
+                    <div className="task-editor__date-transfer-intro">
+                      <strong>
+                        {transferAction === 'moveToDate'
+                          ? 'Choose the new day'
+                          : 'Choose the day for the copy'}
+                      </strong>
+                      <span>
+                        Clicking a date completes the action immediately.
+                      </span>
+                    </div>
+                    <DatePicker
+                      value={selectedTransferDate}
+                      today={today}
+                      label={
+                        transferAction === 'moveToDate'
+                          ? 'Move task to date'
+                          : 'Copy task to date'
+                      }
+                      showTextEntry={false}
+                      allowClear={false}
+                      onDismiss={cancelTransfer}
+                      onChange={(date) => finishDateTransfer(date)}
+                    />
+                  </div>
+                ) : isOrderTransfer ? (
                   <>
                     <div className="task-editor__field">
                       <label htmlFor={ids.orderLane}>Order section</label>
@@ -806,6 +889,28 @@ export function TaskEditor({
                     Copy task
                   </button>
                 ) : null}
+                {onMoveTask ? (
+                  <button
+                    type="button"
+                    className="task-editor__button task-editor__button--secondary"
+                    onClick={() => startTransfer('moveToDate')}
+                    disabled={isSaving}
+                  >
+                    <CalendarMoveIcon />
+                    Move to date
+                  </button>
+                ) : null}
+                {onCopyTask ? (
+                  <button
+                    type="button"
+                    className="task-editor__button task-editor__button--secondary"
+                    onClick={() => startTransfer('copyToDate')}
+                    disabled={isSaving}
+                  >
+                    <CalendarCopyIcon />
+                    Copy to date
+                  </button>
+                ) : null}
                 {onMoveTaskToOrder ? (
                   <button
                     type="button"
@@ -830,7 +935,19 @@ export function TaskEditor({
                 ) : null}
               </div>
             ) : null}
-            {mode === 'edit' && transferAction ? (
+            {mode === 'edit' && transferAction && isDateTransfer ? (
+              <div className="task-editor__date-transfer-footer">
+                <span>Select a date above to complete the action.</span>
+                <button
+                  type="button"
+                  className="task-editor__button task-editor__button--secondary"
+                  onClick={cancelTransfer}
+                  disabled={isSaving}
+                >
+                  Cancel transfer
+                </button>
+              </div>
+            ) : mode === 'edit' && transferAction ? (
               <div className="task-editor__transfer-actions">
                 <button
                   type="button"
@@ -884,6 +1001,27 @@ export function TaskEditor({
       </section>
     </div>
   );
+}
+
+function dueTextForSelectedDate(
+  currentDueText: string,
+  date: LocalDate,
+  today: LocalDate,
+) {
+  const parsed = parseDateExpression(currentDueText, today);
+  if (!parsed?.time) {
+    return date;
+  }
+
+  const [hourText, minuteText = '00'] = parsed.time.split(':');
+  const hour = Number(hourText);
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
+    return date;
+  }
+
+  const suffix = hour >= 12 ? 'pm' : 'am';
+  const hour12 = hour % 12 || 12;
+  return `${date} at ${hour12}:${minuteText} ${suffix}`;
 }
 
 function PriorityMark({ priority }: { priority: TaskPriority }) {
@@ -1008,6 +1146,24 @@ function CopyIcon() {
     <Icon size={16}>
       <rect x="8" y="8" width="11" height="11" rx="1.5" />
       <path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8" />
+    </Icon>
+  );
+}
+
+function CalendarMoveIcon() {
+  return (
+    <Icon size={16}>
+      <rect x="3.5" y="5.5" width="13" height="14" rx="2" />
+      <path d="M7 3.5v4M13 3.5v4M3.5 9.5h13M18 13h3M19.5 11.5 21 13l-1.5 1.5" />
+    </Icon>
+  );
+}
+
+function CalendarCopyIcon() {
+  return (
+    <Icon size={16}>
+      <rect x="3.5" y="5.5" width="12" height="13" rx="2" />
+      <path d="M7 3.5v4M12 3.5v4M3.5 9.5h12M17 14h4M19 12v4" />
     </Icon>
   );
 }

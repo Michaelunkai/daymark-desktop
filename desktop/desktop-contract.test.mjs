@@ -15,6 +15,10 @@ const scrollVerifier = await readFile(
   new URL("../scripts/verify-windows-scroll.mjs", import.meta.url),
   "utf8",
 );
+const syncVerifier = await readFile(
+  new URL("../scripts/verify-windows-sync.mjs", import.meta.url),
+  "utf8",
+);
 const packageJson = JSON.parse(
   await readFile(new URL("../package.json", import.meta.url), "utf8"),
 );
@@ -83,4 +87,20 @@ test("packaged scroll verification counts movement from the known start position
   assert.match(scrollVerifier, /minimumBodyWidth >= 120/);
   assert.match(scrollVerifier, /minimumTitleWidth >= 120/);
   assert.match(scrollVerifier, /actionsBelowBody/);
+});
+
+test("packaged sync verification exercises task and every Order lane date calendar", () => {
+  assert.match(syncVerifier, /DAYMARK_LOCAL_CLIENT_PATH/);
+  assert.match(syncVerifier, /getByRole\("button", \{ name: "Move to date"/);
+  assert.match(syncVerifier, /getByRole\("button", \{ name: "Copy to date"/);
+  assert.match(syncVerifier, /calendarMoveToDate: true/);
+  assert.match(syncVerifier, /calendarCopyToDate: true/);
+  assert.match(syncVerifier, /lane: "now"/);
+  assert.match(syncVerifier, /lane: "later"/);
+  assert.match(syncVerifier, /lane: "after"/);
+  assert.match(syncVerifier, /orderCalendarTransfers: orderDateResults/);
+  assert.match(syncVerifier, /copyRetainedSource: true/);
+  assert.match(syncVerifier, /moveRemovedSource: true/);
+  assert.match(syncVerifier, /temporaryRecordsRemaining/);
+  assert.match(syncVerifier, /temporaryOrderRecordsRemaining/);
 });

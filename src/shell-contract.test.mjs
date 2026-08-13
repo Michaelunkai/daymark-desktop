@@ -179,6 +179,24 @@ test('Order transfers expose Today and any explicit calendar date', () => {
   assert.match(orderWorkspace, /placeholder="e\.g\. today or 2026-12-31"/)
 })
 
+test('every Order lane exposes direct move and copy calendar actions', () => {
+  assert.match(orderWorkspace, /const grouped = LANES\.map/)
+  assert.match(orderWorkspace, /items: orderedItems\.filter\(\(item\) => item\.lane === lane\.id\)/)
+  assert.match(orderWorkspace, /setDateTransferAction\('move'\)/)
+  assert.match(orderWorkspace, /setDateTransferAction\('copy'\)/)
+  assert.match(orderWorkspace, />Move to date</)
+  assert.match(orderWorkspace, />Copy to date</)
+  assert.match(orderWorkspace, /<DatePicker/)
+  assert.match(orderWorkspace, /onChange=\{transferOrderItemToDate\}/)
+  assert.match(
+    orderWorkspace,
+    /taskProjectId: null,[\s\S]*?taskSectionId: null,[\s\S]*?taskDueText: date/,
+  )
+  assert.match(orderStyles, /\.order-editor--date-transfer/)
+  assert.match(orderStyles, /\.order-editor__calendar-transfer \.date-picker__day \{[\s\S]*?height: 48px;/)
+  assert.match(orderStyles, /\.order-editor \{[\s\S]*?overflow-y: auto;[\s\S]*?scrollbar-gutter: stable;/)
+})
+
 test('shell styles include keyboard focus, mobile layout, and dark theme coverage', () => {
   assert.match(styles, /button:focus-visible/)
   assert.match(styles, /\[data-theme="dark"\]/)
@@ -241,4 +259,12 @@ test('transfer selects capture WebView values before scheduling state updates', 
   assert.match(taskEditor, /const \[transferReady, setTransferReady\] = useState\(false\);/)
   assert.match(taskEditor, /function armTransferAction\(\)/)
   assert.match(taskEditor, /disabled=\{isSaving \|\| !transferReady\}/)
+})
+
+test('every task editor exposes direct calendar move and copy actions', () => {
+  assert.match(taskEditor, /startTransfer\('moveToDate'\)/)
+  assert.match(taskEditor, /startTransfer\('copyToDate'\)/)
+  assert.match(taskEditor, /<DatePicker/)
+  assert.match(taskEditor, /onChange=\{\(date\) => finishDateTransfer\(date\)\}/)
+  assert.match(taskEditor, /task-editor__surface--date-transfer/)
 })

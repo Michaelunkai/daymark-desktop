@@ -51,6 +51,17 @@
   box-shadow: 0 24px 72px rgb(35 29 27 / 22%);
 }
 
+.task-editor__surface--date-transfer {
+  width: min(100%, 660px);
+  height: min(100%, 840px);
+}
+
+.task-editor__surface--date-transfer
+  .task-editor__content
+  > .task-editor__section:not(.task-editor__section--transfer) {
+  display: none;
+}
+
 .task-editor__header {
   display: flex;
   align-items: flex-start;
@@ -139,6 +150,10 @@
 
 .task-editor__section--primary {
   padding-top: 28px;
+}
+
+.task-editor__section--transfer {
+  scroll-margin-top: 12px;
 }
 
 .task-editor__section-heading {
@@ -336,6 +351,99 @@
   color: var(--editor-text);
 }
 
+.task-editor__date-transfer {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid var(--editor-border);
+  border-radius: 8px;
+  background: var(--editor-canvas);
+}
+
+.task-editor__date-transfer-intro {
+  display: grid;
+  gap: 3px;
+}
+
+.task-editor__date-transfer-intro strong {
+  color: var(--editor-text);
+  font-size: 15px;
+}
+
+.task-editor__date-transfer-intro span,
+.task-editor__date-transfer-footer > span {
+  color: var(--editor-muted);
+  font-size: 12px;
+}
+
+.task-editor__date-transfer .date-picker {
+  --textPrimary: var(--editor-text);
+  --textSecondary: var(--editor-muted);
+  --textTertiary: var(--editor-subtle);
+  --border: var(--editor-border);
+  --surfaceHover: var(--color-surface-hover);
+  --accent: var(--editor-accent);
+  --accentHover: var(--editor-accent-strong);
+  --focusRing: var(--editor-focus);
+
+  width: 100%;
+  max-width: none;
+  font-family: inherit;
+}
+
+.task-editor__date-transfer .date-picker__quick-actions {
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.task-editor__date-transfer .date-picker__quick-actions button {
+  min-height: 34px;
+  padding: 6px 11px;
+  border: 1px solid var(--editor-border);
+  border-radius: 6px;
+  background: var(--editor-surface);
+  color: var(--editor-muted);
+  font-weight: 680;
+}
+
+.task-editor__date-transfer .date-picker__quick-actions button:hover {
+  border-color: var(--editor-border-strong);
+  color: var(--editor-text);
+}
+
+.task-editor__date-transfer .date-picker__header {
+  margin-bottom: 10px;
+}
+
+.task-editor__date-transfer .date-picker__header strong {
+  color: var(--editor-text);
+  font-size: 17px;
+}
+
+.task-editor__date-transfer .date-picker__weekdays {
+  margin-bottom: 6px;
+  color: var(--editor-muted);
+  font-size: 11px;
+  font-weight: 740;
+}
+
+.task-editor__date-transfer .date-picker__grid {
+  gap: 4px;
+}
+
+.task-editor__date-transfer .date-picker__day {
+  height: 48px;
+  min-height: 48px;
+  aspect-ratio: auto;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-size: 14px;
+}
+
+.task-editor__date-transfer .date-picker__day:hover:not(:disabled) {
+  border-color: var(--editor-border);
+}
+
 .task-editor__priority-control {
   gap: 9px;
 }
@@ -504,6 +612,15 @@
   margin-right: auto;
 }
 
+.task-editor__date-transfer-footer {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .task-editor__button {
   display: inline-flex;
   align-items: center;
@@ -591,6 +708,20 @@
   }
 
   .task-editor__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .task-editor__date-transfer {
+    padding: 14px;
+  }
+
+  .task-editor__date-transfer .date-picker__day {
+    height: 40px;
+    min-height: 40px;
+  }
+
+  .task-editor__date-transfer-footer {
     align-items: stretch;
     flex-direction: column;
   }

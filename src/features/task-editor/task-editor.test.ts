@@ -40,3 +40,16 @@ test('keeps Today and arbitrary due dates inside every task transfer flow', () =
   assert.match(source, /placeholder="e\.g\. today or 2026-12-31"/);
   assert.match(source, /'dueText',\s*transferTarget\.dueText/);
 });
+
+test('offers direct move and copy calendar actions for every editable task', () => {
+  assert.match(source, /type TransferAction =[\s\S]*?'moveToDate'[\s\S]*?'copyToDate'/);
+  assert.match(source, /startTransfer\('moveToDate'\)/);
+  assert.match(source, /startTransfer\('copyToDate'\)/);
+  assert.match(source, />\s*Move to date\s*</);
+  assert.match(source, />\s*Copy to date\s*</);
+  assert.match(source, /<DatePicker/);
+  assert.match(source, /showTextEntry=\{false\}/);
+  assert.match(source, /allowClear=\{false\}/);
+  assert.match(source, /onChange=\{\(date\) => finishDateTransfer\(date\)\}/);
+  assert.match(source, /dueTextForSelectedDate/);
+});

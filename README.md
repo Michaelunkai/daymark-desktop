@@ -25,18 +25,18 @@ dedicated, persistent desktop session. It uses the existing pairing code,
 optimistic revision checks, timestamp merges, and deletion tombstones rather
 than introducing a separate desktop data store.
 
-Download Daymark for Windows `1.4.33`:
+Download Daymark for Windows `1.4.34`:
 
-- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.33-windows/Daymark-Windows-Setup-1.4.33-x64.exe)
-- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.33-windows/Daymark-Windows-Portable-1.4.33-x64.exe)
-- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.33-windows)
+- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.34-windows/Daymark-Windows-Setup-1.4.34-x64.exe)
+- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.34-windows/Daymark-Windows-Portable-1.4.34-x64.exe)
+- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.34-windows)
 
 SHA-256:
 
 - Installer:
-  `D4A76192973992426571FE22BEA2AF3F2FB9D04D0E802399F6AE9D3BCBB36679`
+  `A147692962909700F96710CBBDF0ED0913A22F15B8BD8D06A8A8891C47C6C472`
 - Portable:
-  `43F7EB570CAE55925FADF055456FC1E18FFB495B0E3E574A136FFD7761E40985`
+  `7D299E4B36BCFCBA1D717AF43C0C8262BF417D17555DF061C57F2D8FA87667DE`
 
 These Windows binaries are not Authenticode-signed, so Windows SmartScreen may
 display its standard warning on first download.
@@ -51,15 +51,17 @@ npm run desktop:verify
 The generated artifacts are written to `release/windows`. The installer keeps
 Daymark's local Windows session data when uninstalling so an accidental
 uninstall does not silently erase the desktop pairing and cached workspace.
-Windows `1.4.33` uses a native detached launcher, so Command Prompt and
+Windows `1.4.34` uses a native detached launcher, so Command Prompt and
 PowerShell return immediately with no Electron diagnostics while the Daymark
 window keeps running. It provides smooth mouse-wheel scrolling and visible
 draggable scrollbars across the projects sidebar and main workspace. Task and
 Order layouts reserve readable width for complete titles and details instead
 of collapsing content into narrow columns. Order keeps Do now, Later, and
 After visible through a persistent section navigator and presents all three as
-equal side-by-side columns on wide Windows displays. Move and copy controls can
-schedule the destination for Today, Tomorrow, no date, or any explicit calendar date.
+equal side-by-side columns on wide Windows displays. Every task and every Order
+item in Do now, Later, and After exposes direct Move to date and Copy to date
+actions with a full six-week calendar. Order copies retain the source item,
+while Order moves remove it only after the dated Inbox task is created.
 Responsive checks cover narrow windows and 150% Windows display scaling so
 controls remain reachable instead of being cropped.
 

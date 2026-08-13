@@ -481,6 +481,37 @@ assert(
     ),
   "Moving an Order item to tasks should preserve the selected project and day.",
 );
+
+const orderCopiedToDate = reduce(
+  base,
+  {
+    type: "task.add",
+    input: {
+      id: "task-order-date-copy",
+      content: "Order item calendar copy",
+      description: "Copied from the sequence.",
+      projectId: null,
+      sectionId: null,
+      due: {
+        date: "2026-08-20",
+        time: null,
+        timezone: null,
+        recurrence: null,
+      },
+    },
+  },
+  timestamp,
+);
+assert(
+  orderCopiedToDate.ok &&
+    orderCopiedToDate.state.orderItems["order-welcome"] &&
+    orderCopiedToDate.state.tasks["task-order-date-copy"]?.projectId ===
+      base.preferences.inboxProjectId &&
+    orderCopiedToDate.state.tasks["task-order-date-copy"]?.sectionId === null &&
+    orderCopiedToDate.state.tasks["task-order-date-copy"]?.due?.date === "2026-08-20",
+  "Copying an Order item to a calendar date should retain the item and create the dated Inbox task.",
+);
+
 const orderToTaskUndone = orderToTask.ok
   ? reduce(orderToTask.state, { type: "undo" }, timestamp)
   : orderToTask;

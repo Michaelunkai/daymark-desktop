@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { toLocalDate } from '../../core/dates'
+import { DatePicker } from '../calendar/DatePicker'
 import { createLongPressReorderController } from '../reorder/long-press.js'
 import { getTaskTransferDestinationError } from '../task-editor/form-state'
 import './order.css'
@@ -205,7 +207,10 @@ export function OrderWorkspace({
   const [editing, setEditing] = useState(null)
   const [draft, setDraft] = useState(null)
   const [transferError, setTransferError] = useState('')
+  const [dateTransferAction, setDateTransferAction] = useState(null)
   const [draggingId, setDraggingId] = useState(null)
+  const dateTransferRef = useRef(null)
+  const today = useMemo(() => toLocalDate(new Date()), [])
   const orderedItems = useMemo(
     () => [...items]
       .map((item) => item.lane === 'before' ? { ...item, lane: 'after' } : item)
@@ -215,22 +220,33 @@ export function OrderWorkspace({
   const relationOptions = orderedItems.filter((item) => item.id !== draft?.id)
   const taskSectionOptions = sections.filter((section) => section.projectId === draft?.taskProjectId)
 
+  useEffect(() => {
+    if (!dateTransferAction) return undefined
+    const frame = window.requestAnimationFrame(() => {
+      dateTransferRef.current?.querySelector('.date-picker__day[tabindex="0"]')?.focus()
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [dateTransferAction])
+
   const openCreate = (lane = 'now') => {
     setEditing('create')
     setDraft({ title: '', details: '', lane, relationId: null, priority: 4, status: 'open' })
     setTransferError('')
+    setDateTransferAction(null)
   }
 
   const openEdit = (item) => {
     setEditing(item.id)
     setDraft({ ...item, taskProjectId: '', taskSectionId: '', taskDueText: '' })
     setTransferError('')
+    setDateTransferAction(null)
   }
 
   const closeEditor = () => {
     setEditing(null)
     setDraft(null)
     setTransferError('')
+    setDateTransferAction(null)
   }
 
   const save = (event) => {
@@ -255,6 +271,19 @@ export function OrderWorkspace({
       return
     }
     if (callback(editing, draft)) closeEditor()
+  }
+
+  const transferOrderItemToDate = (date) => {
+    if (!date || !dateTransferAction || !editing || editing === 'create') return
+    const callback = dateTransferAction === 'move' ? onMoveToTask : onCopyToTask
+    if (!callback) return
+    const scheduledTaskDraft = {
+      ...draft,
+      taskProjectId: null,
+      taskSectionId: null,
+      taskDueText: date,
+    }
+    if (callback(editing, scheduledTaskDraft)) closeEditor()
   }
 
   const moveBy = (item, direction) => {
@@ -347,14 +376,47 @@ export function OrderWorkspace({
 
       {editing ? (
         <div className="order-editor-overlay" onMouseDown={(event) => event.target === event.currentTarget && closeEditor()}>
-          <form aria-labelledby="order-editor-title" className="order-editor" onSubmit={save}>
+          <form
+            aria-labelledby="order-editor-title"
+            className={`order-editor${dateTransferAction ? ' order-editor--date-transfer' : ''}`}
+            onSubmit={save}
+          >
             <div className="order-editor__header">
               <div>
                 <span className="section-kicker">ORDER ITEM</span>
-                <h2 id="order-editor-title">{editing === 'create' ? 'Add to the sequence' : 'Edit sequence item'}</h2>
+                <h2 id="order-editor-title">
+                  {dateTransferAction === 'move'
+                    ? 'Move item to a calendar date'
+                    : dateTransferAction === 'copy'
+                      ? 'Copy item to a calendar date'
+                      : editing === 'create'
+                        ? 'Add to the sequence'
+                        : 'Edit sequence item'}
+                </h2>
               </div>
               <button aria-label="Close Order editor" className="icon-button" onClick={closeEditor} title="Close" type="button">x</button>
             </div>
+            {dateTransferAction ? (
+              <section className="order-editor__calendar-transfer" ref={dateTransferRef}>
+                <div className="order-editor__calendar-transfer-intro">
+                  <span className="section-kicker">CALENDAR DESTINATION</span>
+                  <strong>
+                    {dateTransferAction === 'move'
+                      ? 'Choose the day for this item'
+                      : 'Choose the day for the copy'}
+                  </strong>
+                  <span>Clicking a date completes the action immediately in Inbox.</span>
+                </div>
+                <DatePicker
+                  allowClear={false}
+                  label={dateTransferAction === 'move' ? 'Move Order item to date' : 'Copy Order item to date'}
+                  onChange={transferOrderItemToDate}
+                  onDismiss={() => setDateTransferAction(null)}
+                  showTextEntry={false}
+                  today={today}
+                />
+              </section>
+            ) : null}
             <label>Title<input autoFocus onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} /></label>
             <label>Details<textarea onChange={(event) => setDraft({ ...draft, details: event.target.value })} rows={6} value={draft.details} /></label>
             <div className="order-editor__grid">
@@ -416,6 +478,8 @@ export function OrderWorkspace({
             <footer className="order-editor__footer">
               {editing !== 'create' && (onMoveToTask || onCopyToTask) ? (
                 <div className="order-editor__transfer-actions">
+                  {onMoveToTask ? <button className="secondary-button" onClick={() => setDateTransferAction('move')} type="button">Move to date</button> : null}
+                  {onCopyToTask ? <button className="secondary-button" onClick={() => setDateTransferAction('copy')} type="button">Copy to date</button> : null}
                   {onMoveToTask ? <button className="secondary-button" onClick={() => transferToTask(onMoveToTask)} type="button">Move to task</button> : null}
                   {onCopyToTask ? <button className="secondary-button" onClick={() => transferToTask(onCopyToTask)} type="button">Copy to task</button> : null}
                 </div>
@@ -425,6 +489,14 @@ export function OrderWorkspace({
                 <button className="primary-button" type="submit">Save item</button>
               </div>
             </footer>
+            {dateTransferAction ? (
+              <footer className="order-editor__date-transfer-footer">
+                <span>Select a date above to complete the action.</span>
+                <button className="secondary-button" onClick={() => setDateTransferAction(null)} type="button">
+                  Cancel transfer
+                </button>
+              </footer>
+            ) : null}
           </form>
         </div>
       ) : null}

@@ -21,6 +21,8 @@ export type DatePickerProps = {
   dateCounts?: Record<LocalDate, number>
   weekStartsOn?: WeekStart
   label?: string
+  showTextEntry?: boolean
+  allowClear?: boolean
 }
 
 export function DatePicker({
@@ -33,6 +35,8 @@ export function DatePicker({
   dateCounts = {},
   weekStartsOn = 0,
   label = "Choose a date",
+  showTextEntry = true,
+  allowClear = true,
 }: DatePickerProps) {
   const [visibleMonth, setVisibleMonth] = useState(() => value ?? today)
   const [draft, setDraft] = useState("")
@@ -83,6 +87,8 @@ export function DatePicker({
       return
     }
     if (event.key === "Escape") {
+      event.preventDefault()
+      event.stopPropagation()
       onDismiss?.()
       return
     }
@@ -109,20 +115,22 @@ export function DatePicker({
 
   return (
     <section className="date-picker" aria-label={label}>
-      <form className="date-picker__entry" onSubmit={submitDraft}>
-        <label htmlFor={gridId}>Schedule</label>
-        <input
-          id={gridId}
-          value={draft}
-          placeholder="Try tomorrow or 2026-08-15"
-          onChange={(event) => setDraft(event.target.value)}
-        />
-      </form>
+      {showTextEntry ? (
+        <form className="date-picker__entry" onSubmit={submitDraft}>
+          <label htmlFor={gridId}>Schedule</label>
+          <input
+            id={gridId}
+            value={draft}
+            placeholder="Try tomorrow or 2026-08-15"
+            onChange={(event) => setDraft(event.target.value)}
+          />
+        </form>
+      ) : null}
       <div className="date-picker__quick-actions" aria-label="Quick dates">
         <button type="button" onClick={() => choose(today)}>Today</button>
         <button type="button" onClick={() => choose(addDays(today, 1))}>Tomorrow</button>
         <button type="button" onClick={() => choose(addDays(today, 7))}>Next week</button>
-        {value ? <button type="button" onClick={() => onChange(undefined)}>Clear date</button> : null}
+        {allowClear && value ? <button type="button" onClick={() => onChange(undefined)}>Clear date</button> : null}
       </div>
       <div className="date-picker__header">
         <button type="button" aria-label="Previous month" onClick={() => setVisibleMonth((month) => shiftMonth(month, -1))}>
@@ -149,6 +157,7 @@ export function DatePicker({
               }}
               type="button"
               role="gridcell"
+              data-date={day.date}
               tabIndex={isFocusable ? 0 : -1}
               disabled={day.isDisabled}
               aria-current={day.isToday ? "date" : undefined}
