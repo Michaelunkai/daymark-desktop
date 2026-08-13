@@ -6,6 +6,10 @@ const source = readFileSync(
   new URL('./TaskEditor.tsx', import.meta.url),
   'utf8',
 );
+const styles = readFileSync(
+  new URL('./task-editor.css', import.meta.url),
+  'utf8',
+);
 
 test('shows only the active transfer controls while a destination is being chosen', () => {
   assert.match(
@@ -52,4 +56,15 @@ test('offers direct move and copy calendar actions for every editable task', () 
   assert.match(source, /allowClear=\{false\}/);
   assert.match(source, /onChange=\{\(date\) => finishDateTransfer\(date\)\}/);
   assert.match(source, /dueTextForSelectedDate/);
+});
+
+test('keeps date and Order transfer actions reachable in compact Android viewports', () => {
+  assert.match(
+    source,
+    /Move to date[\s\S]*?Copy to date[\s\S]*?Move to Order[\s\S]*?Copy to Order/,
+  );
+  assert.match(
+    styles,
+    /@media \(max-width: 680px\)[\s\S]*?\.task-editor__transfer-actions\s*\{[\s\S]*?max-height:\s*min\(34dvh,\s*220px\)[\s\S]*?overflow-y:\s*auto[\s\S]*?overscroll-behavior:\s*contain[\s\S]*?-webkit-overflow-scrolling:\s*touch[\s\S]*?touch-action:\s*pan-y/,
+  );
 });
