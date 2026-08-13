@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url";
 import { _electron as electron } from "playwright-core";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const executablePath = path.join(root, "release", "windows", "win-unpacked", "Daymark.exe");
+const executablePath = process.env.DAYMARK_RUNTIME_EXECUTABLE_PATH
+  ?? path.join(root, "release", "windows", "win-unpacked", "Daymark Runtime.exe");
 const evidenceDirectory = path.join(root, "release", "windows", "evidence");
 const userDataDirectory = path.join(evidenceDirectory, "runtime-profile");
 const screenshotPath = path.join(evidenceDirectory, "daymark-windows-runtime.png");

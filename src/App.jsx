@@ -3409,7 +3409,11 @@ function App() {
     const result = appStore.dispatch({
       type: 'task.update',
       taskId: taskEditor.taskId,
-      patch: adapted.value,
+      patch: {
+        ...adapted.value,
+        completedAt: null,
+        completionContext: null,
+      },
     })
     if (!result.ok) {
       setNotice(result.message)

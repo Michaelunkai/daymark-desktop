@@ -25,18 +25,18 @@ dedicated, persistent desktop session. It uses the existing pairing code,
 optimistic revision checks, timestamp merges, and deletion tombstones rather
 than introducing a separate desktop data store.
 
-Download Daymark for Windows `1.4.29`:
+Download Daymark for Windows `1.4.30`:
 
-- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.29-windows/Daymark-Windows-Setup-1.4.29-x64.exe)
-- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.29-windows/Daymark-Windows-Portable-1.4.29-x64.exe)
-- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.29-windows)
+- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.30-windows/Daymark-Windows-Setup-1.4.30-x64.exe)
+- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.30-windows/Daymark-Windows-Portable-1.4.30-x64.exe)
+- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.30-windows)
 
 SHA-256:
 
 - Installer:
-  `684172D06306CA75AEDA670D52FC9E3E0B9B29C124B961BB17DE28B89F711B7A`
+  `A362558B6981E692C1CBAA21E2588EEBBABE1BAC6526893E2FAD3993AA099ADB`
 - Portable:
-  `C593A17FE0454D9C25363FF2E6406365E2FDBB14E5390FBBF393613FD6AD1DB3`
+  `882CC37883F6ECC33FA83709430FDA8B491B779AEBCD1534F7CEF77AE8B5245B`
 
 These Windows binaries are not Authenticode-signed, so Windows SmartScreen may
 display its standard warning on first download.
@@ -51,12 +51,15 @@ npm run desktop:verify
 The generated artifacts are written to `release/windows`. The installer keeps
 Daymark's local Windows session data when uninstalling so an accidental
 uninstall does not silently erase the desktop pairing and cached workspace.
-Windows `1.4.29` returns Command Prompt and PowerShell immediately after a
-direct executable launch while the detached Daymark window keeps running.
-It also provides mouse-wheel scrolling and visible draggable scrollbars across
-the projects sidebar and main workspace. Responsive layout checks cover narrow
-windows and 150% Windows display scaling so controls remain reachable instead
-of being cropped.
+Windows `1.4.30` uses a native detached launcher, so Command Prompt and
+PowerShell return immediately with no Electron diagnostics while the Daymark
+window keeps running. It provides smooth mouse-wheel scrolling and visible
+draggable scrollbars across the projects sidebar and main workspace. Task and
+Order layouts reserve readable width for complete titles and details instead
+of collapsing content into narrow columns. Move and copy controls can schedule
+the destination for Today, Tomorrow, no date, or any explicit calendar date.
+Responsive checks cover narrow windows and 150% Windows display scaling so
+controls remain reachable instead of being cropped.
 
 The next signed package is `1.4.22`, package `com.michaelunkai.daymark`,
 version code `26`. It preserves completed Order items as completed tasks,

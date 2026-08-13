@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url";
 import { _electron as electron } from "playwright-core";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const executablePath = path.join(root, "release", "windows", "win-unpacked", "Daymark.exe");
+const executablePath = process.env.DAYMARK_RUNTIME_EXECUTABLE_PATH
+  ?? path.join(root, "release", "windows", "win-unpacked", "Daymark Runtime.exe");
 const evidenceDirectory = path.join(root, "release", "windows", "evidence");
 const profilePath = path.join(evidenceDirectory, "scroll-profile");
 const wheelDelta = 420;
@@ -140,6 +141,103 @@ async function verifyShellViewportBounds(page) {
   return result;
 }
 
+async function verifyReadableLayout(page, route, label) {
+  const result = await page.evaluate((nextRoute) => {
+    const main = document.querySelector(".main-content");
+    if (!(main instanceof HTMLElement)) {
+      return { ok: false, error: "The main workspace is missing." };
+    }
+
+    const tolerance = 2;
+    const mainRect = main.getBoundingClientRect();
+    const visibleContent = [...document.querySelectorAll(".task-row, .order-lane, .order-item")]
+      .filter((element) => element instanceof HTMLElement)
+      .map((element) => ({ element, rect: element.getBoundingClientRect() }))
+      .filter(({ rect }) =>
+        rect.width > 0
+        && rect.height > 0
+        && rect.bottom > mainRect.top
+        && rect.top < mainRect.bottom,
+      );
+    const escaped = visibleContent
+      .filter(({ rect }) =>
+        rect.left < mainRect.left - tolerance
+        || rect.right > mainRect.right + tolerance,
+      )
+      .map(({ element }) => element.className);
+
+    const layout = {
+      route: nextRoute,
+      mainClientWidth: main.clientWidth,
+      mainScrollWidth: main.scrollWidth,
+      visibleContentCount: visibleContent.length,
+      escaped,
+    };
+
+    if (nextRoute !== "order") {
+      return {
+        ok: main.scrollWidth <= main.clientWidth + tolerance && escaped.length === 0,
+        ...layout,
+      };
+    }
+
+    const lanes = document.querySelector(".order-lanes");
+    const cards = [...document.querySelectorAll(".order-item")]
+      .filter((element) => element instanceof HTMLElement && element.getClientRects().length > 0);
+    const cardMetrics = cards.map((card) => {
+      const body = card.querySelector(".order-item__body");
+      const actions = card.querySelector(".order-item__actions");
+      const title = card.querySelector(".order-item__title");
+      const bodyRect = body?.getBoundingClientRect();
+      const actionsRect = actions?.getBoundingClientRect();
+      const titleRect = title?.getBoundingClientRect();
+      return {
+        bodyWidth: bodyRect?.width ?? 0,
+        titleWidth: titleRect?.width ?? 0,
+        actionsBelowBody: Boolean(
+          bodyRect
+          && actionsRect
+          && actionsRect.top >= bodyRect.bottom - tolerance,
+        ),
+      };
+    });
+    const laneColumnCount = lanes instanceof HTMLElement
+      ? getComputedStyle(lanes).gridTemplateColumns.split(/\s+/).filter(Boolean).length
+      : 0;
+    const minimumBodyWidth = cardMetrics.length
+      ? Math.min(...cardMetrics.map((card) => card.bodyWidth))
+      : 0;
+    const minimumTitleWidth = cardMetrics.length
+      ? Math.min(...cardMetrics.map((card) => card.titleWidth))
+      : 0;
+    const actionsBelowBody = cardMetrics.every((card) => card.actionsBelowBody);
+
+    return {
+      ok: main.scrollWidth <= main.clientWidth + tolerance
+        && escaped.length === 0
+        && cards.length > 0
+        && laneColumnCount > 0
+        && laneColumnCount <= 2
+        && minimumBodyWidth >= 120
+        && minimumTitleWidth >= 120
+        && actionsBelowBody,
+      ...layout,
+      order: {
+        cardCount: cards.length,
+        laneColumnCount,
+        minimumBodyWidth: Math.round(minimumBodyWidth),
+        minimumTitleWidth: Math.round(minimumTitleWidth),
+        actionsBelowBody,
+      },
+    };
+  }, route);
+
+  if (!result.ok) {
+    throw new Error(`Content is cropped or unreadably compressed for ${label}: ${JSON.stringify(result)}`);
+  }
+  return result;
+}
+
 async function verifyRoute(page, route, label) {
   const navigation = await page.evaluate((nextRoute) => window.DaymarkAI.navigate(nextRoute), route);
   if (!navigation?.ok) throw new Error(`Navigation was rejected for ${label}: ${JSON.stringify(navigation)}`);
@@ -149,9 +247,10 @@ async function verifyRoute(page, route, label) {
     { timeout: 10000 },
   );
   await page.waitForTimeout(180);
+  const layout = await verifyReadableLayout(page, route, label);
 
   const target = await findPrimaryScrollTarget(page);
-  if (!target) return { route, label, scrollable: false };
+  if (!target) return { route, label, scrollable: false, layout };
 
   const start = await page.locator(target.selector).evaluate((element) => ({
     active: element.classList.contains("daymark-smooth-wheel-active"),
@@ -182,6 +281,7 @@ async function verifyRoute(page, route, label) {
     downEnd: Math.round(downEnd.y * 10) / 10,
     upFrames: distinctPositions([downEnd, ...up]),
     upEnd: Math.round(upEnd.y * 10) / 10,
+    layout,
   };
 }
 

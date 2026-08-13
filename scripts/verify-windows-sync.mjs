@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url";
 import { _electron as electron } from "playwright-core";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const executablePath = path.join(root, "release", "windows", "win-unpacked", "Daymark.exe");
+const executablePath = process.env.DAYMARK_RUNTIME_EXECUTABLE_PATH
+  ?? path.join(root, "release", "windows", "win-unpacked", "Daymark Runtime.exe");
 const profilePath = path.join(root, "release", "windows", "evidence", "sync-profile");
 const origin = "https://daymark-desktop.michaelovsky55555.chatgpt.site";
 const runId = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;

@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const executablePath = process.env.DAYMARK_EXECUTABLE_PATH
   ?? path.join(root, "release", "windows", "win-unpacked", "Daymark.exe");
+const runtimeExecutablePath = process.env.DAYMARK_RUNTIME_EXECUTABLE_PATH
+  ?? path.join(path.dirname(executablePath), "Daymark Runtime.exe");
 const evidenceDirectory = path.join(root, "release", "windows", "evidence");
 const systemRoot = process.env.SystemRoot ?? "C:\\Windows";
 const commandPrompt = process.env.ComSpec ?? path.join(systemRoot, "System32", "cmd.exe");
@@ -28,6 +30,10 @@ function runShell({ name, file, args, input }) {
   return new Promise((resolve, reject) => {
     const shell = spawn(file, args, {
       cwd: path.dirname(executablePath),
+      env: {
+        ...process.env,
+        NODE_OPTIONS: "--dns-result-order=ipv4first",
+      },
       stdio: ["pipe", "pipe", "pipe"],
       windowsHide: true,
     });
@@ -74,9 +80,9 @@ function runPowerShell(command) {
 }
 
 function findDaymarkWindow() {
-  const exe = escapePowerShell(executablePath);
+  const exe = escapePowerShell(runtimeExecutablePath);
   const result = runPowerShell(`
-    $process = Get-Process -Name Daymark -ErrorAction SilentlyContinue |
+    $process = Get-Process -ErrorAction SilentlyContinue |
       Where-Object { $_.Path -eq '${exe}' -and $_.MainWindowHandle -ne 0 } |
       Select-Object -First 1
     if (-not $process) { exit 1 }
@@ -102,9 +108,9 @@ async function waitForDaymarkWindow() {
 }
 
 async function closeDaymark() {
-  const exe = escapePowerShell(executablePath);
+  const exe = escapePowerShell(runtimeExecutablePath);
   runPowerShell(`
-    Get-Process -Name Daymark -ErrorAction SilentlyContinue |
+    Get-Process -ErrorAction SilentlyContinue |
       Where-Object { $_.Path -eq '${exe}' -and $_.MainWindowHandle -ne 0 } |
       ForEach-Object { [void]$_.CloseMainWindow() }
   `);
@@ -132,8 +138,11 @@ async function verifyShell(name, file, args, command) {
   if (result.code !== 0 || !result.stdout.includes(marker)) {
     throw new Error(`${name} did not continue after Daymark launch: ${JSON.stringify(result)}`);
   }
+  if (result.stderr.trim()) {
+    throw new Error(`${name} received terminal output after launch: ${JSON.stringify(result)}`);
+  }
   const window = await waitForDaymarkWindow();
-  if (!window.responding || window.path !== executablePath || !window.title) {
+  if (!window.responding || window.path !== runtimeExecutablePath || !window.title) {
     throw new Error(`${name} left an invalid Daymark window: ${JSON.stringify(window)}`);
   }
   await closeDaymark();
@@ -144,6 +153,7 @@ async function verifyShell(name, file, args, command) {
     appRemainedRunning: true,
     appResponding: window.responding,
     windowTitle: window.title,
+    terminalStderr: result.stderr,
   };
 }
 
@@ -176,5 +186,7 @@ const powershellResult = await verifyShell(
 console.log(JSON.stringify({
   ok: true,
   executablePath,
+  runtimeExecutablePath,
+  nodeOptions: "--dns-result-order=ipv4first",
   results: [commandPromptResult, powershellResult],
 }));

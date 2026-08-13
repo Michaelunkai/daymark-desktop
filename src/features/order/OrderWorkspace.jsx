@@ -354,7 +354,19 @@ export function OrderWorkspace({
                     <option value="__none__">No section</option>
                     {taskSectionOptions.map((section) => <option disabled={section.disabled} key={section.id} value={section.id}>{section.label}</option>)}
                   </select></label>
-                  <label>Due date<input onChange={(event) => setDraft({ ...draft, taskDueText: event.target.value })} placeholder="e.g. tomorrow" value={draft.taskDueText ?? ''} /></label>
+                  <label className="order-editor__transfer-date">
+                    Schedule destination
+                    <span className="order-editor__date-shortcuts">
+                      <button onClick={() => setDraft({ ...draft, taskDueText: 'today' })} type="button">Today</button>
+                      <button onClick={() => setDraft({ ...draft, taskDueText: 'tomorrow' })} type="button">Tomorrow</button>
+                      <button onClick={() => setDraft({ ...draft, taskDueText: '' })} type="button">No date</button>
+                    </span>
+                    <input
+                      onChange={(event) => setDraft({ ...draft, taskDueText: event.target.value })}
+                      placeholder="e.g. today or 2026-12-31"
+                      value={draft.taskDueText ?? ''}
+                    />
+                  </label>
                 </div>
                 {transferError ? <p className="order-editor__transfer-error" role="alert">{transferError}</p> : null}
               </section>

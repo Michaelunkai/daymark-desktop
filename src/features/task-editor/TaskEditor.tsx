@@ -62,6 +62,7 @@ export function TaskEditor({
   const [transferTarget, setTransferTarget] = useState({
     projectId: '',
     sectionId: '',
+    dueText: draft.dueText,
     orderLane: '',
     orderRelationId: '',
   });
@@ -144,6 +145,7 @@ export function TaskEditor({
     setTransferTarget({
       projectId: '',
       sectionId: '',
+      dueText: '',
       orderLane: '',
       orderRelationId: '',
     });
@@ -235,6 +237,7 @@ export function TaskEditor({
     setTransferTarget({
       projectId: '',
       sectionId: '',
+      dueText: draft.dueText,
       orderLane: '',
       orderRelationId: '',
     });
@@ -309,9 +312,13 @@ export function TaskEditor({
         ? null
         : transferTarget.sectionId;
     const nextDraft = updateTaskEditorDraft(
-      updateTaskEditorDraft(draft, 'projectId', projectId),
-      'sectionId',
-      sectionId,
+      updateTaskEditorDraft(
+        updateTaskEditorDraft(draft, 'projectId', projectId),
+        'sectionId',
+        sectionId,
+      ),
+      'dueText',
+      transferTarget.dueText,
     );
     if (transferAction === 'move') {
       onMoveTask?.(nextDraft);
@@ -534,6 +541,7 @@ export function TaskEditor({
                     </div>
                   </>
                 ) : (
+                  <>
                   <div className="task-editor__field-grid">
                     <div className="task-editor__field">
                       <label htmlFor={ids.project}>Project</label>
@@ -600,6 +608,53 @@ export function TaskEditor({
                       </div>
                     </div>
                   </div>
+                  <div className="task-editor__field task-editor__field--transfer-date">
+                    <label htmlFor={`${ids.due}-transfer`}>Schedule destination</label>
+                    <div className="task-editor__date-shortcuts" role="group" aria-label="Quick destination dates">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTransferTarget((current) => ({ ...current, dueText: 'today' }));
+                          armTransferAction();
+                        }}
+                      >
+                        Today
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTransferTarget((current) => ({ ...current, dueText: 'tomorrow' }));
+                          armTransferAction();
+                        }}
+                      >
+                        Tomorrow
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTransferTarget((current) => ({ ...current, dueText: '' }));
+                          armTransferAction();
+                        }}
+                      >
+                        No date
+                      </button>
+                    </div>
+                    <div className="task-editor__input-with-icon">
+                      <CalendarIcon />
+                      <input
+                        id={`${ids.due}-transfer`}
+                        value={transferTarget.dueText}
+                        onChange={(event) => {
+                          const dueText = event.currentTarget.value;
+                          setTransferTarget((current) => ({ ...current, dueText }));
+                          armTransferAction();
+                        }}
+                        placeholder="e.g. today or 2026-12-31"
+                        autoComplete="off"
+                      />
+                    </div>
+                  </div>
+                  </>
                 )}
                 {transferError ? (
                   <p className="task-editor__form-error" role="alert">

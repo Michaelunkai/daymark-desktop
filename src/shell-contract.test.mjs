@@ -7,6 +7,14 @@ const taskEditor = await readFile(
   new URL('./features/task-editor/TaskEditor.tsx', import.meta.url),
   'utf8',
 )
+const orderWorkspace = await readFile(
+  new URL('./features/order/OrderWorkspace.jsx', import.meta.url),
+  'utf8',
+)
+const orderStyles = await readFile(
+  new URL('./features/order/order.css', import.meta.url),
+  'utf8',
+)
 const styles = await readFile(new URL('./styles/app-shell.css', import.meta.url), 'utf8')
 const main = await readFile(new URL('./main.jsx', import.meta.url), 'utf8')
 const smoothWheel = await readFile(new URL('./core/smooth-wheel.ts', import.meta.url), 'utf8')
@@ -60,6 +68,10 @@ test('global shell exposes the required settings and repository affordances', ()
   assert.match(app, /onCopyTaskToOrder=\{copyTaskToOrder\}/)
   assert.match(app, /onMoveToTask=\{moveOrderItemToTask\}/)
   assert.match(app, /onCopyToTask=\{copyOrderItemToTask\}/)
+  assert.match(
+    app,
+    /taskId: taskEditor\.taskId,[\s\S]*?completedAt: null,[\s\S]*?completionContext: null/,
+  )
   assert.match(app, /type: 'task\.transferToOrder'/)
   assert.match(app, /type: 'order\.transferToTask'/)
   assert.equal(
@@ -80,6 +92,49 @@ test('global shell exposes the required settings and repository affordances', ()
   assert.match(app, /Reset local workspace\?/)
   assert.doesNotMatch(app, /window\.confirm/)
   assert.doesNotMatch(app, /maxLength\s*=/)
+})
+
+test('task and Order layouts reserve readable width for complete titles and details', () => {
+  assert.match(
+    styles,
+    /\.task-row \{[\s\S]*?grid-template-columns: 32px minmax\(0, 1fr\);/,
+  )
+  assert.match(
+    styles,
+    /\.task-row__details \{[\s\S]*?grid-column: 2;[\s\S]*?flex-wrap: wrap;/,
+  )
+  assert.match(
+    styles,
+    /\.task-note \{[\s\S]*?overflow-wrap: anywhere;[\s\S]*?white-space: normal;/,
+  )
+  assert.match(
+    orderStyles,
+    /\.order-lanes \{[\s\S]*?grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/,
+  )
+  assert.match(
+    orderStyles,
+    /\.order-item \{[\s\S]*?grid-template-columns: 24px 24px minmax\(0, 1fr\);/,
+  )
+  assert.match(
+    orderStyles,
+    /\.order-item__body \{[\s\S]*?grid-column: 3;/,
+  )
+  assert.match(
+    orderStyles,
+    /\.order-item__actions \{[\s\S]*?grid-column: 3;/,
+  )
+  assert.match(
+    orderStyles,
+    /\.order-item__details \{[\s\S]*?white-space: pre-wrap;/,
+  )
+})
+
+test('Order transfers expose Today and any explicit calendar date', () => {
+  assert.match(orderWorkspace, /Schedule destination/)
+  assert.match(orderWorkspace, />Today</)
+  assert.match(orderWorkspace, />Tomorrow</)
+  assert.match(orderWorkspace, />No date</)
+  assert.match(orderWorkspace, /placeholder="e\.g\. today or 2026-12-31"/)
 })
 
 test('shell styles include keyboard focus, mobile layout, and dark theme coverage', () => {

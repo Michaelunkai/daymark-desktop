@@ -176,6 +176,10 @@
   margin-top: 16px;
 }
 
+.task-editor__field--transfer-date {
+  margin-top: 16px;
+}
+
 .task-editor__field-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -305,6 +309,31 @@
 
 .task-editor__input-with-icon input:focus {
   box-shadow: none;
+}
+
+.task-editor__date-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.task-editor__date-shortcuts button {
+  min-height: 34px;
+  padding: 6px 11px;
+  border: 1px solid var(--editor-border);
+  border-radius: 6px;
+  background: var(--editor-surface-raised);
+  color: var(--editor-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.task-editor__date-shortcuts button:hover,
+.task-editor__date-shortcuts button:focus-visible {
+  border-color: var(--editor-border-strong);
+  color: var(--editor-text);
 }
 
 .task-editor__priority-control {

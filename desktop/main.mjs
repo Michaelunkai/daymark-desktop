@@ -1,5 +1,4 @@
 import { app, BrowserWindow, nativeTheme, session, shell } from "electron";
-import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,41 +6,14 @@ const PRODUCT_NAME = "Daymark";
 const PRODUCTION_ORIGIN = "https://daymark-desktop.michaelovsky55555.chatgpt.site";
 const START_URL = `${PRODUCTION_ORIGIN}/`;
 const SESSION_PARTITION = "persist:daymark";
-const DETACHED_CHILD_ARGUMENT = "--daymark-detached-child";
+const PACKAGED_LAUNCHER_NAME = "Daymark.exe";
+const PACKAGED_RUNTIME_NAME = "Daymark Runtime.exe";
 const SYNC_PATTERN = /^[A-Za-z0-9_-]{22}$/;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const iconPath = path.join(__dirname, "assets", "daymark.ico");
 
 let mainWindow = null;
 let pendingDeepLink = null;
-
-const shouldDetachFromShell = process.platform === "win32"
-  && !process.defaultApp
-  && !process.env.PORTABLE_EXECUTABLE_DIR
-  && !process.argv.includes(DETACHED_CHILD_ARGUMENT);
-
-if (shouldDetachFromShell) {
-  try {
-    const child = spawn(
-      process.execPath,
-      [DETACHED_CHILD_ARGUMENT, ...process.argv.slice(1)],
-      {
-        cwd: path.dirname(process.execPath),
-        detached: true,
-        stdio: "ignore",
-        windowsHide: true,
-      },
-    );
-    await new Promise((resolve, reject) => {
-      child.once("spawn", resolve);
-      child.once("error", reject);
-    });
-    child.unref();
-    process.exit(0);
-  } catch {
-    // Continue in this process if Windows cannot create the detached child.
-  }
-}
 
 app.setName(PRODUCT_NAME);
 app.setAppUserModelId("com.michaelunkai.daymark.windows");
@@ -57,7 +29,11 @@ if (requestedUserDataPath) {
 if (process.defaultApp) {
   app.setAsDefaultProtocolClient("daymark", process.execPath, [path.resolve(process.argv[1])]);
 } else {
-  app.setAsDefaultProtocolClient("daymark");
+  const executableName = path.basename(process.execPath);
+  const protocolExecutable = executableName === PACKAGED_RUNTIME_NAME
+    ? path.join(path.dirname(process.execPath), PACKAGED_LAUNCHER_NAME)
+    : process.execPath;
+  app.setAsDefaultProtocolClient("daymark", protocolExecutable);
 }
 
 const singleInstance = app.requestSingleInstanceLock();

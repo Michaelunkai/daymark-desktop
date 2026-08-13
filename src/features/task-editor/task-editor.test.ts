@@ -30,3 +30,13 @@ test('keeps Order transfers in the explicit destination flow', () => {
   assert.match(source, /onMoveTaskToOrder\?\.\(nextDraft\)/);
   assert.match(source, /onCopyTaskToOrder\?\.\(nextDraft\)/);
 });
+
+test('keeps Today and arbitrary due dates inside every task transfer flow', () => {
+  assert.match(source, /dueText:\s*draft\.dueText/);
+  assert.match(source, /Schedule destination/);
+  assert.match(source, />\s*Today\s*</);
+  assert.match(source, />\s*Tomorrow\s*</);
+  assert.match(source, />\s*No date\s*</);
+  assert.match(source, /placeholder="e\.g\. today or 2026-12-31"/);
+  assert.match(source, /'dueText',\s*transferTarget\.dueText/);
+});
