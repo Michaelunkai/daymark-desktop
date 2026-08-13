@@ -3798,7 +3798,7 @@ function App() {
         ) : null}
 
         <main className="main-content">
-          <div className="content-frame">
+          <div className={`content-frame content-frame--${route === 'order' ? 'order' : 'standard'}`}>
             {route !== 'order' ? (
               <div className="view-header">
                 <div>

@@ -174,10 +174,35 @@ async function verifyReadableLayout(page, route, label) {
       escaped,
     };
 
+    const readabilityRules = [
+      [".sidebar-row__label", 14],
+      [".task-section__heading", 13],
+      [".task-row__title", 14],
+      [".order-item__title", 15],
+      [".order-item__body p", 13],
+      [".note-list-item strong", 14],
+      [".note-list-item span", 12],
+      [".journal-editor", 14],
+    ];
+    const readability = readabilityRules.flatMap(([selector, minimum]) =>
+      [...document.querySelectorAll(selector)]
+        .filter((element) => element instanceof HTMLElement && element.getClientRects().length > 0)
+        .map((element) => ({
+          selector,
+          minimum,
+          actual: Number.parseFloat(getComputedStyle(element).fontSize),
+        })),
+    );
+    const undersizedText = readability.filter((sample) => sample.actual + 0.01 < sample.minimum);
+
     if (nextRoute !== "order") {
       return {
-        ok: main.scrollWidth <= main.clientWidth + tolerance && escaped.length === 0,
+        ok: main.scrollWidth <= main.clientWidth + tolerance
+          && escaped.length === 0
+          && undersizedText.length === 0,
         ...layout,
+        readability,
+        undersizedText,
       };
     }
 
@@ -234,36 +259,41 @@ async function verifyReadableLayout(page, route, label) {
       && laneNavRect.height > 0
       && laneNavRect.left >= mainRect.left - tolerance
       && laneNavRect.right <= mainRect.right + tolerance;
-    const wideLayout = innerWidth > 1120;
-    const afterPlacedNearTop = !wideLayout || (
+    const wideLayout = innerWidth > 1280;
+    const expectedColumnCount = wideLayout ? 3 : 1;
+    const laneTopsAligned = !wideLayout || (
       laneRects.after
       && laneRects.now
-      && laneRects.after.top < laneRects.now.bottom
-      && laneRects.after.top - laneRects.now.top < 900
+      && laneRects.later
+      && Math.max(laneRects.now.top, laneRects.later.top, laneRects.after.top)
+        - Math.min(laneRects.now.top, laneRects.later.top, laneRects.after.top) <= tolerance
     );
 
     return {
       ok: main.scrollWidth <= main.clientWidth + tolerance
         && escaped.length === 0
+        && undersizedText.length === 0
         && cards.length > 0
-        && laneColumnCount > 0
-        && laneColumnCount <= 2
+        && laneColumnCount === expectedColumnCount
         && minimumBodyWidth >= 120
         && minimumTitleWidth >= 120
         && actionsBelowBody
         && allLanesPresent
         && laneNavVisible
-        && afterPlacedNearTop,
+        && laneTopsAligned,
       ...layout,
+      readability,
+      undersizedText,
       order: {
         cardCount: cards.length,
         laneColumnCount,
+        expectedColumnCount,
         minimumBodyWidth: Math.round(minimumBodyWidth),
         minimumTitleWidth: Math.round(minimumTitleWidth),
         actionsBelowBody,
         allLanesPresent,
         laneNavVisible,
-        afterPlacedNearTop,
+        laneTopsAligned,
         laneRects,
       },
     };
@@ -272,6 +302,18 @@ async function verifyReadableLayout(page, route, label) {
   if (!result.ok) {
     throw new Error(`Content is cropped or unreadably compressed for ${label}: ${JSON.stringify(result)}`);
   }
+  return result;
+}
+
+async function verifyWideOrderColumns(page) {
+  await page.evaluate(() => window.DaymarkAI.navigate("order"));
+  await page.waitForFunction(() => window.DaymarkAI?.getViewState?.().route === "order", null, { timeout: 10000 });
+  await page.waitForTimeout(220);
+  const result = await verifyReadableLayout(page, "order", "wide Order workspace");
+  await page.screenshot({
+    path: path.join(evidenceDirectory, "order-workspace-three-columns.png"),
+    fullPage: false,
+  });
   return result;
 }
 
@@ -479,7 +521,7 @@ try {
   const page = await desktop.firstWindow({ timeout: 60000 });
   await desktop.evaluate(({ BrowserWindow }) => {
     const window = BrowserWindow.getAllWindows()[0];
-    window.setSize(1000, 650);
+    window.setSize(1800, 1000);
     window.center();
   });
   await page.waitForURL(/daymark-desktop\.michaelovsky55555\.chatgpt\.site/, { timeout: 60000 });
@@ -492,6 +534,15 @@ try {
 
   const baselineState = await page.evaluate(() => window.DaymarkAI.getState());
   const baseline = summarizeState(baselineState);
+  const wideShellViewport = await verifyShellViewportBounds(page);
+  const wideOrder = await verifyWideOrderColumns(page);
+
+  await desktop.evaluate(({ BrowserWindow }) => {
+    const window = BrowserWindow.getAllWindows()[0];
+    window.setSize(1000, 650);
+    window.center();
+  });
+  await page.waitForTimeout(220);
   const shellViewport = await verifyShellViewportBounds(page);
   const projects = Object.values(baselineState.projects ?? {})
     .map((project) => ({
@@ -534,6 +585,8 @@ try {
       orderItems: baseline.orderItemIds.length,
     },
     shellViewport,
+    wideShellViewport,
+    wideOrder,
     routesChecked: results.length,
     scrollableRoutes: scrollable.length,
     scrollableProjects: scrollableProjects.length,

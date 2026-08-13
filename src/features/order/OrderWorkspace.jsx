@@ -319,35 +319,21 @@ export function OrderWorkspace({
           ))}
         </nav>
         <div className="order-lanes">
-          <OrderLane
-            draggingId={draggingId}
-            lane={grouped[0]}
-            onAdd={openCreate}
-            onComplete={onComplete}
-            onDrop={dropIntoLane}
-            onEdit={openEdit}
-            onMove={onMove}
-            onSetDragging={setDraggingId}
-            onUpdate={onUpdate}
-            orderedItems={orderedItems}
-          />
-          <div className="order-lanes__secondary">
-            {grouped.slice(1).map((lane) => (
-              <OrderLane
-                draggingId={draggingId}
-                key={lane.id}
-                lane={lane}
-                onAdd={openCreate}
-                onComplete={onComplete}
-                onDrop={dropIntoLane}
-                onEdit={openEdit}
-                onMove={onMove}
-                onSetDragging={setDraggingId}
-                onUpdate={onUpdate}
-                orderedItems={orderedItems}
-              />
-            ))}
-          </div>
+          {grouped.map((lane) => (
+            <OrderLane
+              draggingId={draggingId}
+              key={lane.id}
+              lane={lane}
+              onAdd={openCreate}
+              onComplete={onComplete}
+              onDrop={dropIntoLane}
+              onEdit={openEdit}
+              onMove={onMove}
+              onSetDragging={setDraggingId}
+              onUpdate={onUpdate}
+              orderedItems={orderedItems}
+            />
+          ))}
         </div>
         </>
       ) : (

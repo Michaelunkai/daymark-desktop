@@ -109,11 +109,11 @@ test('task and Order layouts reserve readable width for complete titles and deta
   )
   assert.match(
     orderStyles,
-    /\.order-lanes__secondary \{[\s\S]*?display: grid;[\s\S]*?gap: 22px;/,
+    /\.order-lanes \{[\s\S]*?grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/,
   )
   assert.match(
-    orderStyles,
-    /\.order-lanes \{[\s\S]*?grid-template-columns: minmax\(0, 1\.12fr\) minmax\(320px, \.88fr\);/,
+    styles,
+    /\.content-frame--order \{[\s\S]*?width: 100%;[\s\S]*?padding-inline: 32px;/,
   )
   assert.match(
     orderStyles,
@@ -121,7 +121,7 @@ test('task and Order layouts reserve readable width for complete titles and deta
   )
   assert.match(
     orderStyles,
-    /\.order-item \{[\s\S]*?grid-template-columns: 34px 28px minmax\(0, 1fr\);/,
+    /\.order-item \{[\s\S]*?grid-template-columns: 34px minmax\(0, 1fr\);/,
   )
   assert.match(
     orderStyles,
@@ -129,7 +129,7 @@ test('task and Order layouts reserve readable width for complete titles and deta
   )
   assert.match(
     orderStyles,
-    /\.order-item__body p \{[\s\S]*?font-size: 12px;[\s\S]*?line-height: 1\.55;/,
+    /\.order-item__body p \{[\s\S]*?font-size: 13px;[\s\S]*?line-height: 1\.55;/,
   )
   assert.match(
     orderStyles,
@@ -150,13 +150,25 @@ test('Order restores After as a first-class readable section', () => {
   assert.match(orderWorkspace, /className={`order-lane order-lane--\$\{lane\.id\}`}/)
   assert.match(orderWorkspace, /onClick=\{\(\) => onAdd\(lane\.id\)\}/)
   assert.match(orderWorkspace, /onAdd=\{openCreate\}/)
-  assert.match(orderWorkspace, /className="order-lanes__secondary"/)
-  assert.match(orderWorkspace, /grouped\.slice\(1\)\.map/)
+  assert.match(orderWorkspace, /\{grouped\.map\(\(lane\) => \(/)
+  assert.doesNotMatch(orderWorkspace, /order-lanes__secondary/)
+  assert.doesNotMatch(orderWorkspace, /grouped\.slice\(1\)/)
   assert.match(orderStyles, /\.order-lane-nav \{[\s\S]*?display: grid;/)
   assert.match(
     orderStyles,
-    /@media \(max-width: 1120px\) \{[\s\S]*?\.order-lanes \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/,
+    /@media \(max-width: 1280px\) \{[\s\S]*?\.order-lanes \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/,
   )
+})
+
+test('shared workspace typography remains readable across every route', () => {
+  assert.match(app, /className={`content-frame content-frame--\$\{route === 'order' \? 'order' : 'standard'\}`}/)
+  assert.match(styles, /\.sidebar-row__label \{[\s\S]*?font-size: 14px;/)
+  assert.match(styles, /\.task-section__heading \{[\s\S]*?font-size: 13px;/)
+  assert.match(styles, /\.task-row__title \{[\s\S]*?font-size: 14px;/)
+  assert.match(styles, /\.task-row__meta \{[\s\S]*?font-size: 11px;/)
+  assert.match(styles, /\.task-row__details \{[\s\S]*?font-size: 11px;/)
+  assert.match(styles, /\.note-list-item strong \{[\s\S]*?font-size: 14px;/)
+  assert.match(styles, /\.note-list-item span \{[\s\S]*?font-size: 12px;/)
 })
 
 test('Order transfers expose Today and any explicit calendar date', () => {
