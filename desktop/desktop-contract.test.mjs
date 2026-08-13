@@ -31,6 +31,11 @@ test("desktop shell blocks untrusted in-app navigation", () => {
   assert.match(main, /sandbox: true/);
 });
 
+test("Windows minimum size still permits responsive layouts at 150% scaling", () => {
+  assert.match(main, /minWidth:\s*640/);
+  assert.match(main, /minHeight:\s*400/);
+});
+
 test("Windows packaging preserves local data on uninstall", () => {
   assert.equal(packageJson.build.appId, "com.michaelunkai.daymark.windows");
   assert.equal(packageJson.build.nsis.deleteAppDataOnUninstall, false);

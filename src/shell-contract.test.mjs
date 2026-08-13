@@ -110,6 +110,9 @@ test('shell styles include keyboard focus, mobile layout, and dark theme coverag
   assert.match(styles, /\.sidebar__scroll \{[\s\S]*?scrollbar-color: #74827f #111615;/)
   assert.match(styles, /\.sidebar__scroll::\-webkit-scrollbar \{[\s\S]*?width: 12px;/)
   assert.match(styles, /\.sidebar__scroll::\-webkit-scrollbar-thumb \{[\s\S]*?min-height: 52px;/)
+  assert.match(styles, /\.view-header \{[\s\S]*?flex-wrap: wrap;/)
+  assert.match(styles, /\.view-header__actions \{[\s\S]*?flex-wrap: wrap;[\s\S]*?max-width: 100%;/)
+  assert.match(styles, /@media \(max-width: 1040px\) \{[\s\S]*?\.utility-panel \{[\s\S]*?display: none;/)
 })
 
 test('coarse mouse wheels are smoothed without replacing precise or accessible scrolling', () => {

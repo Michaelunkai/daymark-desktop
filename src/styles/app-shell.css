@@ -587,8 +587,13 @@ kbd {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 24px;
   margin-bottom: 36px;
+}
+
+.view-header > div:first-child {
+  min-width: 0;
 }
 
 .section-kicker {
@@ -618,7 +623,10 @@ kbd {
 .view-header__actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 10px;
+  max-width: 100%;
   flex-shrink: 0;
 }
 
@@ -2188,7 +2196,7 @@ kbd {
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1040px) {
   .shell-grid {
     grid-template-columns: 220px minmax(0, 1fr);
   }
@@ -2199,6 +2207,15 @@ kbd {
 
   .utility-panel {
     display: none;
+  }
+
+  .view-header {
+    align-items: flex-start;
+  }
+
+  .view-header__actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .task-preview {
