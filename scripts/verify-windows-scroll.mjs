@@ -99,6 +99,46 @@ function distinctPositions(samples) {
   return new Set(samples.map((sample) => Math.round(sample.y * 10) / 10)).size;
 }
 
+async function verifyShellViewportBounds(page) {
+  const result = await page.evaluate(() => {
+    const shell = document.querySelector(".app-shell");
+    const grid = document.querySelector(".shell-grid");
+    const sidebar = document.querySelector(".sidebar");
+    const sidebarScroll = document.querySelector(".sidebar__scroll");
+    const main = document.querySelector(".main-content");
+    const elements = { shell, grid, sidebar, sidebarScroll, main };
+    if (Object.values(elements).some((element) => !(element instanceof HTMLElement))) {
+      return { ok: false, error: "Required shell elements are missing." };
+    }
+
+    const tolerance = 2;
+    const viewport = { top: 0, left: 0, right: innerWidth, bottom: innerHeight };
+    const rects = Object.fromEntries(
+      Object.entries(elements).map(([name, element]) => [name, element.getBoundingClientRect().toJSON()]),
+    );
+    const escaped = Object.entries(rects)
+      .filter(([, rect]) =>
+        rect.top < viewport.top - tolerance
+        || rect.left < viewport.left - tolerance
+        || rect.right > viewport.right + tolerance
+        || rect.bottom > viewport.bottom + tolerance,
+      )
+      .map(([name]) => name);
+
+    return {
+      ok: escaped.length === 0,
+      viewport: { width: innerWidth, height: innerHeight },
+      escaped,
+      rects,
+    };
+  });
+
+  if (!result.ok) {
+    throw new Error(`The desktop shell extends outside the visible viewport: ${JSON.stringify(result)}`);
+  }
+  return result;
+}
+
 async function verifyRoute(page, route, label) {
   const navigation = await page.evaluate((nextRoute) => window.DaymarkAI.navigate(nextRoute), route);
   if (!navigation?.ok) throw new Error(`Navigation was rejected for ${label}: ${JSON.stringify(navigation)}`);
@@ -252,6 +292,7 @@ try {
 
   const baselineState = await page.evaluate(() => window.DaymarkAI.getState());
   const baseline = summarizeState(baselineState);
+  const shellViewport = await verifyShellViewportBounds(page);
   const projects = Object.values(baselineState.projects ?? {})
     .map((project) => ({
       id: project.id,
@@ -292,6 +333,7 @@ try {
       tasks: baseline.taskIds.length,
       orderItems: baseline.orderItemIds.length,
     },
+    shellViewport,
     routesChecked: results.length,
     scrollableRoutes: scrollable.length,
     scrollableProjects: scrollableProjects.length,
