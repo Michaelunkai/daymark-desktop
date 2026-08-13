@@ -16,6 +16,7 @@ await rm(profilePath, { recursive: true, force: true });
 
 const desktop = await electron.launch({
   executablePath,
+  args: ["--daymark-detached-child"],
   env: { ...process.env, DAYMARK_USER_DATA_DIR: profilePath },
   timeout: 60000,
 });

@@ -46,6 +46,23 @@ test("Windows packaging preserves local data on uninstall", () => {
   assert.deepEqual(packageJson.build.protocols[0].schemes, ["daymark"]);
 });
 
+test("packaged Windows launches hand off to a detached app process", () => {
+  assert.match(main, /import \{ spawn \} from "node:child_process"/);
+  assert.match(main, /--daymark-detached-child/);
+  assert.match(main, /process\.platform === "win32"/);
+  assert.match(main, /!process\.defaultApp/);
+  assert.match(main, /detached:\s*true/);
+  assert.match(main, /stdio:\s*"ignore"/);
+  assert.match(main, /windowsHide:\s*true/);
+  assert.match(main, /child\.unref\(\)/);
+});
+
+test("desktop window becomes visible after a successful detached load", () => {
+  assert.match(main, /function showMainWindow\(\)/);
+  assert.match(main, /mainWindow\.webContents\.once\("did-finish-load", showMainWindow\)/);
+  assert.match(main, /mainWindow\.once\("ready-to-show", showMainWindow\)/);
+});
+
 test("packaged scroll verification counts movement from the known start position", () => {
   assert.match(scrollVerifier, /const start = await page\.locator\(target\.selector\)\.evaluate/);
   assert.match(scrollVerifier, /distinctPositions\(\[start, \.\.\.down\]\)/);

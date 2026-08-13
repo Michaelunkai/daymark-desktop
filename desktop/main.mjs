@@ -1,4 +1,5 @@
 import { app, BrowserWindow, nativeTheme, session, shell } from "electron";
+import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -6,12 +7,41 @@ const PRODUCT_NAME = "Daymark";
 const PRODUCTION_ORIGIN = "https://daymark-desktop.michaelovsky55555.chatgpt.site";
 const START_URL = `${PRODUCTION_ORIGIN}/`;
 const SESSION_PARTITION = "persist:daymark";
+const DETACHED_CHILD_ARGUMENT = "--daymark-detached-child";
 const SYNC_PATTERN = /^[A-Za-z0-9_-]{22}$/;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const iconPath = path.join(__dirname, "assets", "daymark.ico");
 
 let mainWindow = null;
 let pendingDeepLink = null;
+
+const shouldDetachFromShell = process.platform === "win32"
+  && !process.defaultApp
+  && !process.env.PORTABLE_EXECUTABLE_DIR
+  && !process.argv.includes(DETACHED_CHILD_ARGUMENT);
+
+if (shouldDetachFromShell) {
+  try {
+    const child = spawn(
+      process.execPath,
+      [DETACHED_CHILD_ARGUMENT, ...process.argv.slice(1)],
+      {
+        cwd: path.dirname(process.execPath),
+        detached: true,
+        stdio: "ignore",
+        windowsHide: true,
+      },
+    );
+    await new Promise((resolve, reject) => {
+      child.once("spawn", resolve);
+      child.once("error", reject);
+    });
+    child.unref();
+    process.exit(0);
+  } catch {
+    // Continue in this process if Windows cannot create the detached child.
+  }
+}
 
 app.setName(PRODUCT_NAME);
 app.setAppUserModelId("com.michaelunkai.daymark.windows");
@@ -96,6 +126,12 @@ async function pairCanonicalWorkspace() {
   return `${START_URL}?sync=${encodeURIComponent(syncKey)}`;
 }
 
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.show();
+  mainWindow.focus();
+}
+
 async function createWindow() {
   nativeTheme.themeSource = "dark";
   let launchUrl = pendingDeepLink ?? findDeepLink(process.argv);
@@ -156,10 +192,8 @@ async function createWindow() {
     }
   });
 
-  mainWindow.once("ready-to-show", () => {
-    mainWindow?.show();
-    mainWindow?.focus();
-  });
+  mainWindow.webContents.once("did-finish-load", showMainWindow);
+  mainWindow.once("ready-to-show", showMainWindow);
   mainWindow.on("closed", () => {
     mainWindow = null;
   });

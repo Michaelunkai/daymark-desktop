@@ -8,7 +8,7 @@ const executablePath = path.join(root, "release", "windows", "win-unpacked", "Da
 const evidenceDirectory = path.join(root, "release", "windows", "evidence");
 const userDataDirectory = path.join(evidenceDirectory, "runtime-profile");
 const screenshotPath = path.join(evidenceDirectory, "daymark-windows-runtime.png");
-const launchArgs = [];
+const launchArgs = ["--daymark-detached-child"];
 
 await mkdir(evidenceDirectory, { recursive: true });
 await rm(userDataDirectory, { recursive: true, force: true });
