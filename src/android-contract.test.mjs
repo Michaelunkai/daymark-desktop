@@ -90,6 +90,9 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(manifest, /android:windowSoftInputMode="adjustResize"/);
   assert.match(shellStyles, /--daymark-viewport-height:\s*100dvh/);
   assert.match(shellStyles, /--daymark-topbar-height:\s*64px/);
+  assert.match(shellStyles, /@media \(max-width: 720px\)[\s\S]*?--daymark-topbar-height:\s*156px/);
+  assert.match(shellStyles, /\.topbar__controls\s*\{[\s\S]*?grid-template-columns:\s*repeat\(4,\s*minmax\(34px,\s*1fr\)\)[\s\S]*?grid-template-rows:\s*44px 34px/);
+  assert.match(shellStyles, /\.global-search\s*\{[\s\S]*?grid-column:\s*1\s*\/\s*-1[\s\S]*?grid-row:\s*1/);
   assert.match(shellStyles, /var\(--daymark-viewport-height\)/);
   assert.match(shellStyles, /var\(--daymark-topbar-height\)/);
   assert.match(shellStyles, /env\(safe-area-inset-bottom\)/);

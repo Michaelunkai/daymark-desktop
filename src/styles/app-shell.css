@@ -2236,12 +2236,13 @@ kbd {
 
 @media (max-width: 720px) {
   :root {
-    --daymark-topbar-height: 112px;
+    --daymark-topbar-height: 156px;
   }
 
   .topbar {
     grid-template-columns: 1fr;
-    height: 112px;
+    grid-template-rows: 52px 104px;
+    height: 156px;
   }
 
   .app-shell.sidebar-is-collapsed .topbar {
@@ -2249,7 +2250,7 @@ kbd {
   }
 
   .topbar__brand {
-    height: 56px;
+    height: 52px;
     border-right: 0;
   }
 
@@ -2260,14 +2261,18 @@ kbd {
 
   .topbar__controls {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) repeat(4, 34px);
-    gap: 6px;
-    height: 56px;
-    padding: 0 max(12px, env(safe-area-inset-right)) 10px max(12px, env(safe-area-inset-left));
+    grid-template-columns: repeat(4, minmax(34px, 1fr));
+    grid-template-rows: 44px 34px;
+    gap: 6px 8px;
+    height: 104px;
+    padding: 8px max(12px, env(safe-area-inset-right)) 10px max(12px, env(safe-area-inset-left));
   }
 
   .global-search {
+    grid-column: 1 / -1;
+    grid-row: 1;
     min-width: 0;
+    max-width: none;
     width: 100%;
   }
 
@@ -2283,6 +2288,12 @@ kbd {
     gap: 0;
     padding: 0;
     font-size: 0;
+  }
+
+  .topbar__controls .icon-button,
+  .topbar__controls .avatar-button,
+  .topbar__controls .agent-connection {
+    justify-self: center;
   }
 
   .topbar__controls .agent-connection__dot {
