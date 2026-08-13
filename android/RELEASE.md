@@ -13,12 +13,13 @@ It refuses publication unless both protected backups, the repository commit,
 and the APK signer match. Never uninstall the installed app, clear its data,
 or publish an incompatible replacement merely to bypass a signing mismatch.
 
-`1.4.22` is reserved for the Android and web Order workspace and completed
-history release. Completing or removing an Order item immediately preserves it
-as a completed task, and Completed is one newest-first timeline across every
-project and section. The mobile Order view opens at the top, avoids the
-duplicate shell heading, and keeps large lane, reorder, edit, and completion
-controls. A release APK is deliberately not produced until
+`1.4.34` is the pending Android parity release for the same shared Daymark
+application used by Windows and the deployed website. Every editable task,
+including tasks under projects and every Order lane, exposes direct Move to
+date and Copy to date actions backed by a full six-week calendar. Mobile task
+and Order editors retain independent momentum scrolling, 44-pixel calendar
+targets, safe-area-aware height limits, and reachable actions instead of
+cropping content. A release APK is deliberately not produced until
 `Verify-DaymarkRelease.ps1` confirms that it uses the original signer of the
 installed Daymark app.
 

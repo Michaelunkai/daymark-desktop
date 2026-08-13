@@ -27,16 +27,16 @@ than introducing a separate desktop data store.
 
 Download Daymark for Windows `1.4.34`:
 
-- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.34-windows/Daymark-Windows-Setup-1.4.34-x64.exe)
-- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.34-windows/Daymark-Windows-Portable-1.4.34-x64.exe)
-- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.34-windows)
+- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.34-parity/Daymark-Windows-Setup-1.4.34-x64.exe)
+- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.34-parity/Daymark-Windows-Portable-1.4.34-x64.exe)
+- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.34-parity)
 
 SHA-256:
 
 - Installer:
-  `A147692962909700F96710CBBDF0ED0913A22F15B8BD8D06A8A8891C47C6C472`
+  `3C90568100FD4C0FFC6CFEA978D885979BB90C0440642A2C41447308D72E54BE`
 - Portable:
-  `7D299E4B36BCFCBA1D717AF43C0C8262BF417D17555DF061C57F2D8FA87667DE`
+  `FD25A37C4C0CF2A2306F7247F8E493D1A1F30B32F57A1ABCAEDDEC7E3C63D786`
 
 These Windows binaries are not Authenticode-signed, so Windows SmartScreen may
 display its standard warning on first download.
@@ -65,9 +65,10 @@ while Order moves remove it only after the dated Inbox task is created.
 Responsive checks cover narrow windows and 150% Windows display scaling so
 controls remain reachable instead of being cropped.
 
-The next signed package is `1.4.22`, package `com.michaelunkai.daymark`,
-version code `26`. It preserves completed Order items as completed tasks,
-keeps Completed newest-first, and includes the Android touch-navigation update.
+The next signed package is `1.4.34`, package `com.michaelunkai.daymark`,
+version code `27`. It uses the same shared task and Order date-transfer
+controls as Windows and the deployed website, with momentum editor scrolling
+and 44-pixel calendar targets for Android.
 The older `1.4.6` release remains documented below as historical provenance.
 
 The deployed application supports the root route and client-side workspace

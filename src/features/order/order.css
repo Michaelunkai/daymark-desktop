@@ -483,7 +483,7 @@
   margin: 9px 0 18px;
 }
 .order-editor-overlay { align-items: center; background: rgb(0 0 0 / 72%); display: flex; inset: 0; justify-content: center; padding: 16px; position: fixed; z-index: 15; }
-.order-editor { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; box-shadow: var(--shadow); display: grid; gap: 15px; max-height: min(860px, calc(100dvh - 32px)); max-width: 620px; overflow-y: auto; overscroll-behavior: contain; padding: 20px; scrollbar-gutter: stable; width: 100%; }
+.order-editor { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; box-shadow: var(--shadow); display: grid; gap: 15px; max-height: min(860px, calc(100dvh - 32px)); max-width: 620px; overflow-y: auto; overscroll-behavior: contain; padding: 20px; scrollbar-gutter: stable; touch-action: pan-y; -webkit-overflow-scrolling: touch; width: 100%; }
 .order-editor--date-transfer { max-width: 660px; }
 .order-editor--date-transfer > :not(.order-editor__header):not(.order-editor__calendar-transfer):not(.order-editor__date-transfer-footer) { display: none; }
 .order-editor__header { align-items: flex-start; display: flex; justify-content: space-between; }.order-editor__header h2 { color: var(--ink); font-size: 19px; margin: 0; }.order-editor label { color: var(--ink); display: grid; font-size: 11px; font-weight: 700; gap: 6px; }.order-editor input, .order-editor textarea, .order-editor select { background: var(--surface-soft); border: 1px solid var(--line-strong); border-radius: 6px; color: var(--ink); font-size: 12px; min-height: 36px; padding: 8px 9px; width: 100%; }.order-editor textarea { resize: vertical; }.order-editor__grid { display: grid; gap: 10px; grid-template-columns: repeat(3, 1fr); }
@@ -539,8 +539,8 @@
   }
 
   .order-editor__calendar-transfer .date-picker__day {
-    height: 40px;
-    min-height: 40px;
+    height: 44px;
+    min-height: 44px;
   }
 
   .order-editor__date-transfer-footer {

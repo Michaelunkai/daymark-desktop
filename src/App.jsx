@@ -2042,6 +2042,7 @@ function App() {
   const composerRef = useRef(null)
   const captureReturnFocusRef = useRef(null)
   const topbarRef = useRef(null)
+  const mainContentRef = useRef(null)
 
   useEffect(() => {
     appStore.rollOverIncompleteTasks(toLocalDate(new Date()))
@@ -2687,7 +2688,10 @@ function App() {
   const navigate = (nextRoute) => {
     setReorderMode(null)
     setSectionComposerOpen(false)
-    window.scrollTo(0, 0)
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollTop = 0
+      mainContentRef.current.scrollLeft = 0
+    }
     setRoute(nextRoute)
     setSelectedTask(null)
     if (window.matchMedia('(max-width: 720px)').matches) setSidebarOpen(false)
@@ -3797,7 +3801,7 @@ function App() {
           />
         ) : null}
 
-        <main className="main-content">
+        <main className="main-content" ref={mainContentRef}>
           <div className={`content-frame content-frame--${route === 'order' ? 'order' : 'standard'}`}>
             {route !== 'order' ? (
               <div className="view-header">

@@ -195,33 +195,40 @@ export function UpcomingCalendar({
           })}
         </div>
       ) : (
-        <>
-          <div className="upcoming-calendar__weekdays" aria-hidden="true">
-            {weekdayLabels(weekStartsOn).map((weekday) => <span className="upcoming-calendar__weekday" key={weekday}>{weekday}</span>)}
+        <div
+          aria-label={`${heading} calendar grid`}
+          className="upcoming-calendar__viewport"
+          role="region"
+          tabIndex={0}
+        >
+          <div className="upcoming-calendar__surface">
+            <div className="upcoming-calendar__weekdays" aria-hidden="true">
+              {weekdayLabels(weekStartsOn).map((weekday) => <span className="upcoming-calendar__weekday" key={weekday}>{weekday}</span>)}
+            </div>
+            <div className={`upcoming-calendar__grid upcoming-calendar__grid--${mode}`} role="grid" aria-label={`${heading} calendar`}>
+              {range.map((date) => (
+                <CalendarDay
+                  date={date}
+                  draggingTaskId={draggingTaskId}
+                  isCurrentMonth={date.slice(0, 7) === cursor.slice(0, 7)}
+                  isSelected={date === selectedDate}
+                  isToday={date === today}
+                  mode={mode}
+                  onAdd={onTaskAdd}
+                  onDateSelect={selectDate}
+                  onDayKeyDown={handleDayKeyDown}
+                  onDrop={handleDrop}
+                  onDraggingTaskIdChange={setDraggingTaskId}
+                  onEdit={onTaskEdit}
+                  onToggle={onTaskToggle}
+                  registerDay={(node) => node ? dayRefs.current.set(date, node) : dayRefs.current.delete(date)}
+                  tasks={tasksByDate.get(date) ?? []}
+                  key={date}
+                />
+              ))}
+            </div>
           </div>
-          <div className={`upcoming-calendar__grid upcoming-calendar__grid--${mode}`} role="grid" aria-label={`${heading} calendar`}>
-            {range.map((date) => (
-              <CalendarDay
-                date={date}
-                draggingTaskId={draggingTaskId}
-                isCurrentMonth={date.slice(0, 7) === cursor.slice(0, 7)}
-                isSelected={date === selectedDate}
-                isToday={date === today}
-                mode={mode}
-                onAdd={onTaskAdd}
-                onDateSelect={selectDate}
-                onDayKeyDown={handleDayKeyDown}
-                onDrop={handleDrop}
-                onDraggingTaskIdChange={setDraggingTaskId}
-                onEdit={onTaskEdit}
-                onToggle={onTaskToggle}
-                registerDay={(node) => node ? dayRefs.current.set(date, node) : dayRefs.current.delete(date)}
-                tasks={tasksByDate.get(date) ?? []}
-                key={date}
-              />
-            ))}
-          </div>
-        </>
+        </div>
       )}
 
       <section className="upcoming-selected-day" aria-labelledby="selected-day-title">

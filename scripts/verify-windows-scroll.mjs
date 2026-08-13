@@ -325,7 +325,26 @@ async function verifyOrderLaneNavigation(page) {
     fullPage: false,
   });
   await afterNav.click();
-  await page.waitForTimeout(500);
+  await page.waitForFunction(() => {
+    const main = document.querySelector(".main-content");
+    const after = document.querySelector(".order-lane--after");
+    const nav = document.querySelector(".order-lane-nav");
+    if (
+      !(main instanceof HTMLElement)
+      || !(after instanceof HTMLElement)
+      || !(nav instanceof HTMLElement)
+    ) {
+      return false;
+    }
+    const tolerance = 4;
+    const mainRect = main.getBoundingClientRect();
+    const afterRect = after.getBoundingClientRect();
+    const navRect = nav.getBoundingClientRect();
+    const visibleTop = Math.max(mainRect.top, navRect.bottom);
+    return afterRect.top >= visibleTop - tolerance
+      && afterRect.top < mainRect.bottom - tolerance
+      && afterRect.bottom > visibleTop + tolerance;
+  }, null, { timeout: 5000 });
 
   const result = await page.evaluate(() => {
     const main = document.querySelector(".main-content");

@@ -9,8 +9,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $expectedSigner = '890ddcf80b412cf3145b9ce0841e0d857226022bef20ae637ef0d0a8b5358676'
 $expectedPackage = 'com.michaelunkai.daymark'
-$expectedVersionCode = '26'
-$expectedVersionName = '1.4.22'
+$expectedVersionCode = '27'
+$expectedVersionName = '1.4.34'
 $required = @(
     'DAYMARK_SIGNING_STORE',
     'DAYMARK_SIGNING_STORE_PASSWORD',

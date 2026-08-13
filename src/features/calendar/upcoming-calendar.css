@@ -120,6 +120,19 @@
   background: var(--accent-strong);
 }
 
+.upcoming-calendar__viewport {
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+}
+
+.upcoming-calendar__surface {
+  min-width: 0;
+}
+
 .upcoming-calendar__weekdays,
 .upcoming-calendar__grid {
   display: grid;
@@ -554,7 +567,7 @@
 
 @media (max-width: 620px) {
   .upcoming-calendar {
-    --calendar-cell-min-height: 5.25rem;
+    --calendar-cell-min-height: 8rem;
   }
 
   .upcoming-calendar__toolbar {
@@ -591,23 +604,27 @@
     display: none;
   }
 
+  .upcoming-calendar__surface {
+    min-width: 52.5rem;
+  }
+
   .upcoming-calendar__weekday {
-    padding: var(--space-2) 1px;
-    font-size: 10px;
+    padding: var(--space-2);
+    font-size: var(--font-size-xs);
   }
 
   .upcoming-calendar__day {
-    gap: 2px;
+    gap: var(--space-2);
     min-height: var(--calendar-cell-min-height);
-    padding: 3px;
+    padding: var(--space-2);
   }
 
   .upcoming-calendar__day-number,
   .upcoming-calendar__add-day {
-    width: 1.5rem;
-    min-height: 1.5rem;
-    height: 1.5rem;
-    font-size: var(--font-size-xs);
+    width: 44px;
+    min-height: 44px;
+    height: 44px;
+    font-size: var(--font-size-sm);
   }
 
   .upcoming-calendar__add-day {
@@ -615,32 +632,31 @@
   }
 
   .upcoming-calendar__task {
-    min-height: 0.75rem;
-    padding: 2px;
+    min-height: 44px;
+    padding: 6px;
   }
 
   .upcoming-calendar__task-label {
-    display: none;
+    display: -webkit-box;
+    overflow: hidden;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .upcoming-calendar__task::before {
     width: 5px;
     height: 5px;
-    margin: 0 auto;
   }
 
   .upcoming-calendar__more-tasks {
-    min-height: 0.75rem;
-    padding: 2px;
-    font-size: 0;
+    min-height: 44px;
+    padding: 0 6px;
+    font-size: var(--font-size-xs);
   }
 
   .upcoming-calendar__more-tasks::before {
-    width: 5px;
-    height: 5px;
-    content: "";
-    border-radius: 999px;
-    background: var(--teal);
+    content: none;
   }
 
   .upcoming-calendar__year-grid {

@@ -141,6 +141,8 @@
   flex: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .task-editor__section {
@@ -717,8 +719,8 @@
   }
 
   .task-editor__date-transfer .date-picker__day {
-    height: 40px;
-    min-height: 40px;
+    height: 44px;
+    min-height: 44px;
   }
 
   .task-editor__date-transfer-footer {
