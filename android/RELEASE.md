@@ -13,6 +13,13 @@ It refuses publication unless both protected backups, the repository commit,
 and the APK signer match. Never uninstall the installed app, clear its data,
 or publish an incompatible replacement merely to bypass a signing mismatch.
 
+GitHub release `v1.4.35` republishes the byte-identical
+`daymark-android-1.4.20.apk` as `Daymark-Android-Install.apk`. This is the
+latest verified APK signed with the reference Android installation's
+certificate. The native shell loads the current production Daymark
+application, including the latest date and Order transfer controls, smooth
+mobile scrolling, and cross-device synchronization.
+
 `1.4.34` is the pending Android parity release for the same shared Daymark
 application used by Windows and the deployed website. Every editable task,
 including tasks under projects and every Order lane, exposes direct Move to

@@ -8,6 +8,7 @@ const executablePath = process.env.DAYMARK_RUNTIME_EXECUTABLE_PATH
   ?? path.join(root, "release", "windows", "win-unpacked", "Daymark Runtime.exe");
 const evidenceDirectory = path.join(root, "release", "windows", "evidence");
 const profilePath = path.join(evidenceDirectory, "scroll-profile");
+const productionOrigin = "https://daymark-desktop.michaelovsky55555.chatgpt.site";
 const wheelDelta = 420;
 const sampleDelays = [0, 16, 32, 64, 120, 240, 500];
 const fixedRoutes = ["today", "inbox", "upcoming", "completed", "order", "notes", "diary"];
@@ -550,11 +551,29 @@ try {
   });
   await page.waitForURL(/daymark-desktop\.michaelovsky55555\.chatgpt\.site/, { timeout: 60000 });
   await page.waitForFunction(() => {
-    const state = window.DaymarkAI?.getState?.();
-    return Number(state?.revision ?? 0) >= 1800
-      && Object.keys(state?.projects ?? {}).length >= 8
-      && Object.keys(state?.tasks ?? {}).length >= 170;
+    const root = document.querySelector("#root");
+    return root?.getAttribute("data-daymark-ready") === "true"
+      && /^[A-Za-z0-9_-]{22}$/.test(localStorage.getItem("daymark.sync-key") ?? "");
   }, null, { timeout: 60000 });
+  const syncKey = await page.evaluate(() => localStorage.getItem("daymark.sync-key"));
+  const remoteResponse = await fetch(
+    `${productionOrigin}/api/sync/${encodeURIComponent(syncKey)}`,
+    { headers: { Accept: "application/json" } },
+  );
+  if (!remoteResponse.ok) {
+    throw new Error(`The canonical Daymark workspace could not be read (${remoteResponse.status}).`);
+  }
+  const remotePayload = await remoteResponse.json();
+  const expectedRemoteRevision = Number(remotePayload.revision ?? remotePayload.state?.revision ?? 0);
+  if (!Number.isInteger(expectedRemoteRevision) || expectedRemoteRevision < 1) {
+    throw new Error("The canonical Daymark workspace returned an invalid revision.");
+  }
+  await page.waitForFunction((expectedRevision) => {
+    const state = window.DaymarkAI?.getState?.();
+    return Number(state?.revision ?? 0) >= expectedRevision
+      && Object.keys(state?.projects ?? {}).length >= 1
+      && Object.keys(state?.tasks ?? {}).length >= 1;
+  }, expectedRemoteRevision, { timeout: 60000 });
 
   const baselineState = await page.evaluate(() => window.DaymarkAI.getState());
   const baseline = summarizeState(baselineState);

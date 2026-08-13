@@ -12,11 +12,17 @@ https://daymark-desktop.michaelovsky55555.chatgpt.site
 
 ## Android app
 
-The next installable Android package will be attached to the GitHub release
-only after its signer is verified against the installed Daymark app.
+Download Daymark for Android:
+
+- [Android APK](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.35/Daymark-Android-Install.apk)
+- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.35)
 
 The Android shell targets Android 6.0+ and opens the same responsive Daymark
 application used by Windows and mobile browsers.
+The downloadable APK is the verified original-signer `1.4.20` shell currently
+running on the reference Android device. Daymark's interface and shared
+workspace load from the production application, so newly installed devices
+receive the same current app and synchronization behavior.
 
 ## Windows app
 
@@ -25,18 +31,14 @@ dedicated, persistent desktop session. It uses the existing pairing code,
 optimistic revision checks, timestamp merges, and deletion tombstones rather
 than introducing a separate desktop data store.
 
-Download Daymark for Windows `1.4.34`:
+Download Daymark for Windows `1.4.35`:
 
-- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.34-parity/Daymark-Windows-Setup-1.4.34-x64.exe)
-- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.34-parity/Daymark-Windows-Portable-1.4.34-x64.exe)
-- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.34-parity)
+- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.35/Daymark-Windows-Setup-1.4.35-x64.exe)
+- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.35/Daymark-Windows-Portable-1.4.35-x64.exe)
+- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.35)
 
-SHA-256:
-
-- Installer:
-  `3C90568100FD4C0FFC6CFEA978D885979BB90C0440642A2C41447308D72E54BE`
-- Portable:
-  `FD25A37C4C0CF2A2306F7247F8E493D1A1F30B32F57A1ABCAEDDEC7E3C63D786`
+SHA-256 values for every downloadable artifact are published in
+`Daymark-SHA256SUMS.txt` on the release.
 
 These Windows binaries are not Authenticode-signed, so Windows SmartScreen may
 display its standard warning on first download.
@@ -51,7 +53,7 @@ npm run desktop:verify
 The generated artifacts are written to `release/windows`. The installer keeps
 Daymark's local Windows session data when uninstalling so an accidental
 uninstall does not silently erase the desktop pairing and cached workspace.
-Windows `1.4.34` uses a native detached launcher, so Command Prompt and
+Windows `1.4.35` uses a native detached launcher, so Command Prompt and
 PowerShell return immediately with no Electron diagnostics while the Daymark
 window keeps running. It provides smooth mouse-wheel scrolling and visible
 draggable scrollbars across the projects sidebar and main workspace. Task and
@@ -65,10 +67,10 @@ while Order moves remove it only after the dated Inbox task is created.
 Responsive checks cover narrow windows and 150% Windows display scaling so
 controls remain reachable instead of being cropped.
 
-The next signed package is `1.4.34`, package `com.michaelunkai.daymark`,
-version code `27`. It uses the same shared task and Order date-transfer
-controls as Windows and the deployed website, with momentum editor scrolling
-and 44-pixel calendar targets for Android.
+The Android download uses package `com.michaelunkai.daymark`, version code
+`24`, and version name `1.4.20`. It is signed with the same certificate as the
+installed reference app and loads the current shared task and Order
+date-transfer controls from the deployed application.
 The older `1.4.6` release remains documented below as historical provenance.
 
 The deployed application supports the root route and client-side workspace

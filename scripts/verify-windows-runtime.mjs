@@ -10,6 +10,7 @@ const evidenceDirectory = path.join(root, "release", "windows", "evidence");
 const userDataDirectory = path.join(evidenceDirectory, "runtime-profile");
 const screenshotPath = path.join(evidenceDirectory, "daymark-windows-runtime.png");
 const launchArgs = ["--daymark-detached-child"];
+const productionOrigin = "https://daymark-desktop.michaelovsky55555.chatgpt.site";
 
 await mkdir(evidenceDirectory, { recursive: true });
 await rm(userDataDirectory, { recursive: true, force: true });
@@ -33,13 +34,31 @@ try {
     return root && root.children.length > 0 && (root.textContent ?? "").trim().length > 0;
   }, null, { timeout: 60000 });
   await page.waitForFunction(() => {
+    const root = document.querySelector("#root");
+    return root?.getAttribute("data-daymark-ready") === "true"
+      && /^[A-Za-z0-9_-]{22}$/.test(localStorage.getItem("daymark.sync-key") ?? "");
+  }, null, { timeout: 60000 });
+  const syncKey = await page.evaluate(() => localStorage.getItem("daymark.sync-key"));
+  const remoteResponse = await fetch(
+    `${productionOrigin}/api/sync/${encodeURIComponent(syncKey)}`,
+    { headers: { Accept: "application/json" } },
+  );
+  if (!remoteResponse.ok) {
+    throw new Error(`The canonical Daymark workspace could not be read (${remoteResponse.status}).`);
+  }
+  const remotePayload = await remoteResponse.json();
+  const expectedRemoteRevision = Number(remotePayload.revision ?? remotePayload.state?.revision ?? 0);
+  if (!Number.isInteger(expectedRemoteRevision) || expectedRemoteRevision < 1) {
+    throw new Error("The canonical Daymark workspace returned an invalid revision.");
+  }
+  await page.waitForFunction((expectedRevision) => {
     const raw = localStorage.getItem("todoist-replica.state");
     if (!raw) return false;
     const state = JSON.parse(raw);
-    return Number(state.revision ?? 0) >= 1800
-      && Object.keys(state.projects ?? {}).length >= 8
-      && Object.keys(state.tasks ?? {}).length >= 170;
-  }, null, { timeout: 60000 });
+    return Number(state.revision ?? 0) >= expectedRevision
+      && Object.keys(state.projects ?? {}).length >= 1
+      && Object.keys(state.tasks ?? {}).length >= 1;
+  }, expectedRemoteRevision, { timeout: 60000 });
 
   const runtime = await page.evaluate(() => {
     const raw = localStorage.getItem("todoist-replica.state");
@@ -63,7 +82,12 @@ try {
   if (!Number.isInteger(runtime.revision) || runtime.revision < 1) {
     throw new Error(`The Windows runtime did not load a synchronized workspace revision: ${JSON.stringify(redactedRuntime)}`);
   }
-  if (runtime.revision < 1800 || runtime.projectCount < 8 || runtime.taskCount < 170 || runtime.readyTextLength < 100) {
+  if (
+    runtime.revision < expectedRemoteRevision
+    || runtime.projectCount < 1
+    || runtime.taskCount < 1
+    || runtime.readyTextLength < 100
+  ) {
     throw new Error(`The Windows runtime did not render the synchronized Daymark workspace: ${JSON.stringify(redactedRuntime)}`);
   }
 
@@ -72,6 +96,7 @@ try {
     ok: true,
     executablePath,
     screenshotPath,
+    expectedRemoteRevision,
     runtime: redactedRuntime,
   }));
 } finally {
