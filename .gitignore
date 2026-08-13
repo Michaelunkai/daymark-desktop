@@ -10,5 +10,6 @@ android/.gradle/
 android/build/
 android/app/build/
 release/windows/
+release/daymark-sites-*.tar.gz
 desktop/assets/daymark.png
 desktop/assets/daymark.ico

@@ -25,6 +25,22 @@ dedicated, persistent desktop session. It uses the existing pairing code,
 optimistic revision checks, timestamp merges, and deletion tombstones rather
 than introducing a separate desktop data store.
 
+Download Daymark for Windows `1.4.27`:
+
+- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.27-windows/Daymark-Windows-Setup-1.4.27-x64.exe)
+- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.27-windows/Daymark-Windows-Portable-1.4.27-x64.exe)
+- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.27-windows)
+
+SHA-256:
+
+- Installer:
+  `9CE5CBA4E9E5AB91CB2A34B6769346DEA337ADCDBB13576AE04481EED60A71C9`
+- Portable:
+  `26E1C2377DFD8EAB8AA164756637FE2C0A9DFE63F55ED8A8EF3B604972277550`
+
+These Windows binaries are not Authenticode-signed, so Windows SmartScreen may
+display its standard warning on first download.
+
 Build and verify the Windows installer and portable executable:
 
 ```powershell
@@ -35,9 +51,10 @@ npm run desktop:verify
 The generated artifacts are written to `release/windows`. The installer keeps
 Daymark's local Windows session data when uninstalling so an accidental
 uninstall does not silently erase the desktop pairing and cached workspace.
-Windows `1.4.23` adds momentum-style coarse mouse-wheel scrolling across
-projects, task views, dialogs, utility panels, and horizontal boards while
-preserving native precision-trackpad and reduced-motion behavior.
+Windows `1.4.27` provides mouse-wheel scrolling and visible draggable
+scrollbars across the projects sidebar and main workspace. Responsive layout
+checks cover narrow windows and 150% Windows display scaling so controls remain
+reachable instead of being cropped.
 
 The next signed package is `1.4.22`, package `com.michaelunkai.daymark`,
 version code `26`. It preserves completed Order items as completed tasks,
