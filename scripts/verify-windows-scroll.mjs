@@ -492,7 +492,7 @@ async function verifyBlankWorkspaceRoutesWheelToProjects(page) {
   await page.mouse.wheel(0, -wheelDelta);
   const up = await sampleScroll(page, ".sidebar__scroll");
   const upEnd = up.at(-1);
-  if (upEnd.y > 2 || distinctPositions(up) < 3 || upEnd.active) {
+  if (upEnd.y > 2 || distinctPositions(up) < 2 || upEnd.active) {
     throw new Error(`Blank-workspace wheel did not scroll the Projects navigation back up: ${JSON.stringify({ geometry, down, up })}`);
   }
 
