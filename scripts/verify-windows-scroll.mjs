@@ -403,7 +403,12 @@ async function verifyRoute(page, route, label) {
   await page.mouse.wheel(0, -wheelDelta);
   const up = await sampleScroll(page, target.selector);
   const upEnd = up.at(-1);
-  if (upEnd.y >= downEnd.y - 1 || distinctPositions([downEnd, ...up]) < 2 || upEnd.active || upEnd.y > 2) {
+  if (
+    upEnd.y >= downEnd.y - 1
+    || distinctPositions([downEnd, ...up]) < 2
+    || upEnd.active
+    || upEnd.y > start.y + 2
+  ) {
     throw new Error(`Mouse-wheel up scrolling failed for ${label}: ${JSON.stringify({ target, start, down, up })}`);
   }
 

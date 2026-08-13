@@ -78,6 +78,7 @@ test("packaged scroll verification counts movement from the known start position
   assert.match(scrollVerifier, /const start = await page\.locator\(target\.selector\)\.evaluate/);
   assert.match(scrollVerifier, /distinctPositions\(\[start, \.\.\.down\]\)/);
   assert.match(scrollVerifier, /distinctPositions\(\[downEnd, \.\.\.up\]\)/);
+  assert.match(scrollVerifier, /upEnd\.y > start\.y \+ 2/);
   assert.match(scrollVerifier, /verifyReadableLayout/);
   assert.match(scrollVerifier, /minimumBodyWidth >= 120/);
   assert.match(scrollVerifier, /minimumTitleWidth >= 120/);
