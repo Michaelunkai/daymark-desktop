@@ -72,6 +72,23 @@ test("packaged Windows starts through a native detached launcher before Electron
   assert.match(main, /Daymark\.exe/);
 });
 
+test("packaged runtime keeps the Daymark identity used by the pinned taskbar window", () => {
+  assert.match(afterPack, /rcedit\.exe/);
+  assert.match(afterPack, /--set-icon/);
+  assert.match(afterPack, /FileDescription/);
+  assert.match(afterPack, /ProductName/);
+  assert.match(afterPack, /OriginalFilename/);
+  assert.match(afterPack, /Daymark Runtime\.exe/);
+});
+
+test("Windows registers a Daymark shortcut matching the pinned taskbar identity", () => {
+  assert.match(main, /APP_USER_MODEL_ID/);
+  assert.match(main, /Start Menu/);
+  assert.match(main, /writeShortcutLink/);
+  assert.match(main, /appUserModelId:\s*APP_USER_MODEL_ID/);
+  assert.match(main, /icon:\s*launcherPath/);
+});
+
 test("desktop window becomes visible after a successful detached load", () => {
   assert.match(main, /function showMainWindow\(\)/);
   assert.match(main, /mainWindow\.webContents\.once\("did-finish-load", showMainWindow\)/);

@@ -6,6 +6,7 @@ const PRODUCT_NAME = "Daymark";
 const PRODUCTION_ORIGIN = "https://daymark-desktop.michaelovsky55555.chatgpt.site";
 const START_URL = `${PRODUCTION_ORIGIN}/`;
 const SESSION_PARTITION = "persist:daymark";
+const APP_USER_MODEL_ID = "com.michaelunkai.daymark.windows";
 const PACKAGED_LAUNCHER_NAME = "Daymark.exe";
 const PACKAGED_RUNTIME_NAME = "Daymark Runtime.exe";
 const SYNC_PATTERN = /^[A-Za-z0-9_-]{22}$/;
@@ -16,7 +17,7 @@ let mainWindow = null;
 let pendingDeepLink = null;
 
 app.setName(PRODUCT_NAME);
-app.setAppUserModelId("com.michaelunkai.daymark.windows");
+app.setAppUserModelId(APP_USER_MODEL_ID);
 
 const userDataArgument = process.argv.find((value) => value.startsWith("--daymark-user-data-dir="));
 const requestedUserDataPath = process.env.DAYMARK_USER_DATA_DIR
@@ -63,6 +64,30 @@ function isTrustedNavigation(value) {
   } catch {
     return false;
   }
+}
+
+function ensureWindowsShortcut() {
+  if (process.platform !== "win32" || process.defaultApp) return;
+
+  const applicationDirectory = path.dirname(process.execPath);
+  const launcherPath = path.join(applicationDirectory, PACKAGED_LAUNCHER_NAME);
+  const startMenuDirectory = path.join(
+    process.env.APPDATA ?? app.getPath("appData"),
+    "Microsoft",
+    "Windows",
+    "Start Menu",
+    "Programs",
+  );
+  const shortcutPath = path.join(startMenuDirectory, "Daymark.lnk");
+  const written = shell.writeShortcutLink(shortcutPath, "create", {
+    target: launcherPath,
+    cwd: applicationDirectory,
+    description: "Daymark workspace",
+    icon: launcherPath,
+    iconIndex: 0,
+    appUserModelId: APP_USER_MODEL_ID,
+  });
+  if (!written) console.error(`Daymark shortcut registration failed: ${shortcutPath}`);
 }
 
 async function pairCanonicalWorkspace() {
@@ -200,6 +225,7 @@ app.on("open-url", (event, url) => {
 });
 
 app.whenReady().then(() => {
+  ensureWindowsShortcut();
   void createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow();

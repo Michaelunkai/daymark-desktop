@@ -9,8 +9,8 @@ using System.Text;
 [assembly: System.Reflection.AssemblyDescription("Daymark Windows launcher")]
 [assembly: System.Reflection.AssemblyCompany("Michael Fedorovsky")]
 [assembly: System.Reflection.AssemblyProduct("Daymark")]
-[assembly: System.Reflection.AssemblyVersion("1.4.35.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.4.35.0")]
+[assembly: System.Reflection.AssemblyVersion("1.4.36.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.4.36.0")]
 
 internal static class DaymarkLauncher
 {
