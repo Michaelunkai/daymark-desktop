@@ -233,11 +233,11 @@ test("Android reminders stay device-local and schedule native alerts across rest
   assert.match(activity, /hasVisibleDocument && sameLogicalUrl\(requestedUrl, lastRequestedUrl\)/);
   assert.match(scheduler, /setExactAndAllowWhileIdle/);
   assert.match(scheduler, /setAndAllowWhileIdle/);
-  assert.match(scheduler, /CHANNEL_VERSION = "v2"/);
+  assert.match(scheduler, /CHANNEL_VERSION = "v3"/);
   assert.match(scheduler, /daymark\.reminder\./);
-  assert.match(scheduler, /RingtoneManager\.TYPE_NOTIFICATION/);
-  assert.match(scheduler, /RingtoneManager\.TYPE_RINGTONE/);
-  assert.match(scheduler, /RingtoneManager\.TYPE_ALARM/);
+  assert.match(scheduler, /daymark_reminder_soft/);
+  assert.match(scheduler, /daymark_reminder_alert/);
+  assert.match(scheduler, /daymark_reminder_alarm/);
   assert.match(scheduler, /AudioAttributes\.USAGE_ALARM/);
   assert.match(scheduler, /areNotificationsEnabled/);
   assert.match(scheduler, /hasAudibleChannels/);
@@ -254,4 +254,28 @@ test("Android reminders stay device-local and schedule native alerts across rest
   assert.match(appSource, /route === 'reminders' \? \(\s*<ReminderPlanner/);
   assert.doesNotMatch(appSource, /aria-label="Diary tabs"/);
   assert.doesNotMatch(reminderStore, /core\/sync/);
+});
+
+test("Daymark reminder sounds are moderate twelve-second custom patterns", async () => {
+  const sounds = await Promise.all([
+    readFile(new URL("./android/app/src/main/res/raw/daymark_reminder_soft.wav", root)),
+    readFile(new URL("./android/app/src/main/res/raw/daymark_reminder_alert.wav", root)),
+    readFile(new URL("./android/app/src/main/res/raw/daymark_reminder_alarm.wav", root)),
+  ]);
+
+  for (const sound of sounds) {
+    assert.equal(sound.toString("ascii", 0, 4), "RIFF");
+    assert.equal(sound.toString("ascii", 8, 12), "WAVE");
+    assert.equal(sound.readUInt16LE(22), 1);
+    assert.equal(sound.readUInt16LE(34), 16);
+    const sampleRate = sound.readUInt32LE(24);
+    const durationSeconds = sound.readUInt32LE(40) / (sampleRate * 2);
+    assert.equal(durationSeconds, 12);
+
+    let peak = 0;
+    for (let offset = 44; offset < sound.length; offset += 2) {
+      peak = Math.max(peak, Math.abs(sound.readInt16LE(offset)));
+    }
+    assert.ok(peak >= 8_000 && peak <= 21_000);
+  }
 });

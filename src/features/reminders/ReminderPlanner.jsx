@@ -228,9 +228,9 @@ export function ReminderPlanner({
                   <option value="after">After</option>
                 </select>
                 <select aria-label="Alert sound" onChange={(event) => changeOffset(offset.id, { sound: event.target.value })} value={offset.sound}>
-                  <option value="soft">Notification tone</option>
-                  <option value="alert">Phone ringtone</option>
-                  <option value="alarm">Alarm tone</option>
+                  <option value="soft">Clear chime - 12 sec</option>
+                  <option value="alert">Focused ring - 12 sec</option>
+                  <option value="alarm">Attention alarm - 12 sec</option>
                 </select>
                 <button aria-label={`Test ${offset.sound} sound`} className="secondary-button" onClick={() => onTestSound?.(offset.sound)} type="button">Test sound</button>
                 <button aria-label={`Remove ${describeOffset(offset)} alert`} className="reminder-planner__remove-alert" onClick={() => setEditor((current) => ({

@@ -48,7 +48,7 @@ public final class ReminderAlarmReceiver extends BroadcastReceiver {
                 .setCategory("alarm".equals(sound) ? Notification.CATEGORY_ALARM : Notification.CATEGORY_REMINDER)
                 .setVisibility(Notification.VISIBILITY_PUBLIC);
         if (Build.VERSION.SDK_INT < 26) {
-            builder.setSound(ReminderScheduler.soundUri(sound))
+            builder.setSound(ReminderScheduler.soundUri(context, sound))
                     .setVibrate(new long[]{0L, 180L, 120L, 180L});
         }
         int notificationId = (scheduleId == null || scheduleId.isEmpty()

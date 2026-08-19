@@ -7,7 +7,6 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioAttributes;
-import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 
@@ -19,7 +18,7 @@ final class ReminderScheduler {
     private static final String SCHEDULES = "schedules";
     // Android permanently retains a channel's sound after it is first created.
     // A versioned ID gives existing installations a fresh, audible reminder channel.
-    private static final String CHANNEL_VERSION = "v2";
+    private static final String CHANNEL_VERSION = "v3";
     private static final String ACTION_REMINDER = "com.michaelunkai.daymark.REMINDER";
     private static final String EXTRA_ID = "id";
     private static final String EXTRA_TITLE = "title";
@@ -98,7 +97,7 @@ final class ReminderScheduler {
         String title = "Daymark " + channelLabel(normalizedSound);
         NotificationChannel channel = new NotificationChannel(channelId, title, NotificationManager.IMPORTANCE_HIGH);
         channel.setDescription("Audible Daymark reminder alerts");
-        channel.setSound(soundUri(normalizedSound), audioAttributes(normalizedSound));
+        channel.setSound(soundUri(context, normalizedSound), audioAttributes(normalizedSound));
         channel.enableVibration(true);
         channel.setVibrationPattern(new long[]{0L, 180L, 120L, 180L});
         channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
@@ -111,13 +110,12 @@ final class ReminderScheduler {
         ensureChannel(context, "alarm");
     }
 
-    static Uri soundUri(String sound) {
-        return RingtoneManager.getDefaultUri(
-                "alarm".equals(normalizeSound(sound))
-                        ? RingtoneManager.TYPE_ALARM
-                        : "alert".equals(normalizeSound(sound))
-                                ? RingtoneManager.TYPE_RINGTONE
-                                : RingtoneManager.TYPE_NOTIFICATION);
+    static Uri soundUri(Context context, String sound) {
+        return Uri.parse(
+                "android.resource://"
+                        + context.getPackageName()
+                        + "/raw/"
+                        + soundResourceName(sound));
     }
 
     static AudioAttributes audioAttributes(String sound) {
@@ -147,6 +145,14 @@ final class ReminderScheduler {
                 : "alert".equals(sound)
                         ? "ringtone reminders"
                         : "notification reminders";
+    }
+
+    private static String soundResourceName(String sound) {
+        return "alarm".equals(normalizeSound(sound))
+                ? "daymark_reminder_alarm"
+                : "alert".equals(normalizeSound(sound))
+                        ? "daymark_reminder_alert"
+                        : "daymark_reminder_soft";
     }
 
     private static JSONArray read(Context context) {
