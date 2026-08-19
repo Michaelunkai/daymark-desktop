@@ -2,6 +2,8 @@ package com.michaelunkai.daymark;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.pm.PackageManager;
+import android.provider.Settings;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
@@ -34,6 +36,7 @@ public final class MainActivity extends Activity {
     private static final String NATIVE_RELEASE = "1.4.34";
     private static final int CONTENT_READY_TIMEOUT_MS = 9000;
     private static final int RUNTIME_HEALTH_CHECK_MS = 500;
+    private static final int NOTIFICATION_PERMISSION_REQUEST = 7401;
     private WebView webView;
     private SharedPreferences preferences;
     private FrameLayout root;
@@ -69,7 +72,7 @@ public final class MainActivity extends Activity {
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         FrameLayout.LayoutParams.MATCH_PARENT));
         loadingMessage = new TextView(this);
-        loadingMessage.setText("Loading Daymark");
+        loadingMessage.setText("");
         loadingMessage.setTextColor(Color.WHITE);
         loadingMessage.setTextSize(16);
         loadingMessage.setGravity(android.view.Gravity.CENTER);
@@ -80,6 +83,8 @@ public final class MainActivity extends Activity {
                 new FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         FrameLayout.LayoutParams.MATCH_PARENT));
+        loadingCover.setVisibility(View.GONE);
+        loadingMessage.setVisibility(View.GONE);
         setContentView(root);
         webView = createWebView();
         root.addView(
@@ -101,7 +106,9 @@ public final class MainActivity extends Activity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        loadDaymarkUrl(urlForIntent(intent));
+        String requestedUrl = urlForIntent(intent);
+        if (hasVisibleDocument && requestedUrl.equals(lastRequestedUrl)) return;
+        loadDaymarkUrl(requestedUrl);
     }
 
     @Override
@@ -149,7 +156,7 @@ public final class MainActivity extends Activity {
         settings.setLoadWithOverviewMode(false);
         settings.setUseWideViewPort(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             settings.setOffscreenPreRaster(true);
         }
@@ -169,13 +176,9 @@ public final class MainActivity extends Activity {
     }
 
     private void showLoading() {
-        if (loadingMessage != null) {
-            loadingMessage.setText("Loading Daymark");
-            loadingMessage.setClickable(false);
-        }
-        if (loadingCover != null) loadingCover.setClickable(false);
-        if (loadingCover != null) loadingCover.setVisibility(View.VISIBLE);
-        if (loadingMessage != null) loadingMessage.setVisibility(View.VISIBLE);
+        if (loadingMessage != null) loadingMessage.setClickable(false);
+        if (loadingCover != null) loadingCover.setVisibility(View.GONE);
+        if (loadingMessage != null) loadingMessage.setVisibility(View.GONE);
     }
 
     private void showOffline() {
@@ -212,9 +215,7 @@ public final class MainActivity extends Activity {
         view.evaluateJavascript(
                 "(function(){var root=document.getElementById('root');"
                         + "if(!root)return false;"
-                        + "if(root.getAttribute('data-daymark-ready')==='true')return true;"
-                        + "var text=(root.innerText||'').trim();"
-                        + "return root.children.length>0&&text.length>0;})()",
+                        + "return root.getAttribute('data-daymark-ready')==='true';})()",
                 value -> {
                     if (destroying || view != webView || generation != loadGeneration || loadingFailed) {
                         return;
@@ -270,9 +271,7 @@ public final class MainActivity extends Activity {
         }
         view.evaluateJavascript(
                 "(function(){var root=document.getElementById('root');"
-                        + "if(!root)return false;"
-                        + "var text=(root.innerText||'').trim();"
-                        + "return root.children.length>0&&text.length>0;})()",
+                        + "return !!root&&root.getAttribute('data-daymark-ready')==='true';})()",
                 value -> {
                     if (destroying || view != webView || generation != loadGeneration || !hasVisibleDocument) {
                         return;
@@ -351,7 +350,6 @@ public final class MainActivity extends Activity {
         @Override
         public void onPageCommitVisible(WebView view, String url) {
             if (view == webView && !loadingFailed) {
-                hideLoading();
                 scheduleAppReadinessCheck(view);
             }
         }
@@ -433,6 +431,37 @@ public final class MainActivity extends Activity {
         @JavascriptInterface
         public void onBackHandled(boolean atRoot) {
             runOnUiThread(() -> handleBackResult(atRoot));
+        }
+
+        @JavascriptInterface
+        public void syncReminders(String schedules) {
+            runOnUiThread(() -> ReminderScheduler.replace(MainActivity.this, schedules));
+        }
+
+        @JavascriptInterface
+        public String getNotificationStatus() {
+            return ReminderScheduler.status(MainActivity.this);
+        }
+
+        @JavascriptInterface
+        public void requestNotificationPermission() {
+            runOnUiThread(() -> {
+                if (Build.VERSION.SDK_INT >= 33
+                        && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATION_PERMISSION_REQUEST);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void openExactAlarmSettings() {
+            runOnUiThread(() -> {
+                if (Build.VERSION.SDK_INT >= 31) {
+                    Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                            .setData(Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                }
+            });
         }
     }
 }

@@ -97,6 +97,11 @@ test('global shell exposes the required settings and repository affordances', ()
   assert.match(app, /Reset local workspace\?/)
   assert.doesNotMatch(app, /window\.confirm/)
   assert.doesNotMatch(app, /maxLength\s*=/)
+  assert.match(app, /useState\('order'\)/)
+  assert.match(app, /className="quick-button"/)
+  assert.match(app, /<QuickCaptureSheet/)
+  assert.match(app, /<ReminderPlanner/)
+  assert.match(app, /setRoute\('order'\)/)
 })
 
 test('task and Order layouts reserve readable width for complete titles and details', () => {
@@ -235,6 +240,9 @@ test('shell styles include keyboard focus, mobile layout, and dark theme coverag
   assert.match(styles, /\.view-header \{[\s\S]*?flex-wrap: wrap;/)
   assert.match(styles, /\.view-header__actions \{[\s\S]*?flex-wrap: wrap;[\s\S]*?max-width: 100%;/)
   assert.match(styles, /@media \(max-width: 1040px\) \{[\s\S]*?\.utility-panel \{[\s\S]*?display: none;/)
+  assert.match(styles, /\.main-content,[\s\S]*?touch-action: pan-y;/)
+  assert.match(styles, /orientation: landscape/)
+  assert.match(styles, /\.journal-tabs/)
 })
 
 test('coarse mouse wheels are smoothed without replacing precise or accessible scrolling', () => {

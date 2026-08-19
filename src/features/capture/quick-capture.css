@@ -1,0 +1,14 @@
+.quick-capture { align-items: center; background: rgba(0, 0, 0, 0.76); display: flex; inset: 0; justify-content: center; padding: 18px; position: fixed; z-index: 60; }
+.quick-capture__sheet { display: grid; gap: 14px; max-height: min(760px, calc(var(--daymark-viewport-height, 100dvh) - 36px)); overflow-y: auto; overscroll-behavior: contain; padding: 18px; scrollbar-gutter: stable; touch-action: pan-y; width: min(560px, 100%); }
+.quick-capture__header, .quick-capture__footer { align-items: center; display: flex; justify-content: space-between; }
+.quick-capture__header h2 { font-size: 21px; margin: 0; }
+.quick-capture__header .section-kicker { display: block; margin-bottom: 3px; }
+.quick-capture__mode, .quick-capture__grid { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.quick-capture__mode button, .quick-capture__sheet input, .quick-capture__sheet select, .quick-capture__sheet textarea { border: 1px solid #373737; border-radius: 6px; font: inherit; min-height: 44px; padding: 9px 10px; }
+.quick-capture__sheet label { display: grid; gap: 5px; font-size: 12px; font-weight: 750; }
+.quick-capture__sheet textarea { min-height: 86px; resize: vertical; }
+.quick-capture__mode button[aria-pressed="true"] { border-color: #ff7900; color: #ff7900; }
+.quick-capture__error { color: #ff8b80; margin: 0; }
+.quick-capture__footer { gap: 10px; justify-content: flex-end; }
+[data-theme] body .quick-button, [data-theme] .app-shell .quick-button { background-color: #ff7900 !important; border: 1px solid #ff7900 !important; border-radius: 7px; color: #111 !important; cursor: pointer; font-weight: 800; min-height: 40px; padding: 0 14px; }
+@media (max-width: 720px) { .quick-capture { align-items: flex-end; padding: 0; } .quick-capture__sheet { border-radius: 8px 8px 0 0; max-height: min(86dvh, calc(var(--daymark-viewport-height, 100dvh) - 14px)); padding: 18px max(16px, env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); width: 100%; } .quick-capture__footer > * { flex: 1; justify-content: center; } }

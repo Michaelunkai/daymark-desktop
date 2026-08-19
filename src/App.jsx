@@ -38,6 +38,15 @@ import {
   submitCapture,
   updateCaptureDraft,
 } from './features/capture'
+import { QuickCaptureSheet } from './features/capture/QuickCaptureSheet'
+import { ReminderPlanner } from './features/reminders/ReminderPlanner'
+import {
+  deleteLocalReminder,
+  loadLocalReminders,
+  saveLocalReminders,
+  toNativeReminderSchedules,
+  upsertLocalReminder,
+} from './features/reminders/local-reminders'
 import {
   TaskEditor,
   createTaskEditorDraft,
@@ -144,6 +153,14 @@ function notifyAndroidBackHandled(atRoot) {
     window.DaymarkAndroid?.onBackHandled?.(Boolean(atRoot))
   } catch {
     // The native bridge is optional when Daymark runs in a browser.
+  }
+}
+
+function getAndroidReminderStatus() {
+  try {
+    return window.DaymarkAndroid?.getNotificationStatus?.() ?? 'browser'
+  } catch {
+    return 'browser'
   }
 }
 
@@ -1827,7 +1844,14 @@ function DiaryField({ label, value, placeholder, onChange, rows = 5 }) {
 
 function JournalView({
   journal,
+  reminders,
+  projects,
+  sections,
+  notificationStatus,
   onDiaryUpdate,
+  onReminderDelete,
+  onReminderSave,
+  onRequestReminderAccess,
   onNoteAdd,
   onNoteComplete,
   onNoteDelete,
@@ -1838,6 +1862,7 @@ function JournalView({
   const today = toLocalDate(new Date())
   const [selectedDate, setSelectedDate] = useState(today)
   const [selectedNoteId, setSelectedNoteId] = useState(() => journal.notes[0]?.id ?? null)
+  const [diaryTab, setDiaryTab] = useState('entry')
   const selectedNote = journal.notes.find((note) => note.id === selectedNoteId) ?? null
   const diaryEntry = journal.diaryEntries[selectedDate] ?? {
     body: '',
@@ -1855,6 +1880,22 @@ function JournalView({
   if (route === 'diary') {
     return (
       <section aria-label="Diary" className="journal-view">
+        <div aria-label="Diary tabs" className="journal-tabs" role="tablist">
+          <button aria-selected={diaryTab === 'entry'} onClick={() => setDiaryTab('entry')} role="tab" type="button">Diary</button>
+          <button aria-selected={diaryTab === 'reminders'} onClick={() => setDiaryTab('reminders')} role="tab" type="button">Reminder</button>
+        </div>
+        {diaryTab === 'reminders' ? (
+          <ReminderPlanner
+            notificationStatus={notificationStatus}
+            onDelete={onReminderDelete}
+            onRequestNotificationAccess={onRequestReminderAccess}
+            onSave={onReminderSave}
+            projects={projects}
+            reminders={reminders}
+            sections={sections}
+          />
+        ) : (
+          <>
         <div className="journal-toolbar">
           <div className="diary-date-controls">
             <button
@@ -1909,6 +1950,8 @@ function JournalView({
             />
           </label>
         </div>
+          </>
+        )}
       </section>
     )
   }
@@ -1995,7 +2038,7 @@ function JournalView({
 function App() {
   const state = useAppState()
   const { setPreference } = useTheme()
-  const [route, setRoute] = useState('today')
+  const [route, setRoute] = useState('order')
   const [viewMode, setViewMode] = useState('list')
   const [composerOpen, setComposerOpen] = useState(false)
   const [draft, setDraft] = useState('')
@@ -2019,6 +2062,9 @@ function App() {
   const [captureSession, setCaptureSession] = useState(null)
   const [captureNotice, setCaptureNotice] = useState('')
   const [companionOpen, setCompanionOpen] = useState(false)
+  const [quickOpen, setQuickOpen] = useState(false)
+  const [localReminders, setLocalReminders] = useState(() => loadLocalReminders())
+  const [notificationStatus, setNotificationStatus] = useState(() => getAndroidReminderStatus())
   const [uiSettings, setUiSettings] = useState(() => readUiSettings())
   const [syncKey, setSyncKey] = useState(() => getSyncKey(getBrowserStorage()))
   const [adoptRemoteOnJoin, setAdoptRemoteOnJoin] = useState(() => consumeRemoteAdoption(syncKey, getBrowserStorage()))
@@ -2054,6 +2100,16 @@ function App() {
   useEffect(() => {
     seedDemoWorkspace()
   }, [])
+
+  useEffect(() => {
+    saveLocalReminders(localReminders)
+    try {
+      window.DaymarkAndroid?.syncReminders?.(JSON.stringify(toNativeReminderSchedules(localReminders)))
+      setNotificationStatus(getAndroidReminderStatus())
+    } catch {
+      setNotificationStatus('browser')
+    }
+  }, [localReminders])
 
   useEffect(() => {
     const root = document.documentElement
@@ -2633,7 +2689,8 @@ function App() {
         if (reorderMode) {
           setReorderMode(null)
           setNotice('Reorder mode cancelled.')
-        } else if (commandOpen) setCommandOpen(false)
+        } else if (quickOpen) setQuickOpen(false)
+        else if (commandOpen) setCommandOpen(false)
         else if (composerOpen) setComposerOpen(false)
         else if (sidebarOpen) setSidebarOpen(false)
         return
@@ -2664,7 +2721,7 @@ function App() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [captureSession, commandOpen, composerOpen, projectDialogOpen, reorderMode, sidebarOpen, taskEditor])
+  }, [captureSession, commandOpen, composerOpen, projectDialogOpen, quickOpen, reorderMode, sidebarOpen, taskEditor])
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 720px)')
@@ -2715,6 +2772,11 @@ function App() {
         notifyAndroidBackHandled(false)
         return
       }
+      if (quickOpen) {
+        setQuickOpen(false)
+        notifyAndroidBackHandled(false)
+        return
+      }
       if (projectDialogOpen) {
         setProjectDialogOpen(false)
         setProjectToEdit(null)
@@ -2741,8 +2803,8 @@ function App() {
         notifyAndroidBackHandled(false)
         return
       }
-      if (route !== 'today') {
-        navigate('today')
+      if (route !== 'order') {
+        navigate('order')
         notifyAndroidBackHandled(false)
         return
       }
@@ -2751,7 +2813,7 @@ function App() {
     }
     window.addEventListener('daymark:android-back', handleAndroidBack)
     return () => window.removeEventListener('daymark:android-back', handleAndroidBack)
-  }, [captureSession, commandOpen, confirmation, projectDialogOpen, route, sectionEditor, selectedTask, sidebarOpen, taskEditor])
+  }, [captureSession, commandOpen, confirmation, projectDialogOpen, quickOpen, route, sectionEditor, selectedTask, sidebarOpen, taskEditor])
 
   const enterReorderMode = (kind, id) => {
     if (kind === 'project' && !state.projects[id]) return
@@ -2992,11 +3054,64 @@ function App() {
   const addOrderItem = (input) => {
     const result = appStore.dispatch({ type: 'order.add', input })
     if (!result.ok) setNotice(result.message)
+    return result
   }
 
   const updateOrderItem = (itemId, patch) => {
     const result = appStore.dispatch({ type: 'order.update', itemId, patch })
     if (!result.ok) setNotice(result.message)
+    return result
+  }
+
+  const saveQuickTask = (taskId, input) => {
+    const result = taskId
+      ? appStore.dispatch({ type: 'task.update', taskId, patch: input })
+      : appStore.dispatch({ type: 'task.add', input })
+    if (!result.ok) setNotice(result.message)
+    else {
+      setNotice(taskId ? 'Task updated.' : 'Task added.')
+      setUndoAvailable(true)
+    }
+    return result
+  }
+
+  const saveQuickOrder = (itemId, input) => {
+    const result = itemId
+      ? updateOrderItem(itemId, input)
+      : addOrderItem(input)
+    if (result.ok) {
+      setNotice(itemId ? 'Order item updated.' : 'Order item added.')
+      setUndoAvailable(true)
+    }
+    return result
+  }
+
+  const saveReminder = (input) => {
+    const result = upsertLocalReminder(localReminders, input)
+    if (!result.ok) {
+      setNotice(result.message)
+      return
+    }
+    setLocalReminders(result.reminders)
+    setNotice('Reminder scheduled on this device.')
+  }
+
+  const deleteReminder = (reminderId) => {
+    setLocalReminders((current) => deleteLocalReminder(current, reminderId))
+    setNotice('Reminder removed from this device.')
+  }
+
+  const requestReminderAccess = () => {
+    try {
+      if (getAndroidReminderStatus() === 'exact-alarm-required') {
+        window.DaymarkAndroid?.openExactAlarmSettings?.()
+      } else {
+        window.DaymarkAndroid?.requestNotificationPermission?.()
+      }
+      window.setTimeout(() => setNotificationStatus(getAndroidReminderStatus()), 700)
+    } catch {
+      setNotificationStatus('browser')
+    }
   }
 
   const completeOrderItem = (item) => {
@@ -3632,7 +3747,7 @@ function App() {
           createBrowserStorage().write(JSON.stringify(imported))
           appStore.reload()
           setReorderMode(null)
-          setRoute('today')
+          setRoute('order')
           setNotice('Backup imported.')
         },
         title: 'Replace current workspace?',
@@ -3650,7 +3765,7 @@ function App() {
         createBrowserStorage().remove?.()
         appStore.reset()
         setReorderMode(null)
-        setRoute('today')
+        setRoute('order')
         setNotice('Local workspace reset.')
       },
       title: 'Reset local workspace?',
@@ -3680,7 +3795,7 @@ function App() {
           >
             <Icon name="menu" size={18} />
           </button>
-          <button className="brand-lockup" onClick={() => navigate('today')} type="button">
+          <button className="brand-lockup" onClick={() => navigate('order')} type="button">
             <LogoMark />
             <span>Daymark</span>
           </button>
@@ -3698,6 +3813,7 @@ function App() {
           <button aria-label="Open command palette" className="icon-button" onClick={() => setCommandOpen(true)} title="Command palette (Ctrl K)" type="button">
             <Icon name="command" size={17} />
           </button>
+          <button className="quick-button" onClick={() => setQuickOpen(true)} title="Quick capture and edit" type="button">Quick</button>
           <span aria-label={`Daymark ${agentAccessText.toLowerCase()}`} className="agent-connection" data-agent-bridge="connected">
             <span aria-hidden="true" className="agent-connection__dot" />
             {agentAccessText}
@@ -3918,7 +4034,14 @@ function App() {
                 onNoteDelete={deleteNote}
                 onNoteMove={moveNoteToTarget}
                 onNoteUpdate={updateNote}
+                notificationStatus={notificationStatus}
+                onReminderDelete={deleteReminder}
+                onReminderSave={saveReminder}
+                onRequestReminderAccess={requestReminderAccess}
+                projects={Object.values(state.projects)}
+                reminders={localReminders}
                 route={route}
+                sections={Object.values(state.sections)}
               />
             ) : route === 'upcoming' ? (
               <>
@@ -4209,6 +4332,17 @@ function App() {
         onClose={() => setCompanionOpen(false)}
         projects={projectItems}
         tasks={tasks}
+      />
+      <QuickCaptureSheet
+        inboxProjectId={state.preferences.inboxProjectId}
+        isOpen={quickOpen}
+        onClose={() => setQuickOpen(false)}
+        onSaveOrder={saveQuickOrder}
+        onSaveTask={saveQuickTask}
+        orderItems={orderItems}
+        projects={Object.values(state.projects)}
+        sections={Object.values(state.sections)}
+        tasks={Object.values(state.tasks)}
       />
       {captureNotice ? (
         <div aria-live="polite" className="thought-capture-toast" role="status">

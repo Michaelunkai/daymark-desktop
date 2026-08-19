@@ -3269,3 +3269,118 @@ kbd {
 [data-theme] body .is-active {
   border-color: #fff !important;
 }
+
+/* Android touch input should scroll the workspace until a deliberate long press begins. */
+.main-content,
+.project-sidebar-item__main,
+.task-section__heading,
+.task-row__body,
+.board-column__heading,
+.board-task__body {
+  touch-action: pan-y;
+}
+
+.journal-tabs {
+  display: inline-flex;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.journal-tabs button {
+  border: 1px solid #373737;
+  border-radius: 6px;
+  cursor: pointer;
+  min-height: 40px;
+  padding: 0 13px;
+}
+
+[data-theme] .app-shell .journal-tabs button[aria-selected="true"],
+[data-theme] body .journal-tabs button[aria-selected="true"] {
+  border-color: #ff7900 !important;
+  color: #ff7900 !important;
+}
+
+[data-theme] .app-shell .quick-button,
+[data-theme] body .quick-button {
+  background-color: #ff7900 !important;
+  border-color: #ff7900 !important;
+  color: #111 !important;
+}
+
+@media (pointer: coarse) {
+  .icon-button,
+  .avatar-button,
+  .task-check,
+  .board-task__complete,
+  .journal-tabs button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 720px) {
+  :root {
+    --daymark-topbar-height: 156px;
+  }
+
+  .topbar__controls {
+    grid-template-columns: 34px minmax(62px, 1fr) 34px 34px 34px;
+  }
+
+  .topbar__controls .quick-button {
+    justify-self: stretch;
+    min-width: 0;
+    padding-inline: 8px;
+  }
+
+  .main-content {
+    scroll-padding-bottom: calc(32px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 560px) {
+  :root {
+    --daymark-topbar-height: 56px;
+  }
+
+  .topbar,
+  .app-shell.sidebar-is-collapsed .topbar {
+    grid-template-columns: minmax(168px, 220px) minmax(0, 1fr);
+    grid-template-rows: 56px;
+    height: 56px;
+  }
+
+  .topbar__brand,
+  .app-shell.sidebar-is-collapsed .topbar__brand {
+    height: 56px;
+    padding-inline: 12px;
+  }
+
+  .topbar__controls {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    height: 56px;
+    min-width: 0;
+    padding: 6px max(12px, env(safe-area-inset-right)) 6px 12px;
+  }
+
+  .topbar__controls .global-search {
+    flex: 1 1 180px;
+    grid-column: auto;
+    grid-row: auto;
+    min-width: 120px;
+  }
+
+  .topbar__controls .quick-button {
+    min-width: 60px;
+  }
+
+  .shell-grid {
+    height: calc(var(--daymark-viewport-height) - var(--daymark-topbar-height));
+  }
+
+  .content-frame {
+    padding: 20px max(18px, env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+  }
+}

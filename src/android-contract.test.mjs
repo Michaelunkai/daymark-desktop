@@ -74,11 +74,11 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(activity, /onRenderProcessGone/);
   assert.match(activity, /recoverWebView/);
   assert.match(activity, /onPageCommitVisible/);
-  assert.match(activity, /onPageCommitVisible[\s\S]*?hideLoading\(\)/);
-  assert.match(activity, /Loading Daymark/);
+  assert.match(activity, /onPageCommitVisible\(WebView view, String url\) \{\s*if \(view == webView && !loadingFailed\) \{\s*scheduleAppReadinessCheck\(view\);/);
+  assert.doesNotMatch(activity, /Loading Daymark/);
   assert.match(activity, /Daymark could not load/);
   assert.match(activity, /retryCurrentPage/);
-  assert.match(activity, /LOAD_DEFAULT/);
+  assert.match(activity, /LOAD_CACHE_ELSE_NETWORK/);
   assert.match(activity, /setOffscreenPreRaster\(true\)/);
   assert.match(activity, /NATIVE_RELEASE = "1\.4\.34"/);
   assert.match(activity, /withLaunchMarker/);
@@ -86,7 +86,7 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(activity, /verifyAppRendered/);
   assert.match(activity, /CONTENT_READY_TIMEOUT_MS/);
   assert.match(activity, /scheduleContentTimeout/);
-  assert.match(activity, /root\.children\.length/);
+  assert.match(activity, /root\.getAttribute\('data-daymark-ready'\)==='true'/);
   assert.match(activity, /monitorRenderedApp/);
   assert.match(activity, /RUNTIME_HEALTH_CHECK_MS/);
   assert.match(activity, /DaymarkChromeClient/);
@@ -134,4 +134,34 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(taskEditorStyles, /@media \(max-width: 680px\)[\s\S]*?\.task-editor__date-transfer \.date-picker__day\s*\{[\s\S]*?height:\s*44px[\s\S]*?min-height:\s*44px/);
   assert.match(orderStyles, /\.order-editor\s*\{[\s\S]*?overflow-y:\s*auto[\s\S]*?touch-action:\s*pan-y[\s\S]*?-webkit-overflow-scrolling:\s*touch/);
   assert.match(orderStyles, /@media \(max-width: 720px\)[\s\S]*?\.order-editor__calendar-transfer \.date-picker__day\s*\{[\s\S]*?height:\s*44px[\s\S]*?min-height:\s*44px/);
+});
+
+test("Android reminders stay device-local and schedule native alerts across restarts", async () => {
+  const [manifest, activity, scheduler, receiver, bootReceiver, reminderStore] = await Promise.all([
+    readFile(new URL("./android/app/src/main/AndroidManifest.xml", root), "utf8"),
+    readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/MainActivity.java", root), "utf8"),
+    readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/ReminderScheduler.java", root), "utf8"),
+    readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/ReminderAlarmReceiver.java", root), "utf8"),
+    readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/ReminderBootReceiver.java", root), "utf8"),
+    readFile(new URL("./src/features/reminders/local-reminders.ts", root), "utf8"),
+  ]);
+  assert.match(manifest, /POST_NOTIFICATIONS/);
+  assert.match(manifest, /SCHEDULE_EXACT_ALARM/);
+  assert.match(manifest, /RECEIVE_BOOT_COMPLETED/);
+  assert.match(manifest, /ReminderAlarmReceiver/);
+  assert.match(manifest, /ReminderBootReceiver/);
+  assert.match(manifest, /BOOT_COMPLETED/);
+  assert.match(activity, /syncReminders/);
+  assert.match(activity, /getNotificationStatus/);
+  assert.match(activity, /requestNotificationPermission/);
+  assert.match(activity, /openExactAlarmSettings/);
+  assert.match(activity, /hasVisibleDocument && requestedUrl\.equals\(lastRequestedUrl\)/);
+  assert.match(scheduler, /setExactAndAllowWhileIdle/);
+  assert.match(scheduler, /setAndAllowWhileIdle/);
+  assert.match(scheduler, /daymark\.reminder\./);
+  assert.match(receiver, /Alert /);
+  assert.match(bootReceiver, /ReminderScheduler\.reschedule/);
+  assert.match(reminderStore, /daymark\.local-reminders\.v1/);
+  assert.match(reminderStore, /toNativeReminderSchedules/);
+  assert.doesNotMatch(reminderStore, /core\/sync/);
 });
