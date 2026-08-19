@@ -1292,7 +1292,7 @@ kbd {
 
 .board-task {
   display: grid;
-  grid-template-columns: 7px minmax(0, 1fr);
+  grid-template-columns: 7px minmax(0, 1fr) auto;
   gap: 9px;
   padding: 11px;
   color: var(--ink);
@@ -1357,7 +1357,8 @@ kbd {
 }
 
 .board-task strong,
-.board-task small {
+.board-task small,
+.board-task__details {
   display: block;
   min-width: 0;
 }
@@ -3185,6 +3186,29 @@ kbd {
   border-color: #fff !important;
 }
 
+.board-task__details {
+  color: var(--ink-muted);
+  display: -webkit-box;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.board-task__details.is-expanded {
+  display: block;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.board-task__actions {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 /* Android touch input should scroll the workspace until a deliberate long press begins. */
 .main-content,
 .project-sidebar-item__main,
@@ -3297,5 +3321,238 @@ kbd {
 
   .content-frame {
     padding: 20px max(18px, env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+  }
+}
+
+/* Android interaction polish: reconcile coarse targets with compact shell layouts. */
+@media (pointer: coarse) {
+  .primary-button,
+  .secondary-button,
+  .danger-button,
+  .toolbar-button,
+  .board-add,
+  .section-action,
+  .sidebar-row,
+  .project-sidebar-item__main,
+  .task-section__heading,
+  .board-column__heading,
+  .task-editor__button,
+  .task-editor__icon-button,
+  .task-editor__text-button,
+  .project-create-dialog__close,
+  .project-create-dialog__actions button,
+  .quick-capture__mode button,
+  .quick-capture__footer > button,
+  .settings-actions > button,
+  .settings-danger-row > button,
+  .settings-pairing > button {
+    min-height: 44px;
+  }
+
+  .section-action,
+  .task-editor__icon-button,
+  .project-create-dialog__close {
+    min-width: 44px;
+  }
+
+  .board-task {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .main-content,
+  .sidebar__scroll,
+  .task-editor__content,
+  .order-editor,
+  .quick-capture__sheet,
+  .command-list,
+  .discovery-results,
+  .companion-panel,
+  .project-create-dialog {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scroll-padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (pointer: coarse) and (max-width: 720px) {
+  :root {
+    --daymark-topbar-height: 164px;
+  }
+
+  .topbar {
+    grid-template-rows: 52px 112px;
+    height: 164px;
+  }
+
+  .topbar__controls {
+    grid-template-columns: 44px minmax(68px, 1fr) 44px 44px 44px;
+    grid-template-rows: 44px 44px;
+    gap: 6px 8px;
+    height: 112px;
+    padding: 8px 12px 10px;
+  }
+
+  .topbar__controls .global-search,
+  .topbar__controls .icon-button,
+  .topbar__controls .avatar-button,
+  .topbar__controls .agent-connection,
+  .topbar__controls .quick-button {
+    min-height: 44px;
+  }
+
+  .topbar__controls .global-search {
+    height: 44px;
+  }
+
+  .topbar__controls .icon-button,
+  .topbar__controls .avatar-button,
+  .topbar__controls .agent-connection {
+    width: 44px;
+    height: 44px;
+  }
+
+  .topbar__controls .quick-button {
+    min-width: 68px;
+  }
+
+  .task-row {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    column-gap: 6px;
+    min-height: 68px;
+  }
+
+  .task-row__details {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    display: grid;
+    grid-template-columns: 44px;
+    align-content: start;
+    justify-content: end;
+    gap: 2px;
+  }
+
+  .task-row__details .icon-button {
+    margin-left: 0;
+  }
+
+  .task-row__details .task-order-button {
+    display: none;
+  }
+
+  .task-row.is-reordering .task-order-button {
+    display: inline-flex;
+  }
+
+  .task-row__details .task-more {
+    visibility: visible;
+    opacity: 1;
+    margin-left: 0;
+  }
+
+  .task-row__meta,
+  .task-context {
+    min-width: 0;
+  }
+
+  .task-context {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .task-note {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .task-editor__transfer-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .task-editor__transfer-actions .task-editor__button,
+  .task-editor__date-transfer-footer .task-editor__button {
+    min-width: 0;
+  }
+
+  .task-editor__date-transfer-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .confirmation-overlay,
+  .integration-modal {
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
+
+  .confirmation-dialog,
+  .project-dialog,
+  .section-editor-dialog {
+    max-height: calc(
+      var(--daymark-viewport-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px
+    );
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}
+
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 560px) {
+  .topbar__controls .global-search {
+    flex-basis: 96px;
+    min-width: 96px;
+    height: 44px;
+  }
+
+  .topbar__controls .icon-button,
+  .topbar__controls .avatar-button,
+  .topbar__controls .agent-connection {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .topbar__controls .agent-connection {
+    justify-content: center;
+    padding: 0;
+    font-size: 0;
+  }
+
+  .topbar__controls .topbar__divider {
+    display: none;
+  }
+
+  .quick-capture,
+  .task-editor__backdrop,
+  .project-create-overlay,
+  .project-create-dialog__backdrop,
+  .order-editor-overlay,
+  .command-overlay,
+  .discovery-overlay,
+  .companion-scrim,
+  .confirmation-overlay {
+    padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 0
+      max(12px, env(safe-area-inset-left));
+  }
+
+  .quick-capture__sheet,
+  .task-editor__surface,
+  .project-create-dialog,
+  .order-editor,
+  .command-dialog,
+  .discovery-dialog,
+  .companion-panel,
+  .confirmation-dialog {
+    max-height: calc(
+      var(--daymark-viewport-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 8px
+    );
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 }

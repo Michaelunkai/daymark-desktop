@@ -9,6 +9,17 @@ import {
   updateCaptureDraft,
 } from "./model";
 import { getCaptureInteractionAction } from "./interaction";
+import {
+  applyClipboardToDraft,
+  buildQuickOrderInput,
+  buildQuickTaskInput,
+  createQuickOrderDraftFromTask,
+  createQuickSearchEntries,
+  createQuickTaskDraftFromOrder,
+  findQuickMatches,
+  getQuickSaveAction,
+  resolveSectionForProject,
+} from "./quick-capture-model";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -96,6 +107,128 @@ assert(
 assert(
   getCaptureInteractionAction({ ...baseKeyEvent, defaultPrevented: true }, "closed") === null,
   "Already handled keyboard events must not open another capture surface.",
+);
+
+const quickEntries = createQuickSearchEntries({
+  projects: [{ id: "work", name: "Work" }],
+  sections: [{ id: "plan", name: "Planning", projectId: "work" }],
+  tasks: [{
+    id: "task-1",
+    content: "Prepare launch notes",
+    description: "Include Android keyboard flow",
+    projectId: "work",
+    sectionId: "plan",
+    due: { date: "2026-08-20", time: "09:30" },
+    priority: 2,
+    updatedAt: "2026-08-19T12:00:00.000Z",
+  }],
+  orderItems: [{
+    id: "order-1",
+    title: "Call release owner",
+    details: "Confirm original signer",
+    lane: "now",
+    priority: 1,
+    updatedAt: "2026-08-19T11:00:00.000Z",
+  }],
+});
+assert(
+  findQuickMatches(quickEntries, "keyboard planning")[0]?.id === "task-1",
+  "Quick finder should locate tasks through compact details and destination context.",
+);
+assert(
+  findQuickMatches(quickEntries, "release owner")[0]?.id === "order-1",
+  "Quick finder should locate Order items from their title.",
+);
+
+const pastedTask = applyClipboardToDraft(
+  { title: "", details: "", projectId: "work", sectionId: "plan", date: "", time: "", priority: 4 },
+  "Prepare demo\nRecord Android one-hand flow",
+);
+assert(
+  pastedTask.title === "Prepare demo" && pastedTask.details === "Record Android one-hand flow",
+  "Clipboard capture should split a first line into the title and retain remaining detail lines.",
+);
+const appendedTask = applyClipboardToDraft(pastedTask, "Include screenshots");
+assert(
+  appendedTask.title === "Prepare demo" && appendedTask.details.endsWith("Include screenshots"),
+  "Clipboard capture should append context without replacing a typed title or details.",
+);
+
+const taskInput = buildQuickTaskInput({
+  title: "Move me",
+  details: "Preserve every destination field",
+  projectId: "work",
+  sectionId: "plan",
+  date: "2026-08-20",
+  time: "09:30",
+  priority: 2,
+});
+assert(
+  taskInput.projectId === "work" &&
+    taskInput.sectionId === "plan" &&
+    taskInput.due?.date === "2026-08-20" &&
+    taskInput.due?.time === "09:30",
+  "Task save payloads must retain project, section, date, and time together.",
+);
+const orderInput = buildQuickOrderInput({
+  title: "Follow up",
+  details: "Keep lane relation",
+  lane: "after",
+  relationId: "order-1",
+  priority: 3,
+});
+assert(
+  orderInput.lane === "after" && orderInput.relationId === "order-1",
+  "Order save payloads must retain the selected After destination.",
+);
+assert(
+  buildQuickOrderInput({ ...orderInput, lane: "later" }).relationId === null,
+  "Order save payloads must clear a relation only when the destination no longer supports one.",
+);
+assert(
+  resolveSectionForProject("work", "plan", [{ id: "plan", name: "Planning", projectId: "work" }]) === "plan" &&
+    resolveSectionForProject("other", "plan", [{ id: "plan", name: "Planning", projectId: "work" }]) === "",
+  "Quick project changes should restore only compatible remembered sections.",
+);
+const conversionTask = {
+  title: "Keep the launch plan",
+  details: "Preserve title and detail context",
+  priority: 1,
+  projectId: "work",
+  sectionId: "plan",
+  date: "2026-08-20",
+  time: "09:30",
+};
+const convertedOrderDraft = createQuickOrderDraftFromTask(conversionTask);
+assert(
+  convertedOrderDraft.title === conversionTask.title &&
+    convertedOrderDraft.details === conversionTask.details &&
+    convertedOrderDraft.priority === conversionTask.priority &&
+    convertedOrderDraft.lane === "now",
+  "Task-to-Order conversion should preserve content and priority while opening an explicit Order destination.",
+);
+const conversionOrder = {
+  title: "Return to project work",
+  details: "Retain the release context",
+  priority: 2,
+  lane: "after",
+  relationId: "order-1",
+};
+const convertedTaskDraft = createQuickTaskDraftFromOrder(conversionOrder, "work");
+assert(
+  convertedTaskDraft.title === conversionOrder.title &&
+    convertedTaskDraft.details === conversionOrder.details &&
+    convertedTaskDraft.priority === conversionOrder.priority &&
+    convertedTaskDraft.projectId === "work" &&
+    convertedTaskDraft.date === "",
+  "Order-to-task conversion should preserve content and priority while opening a task destination.",
+);
+assert(
+  getQuickSaveAction("task", null) === "save-task" &&
+    getQuickSaveAction("order", null) === "save-order" &&
+    getQuickSaveAction("order", { from: "task", sourceId: "task-1" }) === "convert-task-to-order" &&
+    getQuickSaveAction("task", { from: "order", sourceId: "order-1" }) === "convert-order-to-task",
+  "Conversion callbacks should be selected only from an explicit conversion state.",
 );
 
 console.log("CAPTURE_MODEL_TESTS_OK");

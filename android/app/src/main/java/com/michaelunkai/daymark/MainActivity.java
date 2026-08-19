@@ -3,6 +3,7 @@ package com.michaelunkai.daymark;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
 import android.provider.Settings;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -21,19 +22,26 @@ import android.view.View;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 public final class MainActivity extends Activity {
+    private static final String START_HOST =
+            "daymark-desktop.michaelovsky55555.chatgpt.site";
     private static final String START_URL =
-            "https://daymark-desktop.michaelovsky55555.chatgpt.site/";
+            "https://" + START_HOST + "/";
+    private static final String BUNDLED_ASSET_DIRECTORY = "daymark/";
     private static final String PREFS_NAME = "daymark";
     private static final String SYNC_KEY_PREF = "sync_key";
     private static final int SURFACE_COLOR = Color.BLACK;
-    private static final String NATIVE_RELEASE = "1.4.38";
+    private static final String NATIVE_RELEASE = "1.4.39";
     private static final int CONTENT_READY_TIMEOUT_MS = 9000;
     private static final int RUNTIME_HEALTH_CHECK_MS = 500;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 7401;
@@ -177,7 +185,10 @@ public final class MainActivity extends Activity {
 
     private void showLoading() {
         if (loadingMessage != null) loadingMessage.setClickable(false);
-        if (loadingCover != null) loadingCover.setVisibility(View.GONE);
+        if (loadingCover != null) {
+            loadingCover.setClickable(false);
+            loadingCover.setVisibility(View.GONE);
+        }
         if (loadingMessage != null) loadingMessage.setVisibility(View.GONE);
     }
 
@@ -365,10 +376,85 @@ public final class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(0);
     }
 
+    private WebResourceResponse bundledDaymarkResponse(WebResourceRequest request) {
+        if (request == null || request.getUrl() == null
+                || !START_HOST.equalsIgnoreCase(request.getUrl().getHost())) {
+            return null;
+        }
+
+        String path = request.getUrl().getPath();
+        if (path == null || path.isEmpty() || "/".equals(path)) {
+            path = "index.html";
+        } else {
+            path = path.substring(1);
+        }
+
+        if (path.contains("..")) {
+            return null;
+        }
+
+        try {
+            return assetResponse(path);
+        } catch (IOException ignored) {
+            if (!request.isForMainFrame()) {
+                return null;
+            }
+            try {
+                return assetResponse("index.html");
+            } catch (IOException error) {
+                Log.e("DaymarkWeb", "Bundled Daymark client is unavailable.", error);
+                return null;
+            }
+        }
+    }
+
+    private WebResourceResponse assetResponse(String path) throws IOException {
+        InputStream stream = getAssets().open(
+                BUNDLED_ASSET_DIRECTORY + path,
+                AssetManager.ACCESS_STREAMING);
+        String mimeType = mimeTypeForAsset(path);
+        String encoding = isTextAsset(path) ? "UTF-8" : null;
+        return new WebResourceResponse(mimeType, encoding, stream);
+    }
+
+    private String mimeTypeForAsset(String path) {
+        if (path.endsWith(".html")) return "text/html";
+        if (path.endsWith(".css")) return "text/css";
+        if (path.endsWith(".js") || path.endsWith(".mjs")) return "application/javascript";
+        if (path.endsWith(".json")) return "application/json";
+        if (path.endsWith(".svg")) return "image/svg+xml";
+        if (path.endsWith(".png")) return "image/png";
+        if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
+        if (path.endsWith(".webp")) return "image/webp";
+        if (path.endsWith(".woff2")) return "font/woff2";
+        if (path.endsWith(".woff")) return "font/woff";
+        return "application/octet-stream";
+    }
+
+    private boolean isTextAsset(String path) {
+        return path.endsWith(".html")
+                || path.endsWith(".css")
+                || path.endsWith(".js")
+                || path.endsWith(".mjs")
+                || path.endsWith(".json")
+                || path.endsWith(".svg")
+                || path.endsWith(".txt");
+    }
+
     private final class DaymarkWebViewClient extends WebViewClient {
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
             return false;
+        }
+
+        @Override
+        public WebResourceResponse shouldInterceptRequest(
+                WebView view,
+                WebResourceRequest request) {
+            WebResourceResponse bundledResponse = bundledDaymarkResponse(request);
+            return bundledResponse == null
+                    ? super.shouldInterceptRequest(view, request)
+                    : bundledResponse;
         }
 
         @Override

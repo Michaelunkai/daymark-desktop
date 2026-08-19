@@ -7,6 +7,11 @@ def daymarkSigningStorePassword = System.getenv("DAYMARK_SIGNING_STORE_PASSWORD"
 def daymarkSigningKeyAlias = System.getenv("DAYMARK_SIGNING_KEY_ALIAS")
 def daymarkSigningKeyPassword = System.getenv("DAYMARK_SIGNING_KEY_PASSWORD")
 def daymarkGitCommit = System.getenv("DAYMARK_GIT_COMMIT")
+def daymarkWebClientDir = file("../../dist/client")
+def generatedDaymarkWebAssetsDir = file("$buildDir/generated/daymarkWebAssets")
+def npmCommand = System.getProperty("os.name").toLowerCase().contains("windows")
+        ? "npm.cmd"
+        : "npm"
 def hasDaymarkSigning = [
         daymarkSigningStore,
         daymarkSigningStorePassword,
@@ -26,6 +31,32 @@ if (isReleaseRequested && (daymarkGitCommit == null || !(daymarkGitCommit ==~ /[
     throw new GradleException("A Daymark release requires DAYMARK_GIT_COMMIT with the exact 40-character Git commit.")
 }
 
+tasks.register("buildDaymarkWebClient", Exec) {
+    group = "build"
+    description = "Builds the current Daymark web client before Android packaging."
+    workingDir file("../..")
+    commandLine npmCommand, "run", "build"
+}
+
+tasks.register("packageDaymarkWebClient", Sync) {
+    group = "build"
+    description = "Packages the built Daymark client for offline WebView startup."
+    dependsOn(tasks.named("buildDaymarkWebClient"))
+    from(daymarkWebClientDir)
+    into(new File(generatedDaymarkWebAssetsDir, "daymark"))
+    includeEmptyDirs = false
+
+    doFirst {
+        if (!daymarkWebClientDir.isDirectory()
+                || !new File(daymarkWebClientDir, "index.html").isFile()) {
+            throw new GradleException(
+                    "Android packaging requires a built Daymark client at " +
+                            "${daymarkWebClientDir}/index.html."
+            )
+        }
+    }
+}
+
 android {
     namespace "com.michaelunkai.daymark"
     compileSdk 34
@@ -34,9 +65,15 @@ android {
         applicationId "com.michaelunkai.daymark"
         minSdk 23
         targetSdk 34
-        versionCode 29
-        versionName "1.4.38"
+        versionCode 30
+        versionName "1.4.39"
         manifestPlaceholders = [daymarkGitCommit: daymarkGitCommit ?: "unverified"]
+    }
+
+    sourceSets {
+        main {
+            assets.srcDir(generatedDaymarkWebAssetsDir)
+        }
     }
 
     if (hasDaymarkSigning) {
@@ -64,4 +101,8 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn(tasks.named("packageDaymarkWebClient"))
 }

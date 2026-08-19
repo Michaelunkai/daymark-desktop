@@ -271,8 +271,12 @@ function formatTime(value) {
   return `${normalizedHour}:${String(minute).padStart(2, '0')} ${suffix}`
 }
 
+const COMPACT_TASK_DETAILS_LENGTH = 180
+
 function toViewTask(task, state) {
   const project = state.projects[task.projectId]
+  const details = task.description?.trim() ?? ''
+  const hasLongDetails = details.length > COMPACT_TASK_DETAILS_LENGTH || details.includes('\n')
   const date = task.due?.date
   const today = toLocalDate(new Date())
   const dueTone = date === today ? 'teal' : date && date < today ? 'coral' : date ? 'indigo' : 'muted'
@@ -285,6 +289,7 @@ function toViewTask(task, state) {
     title: task.content,
     sectionId: task.sectionId ?? null,
     section: state.sections[task.sectionId]?.name ?? 'Other tasks',
+    sectionName: state.sections[task.sectionId]?.name ?? 'No section',
     project: task.projectId,
     projectName: project?.name ?? 'Inbox',
     projectColor: PROJECT_COLORS[project?.color] ?? 'teal',
@@ -292,7 +297,10 @@ function toViewTask(task, state) {
     dueTone,
     priority: task.priority === 1 ? 'Urgent' : task.priority === 2 ? 'High' : task.priority === 3 ? 'Low' : 'Normal',
     priorityTone: task.priority === 1 || task.priority === 2 ? 'coral' : 'ink',
-    note: task.description || 'No description yet.',
+    details,
+    note: hasLongDetails
+      ? `${details.slice(0, COMPACT_TASK_DETAILS_LENGTH).trimEnd()}...`
+      : details || 'No description yet.',
     completed: Boolean(task.completedAt),
     completedAt: task.completedAt ?? null,
   }
@@ -405,6 +413,12 @@ const ICONS = {
       <path d="M14.5 3.5V7H18M8 11h8M8 15h6" />
     </>
   ),
+  clipboard: (
+    <>
+      <rect x="7" y="5" width="11" height="15" rx="1.5" />
+      <path d="M10 5V3.8h5V5M10 9h5M10 13h5" />
+    </>
+  ),
   check: (
     <>
       <circle cx="12" cy="12" r="8.5" />
@@ -441,14 +455,14 @@ const ICONS = {
   ),
 }
 
-function Icon({ name, size = 18, strokeWidth = 1.8 }) {
+function Icon({ color, name, size = 18, strokeWidth = 1.8 }) {
   return (
     <svg
       aria-hidden="true"
       className="icon"
       fill="none"
       height={size}
-      stroke="currentColor"
+      stroke={color ?? 'currentColor'}
       strokeLinecap="round"
       strokeLinejoin="round"
       strokeWidth={strokeWidth}
@@ -458,6 +472,48 @@ function Icon({ name, size = 18, strokeWidth = 1.8 }) {
       {ICONS[name] ?? ICONS.command}
     </svg>
   )
+}
+
+function createTaskClipboardText(task) {
+  return [
+    `Title: ${task.title}`,
+    `Details: ${task.details || 'No details'}`,
+    '',
+    `Project: ${task.projectName}`,
+    `Section: ${task.sectionName}`,
+    `Date: ${task.due}`,
+  ].join('\n')
+}
+
+async function copyTaskClipboardText(text) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch {
+      // WebViews without a granted clipboard permission continue to the local fallback.
+    }
+  }
+
+  let fallbackField
+  try {
+    fallbackField = document.createElement('textarea')
+    fallbackField.value = text
+    fallbackField.readOnly = true
+    fallbackField.style.position = 'fixed'
+    fallbackField.style.opacity = '0'
+    fallbackField.style.pointerEvents = 'none'
+    document.body.appendChild(fallbackField)
+    fallbackField.select()
+    if (document.execCommand('copy')) return true
+  } catch {
+    // The final fallback gives the user copyable text without losing the action.
+  } finally {
+    fallbackField?.remove()
+  }
+
+  window.prompt('Copy task details', text)
+  return false
 }
 
 function LogoMark() {
@@ -595,10 +651,12 @@ function TaskRow({
   onReorderEnd,
   onMoveEarlier,
   onMoveLater,
+  onCopy,
   task,
   onToggle,
   onOpen,
 }) {
+  const [detailsExpanded, setDetailsExpanded] = useState(false)
   const callbacksRef = useRef({ onLongPressReorder, onReorderEnd, onReorderMove, taskId: task.id })
   callbacksRef.current = { onLongPressReorder, onReorderEnd, onReorderMove, taskId: task.id }
   const reorderControllerRef = useRef(null)
@@ -622,6 +680,12 @@ function TaskRow({
       return
     }
     onOpen(task)
+  }
+
+  const hasLongDetails = task.details.length > COMPACT_TASK_DETAILS_LENGTH || task.details.includes('\n')
+  const handleCopy = async () => {
+    const copied = await copyTaskClipboardText(createTaskClipboardText(task))
+    onCopy?.(copied)
   }
 
   return (
@@ -659,7 +723,18 @@ function TaskRow({
             <span className={`project-dot project-dot--${task.projectColor ?? 'teal'}`} />
             {task.projectName}
           </span>
-          <span className="task-note">{task.note}</span>
+          <span style={detailsExpanded ? { display: 'none' } : undefined}>
+            <span className="task-note">{task.note}</span>
+          </span>
+          {hasLongDetails ? (
+            <span
+              className="task-note"
+              id={`task-details-${task.id}`}
+              style={detailsExpanded ? { display: 'block', whiteSpace: 'pre-wrap' } : { display: 'none' }}
+            >
+              {task.details}
+            </span>
+          ) : null}
         </span>
       </button>
       <span className="task-row__details">
@@ -673,6 +748,28 @@ function TaskRow({
         </button>
         <button aria-label={`Move ${task.title} later`} className="icon-button task-order-button" disabled={!canMoveLater} onClick={onMoveLater} title="Move task later" type="button">
           <Icon name="chevronDown" size={15} />
+        </button>
+        {hasLongDetails ? (
+          <button
+            aria-controls={`task-details-${task.id}`}
+            aria-expanded={detailsExpanded}
+            aria-label={`${detailsExpanded ? 'Collapse' : 'Expand'} details for ${task.title}`}
+            className="icon-button"
+            onClick={() => setDetailsExpanded((expanded) => !expanded)}
+            title={detailsExpanded ? 'Collapse details' : 'Expand details'}
+            type="button"
+          >
+            <Icon name={detailsExpanded ? 'chevronUp' : 'chevronDown'} size={15} />
+          </button>
+        ) : null}
+        <button
+          aria-label={`Copy ${task.title} details`}
+          className="icon-button"
+          onClick={handleCopy}
+          title="Copy task details"
+          type="button"
+        >
+          <Icon color="#ff7900" name="clipboard" size={15} />
         </button>
         <button aria-label={`More actions for ${task.title}`} className="icon-button task-more" title="More actions" type="button">
           <Icon name="more" size={16} />
@@ -815,6 +912,7 @@ function SectionHeading({
 function BoardTaskCard({
   isReordering,
   onCancelReorder,
+  onCopy,
   onLongPressReorder,
   onReorderMove,
   onReorderEnd,
@@ -822,6 +920,7 @@ function BoardTaskCard({
   onToggle,
   task,
 }) {
+  const [detailsExpanded, setDetailsExpanded] = useState(false)
   const callbacksRef = useRef({ onLongPressReorder, onReorderEnd, onReorderMove, taskId: task.id })
   callbacksRef.current = { onLongPressReorder, onReorderEnd, onReorderMove, taskId: task.id }
   const reorderControllerRef = useRef(null)
@@ -845,6 +944,12 @@ function BoardTaskCard({
       return
     }
     onOpen(task)
+  }
+
+  const hasLongDetails = task.details.length > COMPACT_TASK_DETAILS_LENGTH || task.details.includes('\n')
+  const handleCopy = async () => {
+    const copied = await copyTaskClipboardText(createTaskClipboardText(task))
+    onCopy?.(copied)
   }
 
   return (
@@ -888,8 +993,40 @@ function BoardTaskCard({
       >
         <span className={`board-task__priority board-task__priority--${task.priorityTone}`} />
         <strong>{task.title}</strong>
+        {task.details ? (
+          <span
+            className={`board-task__details ${detailsExpanded ? 'is-expanded' : ''}`}
+            id={`board-task-details-${task.id}`}
+          >
+            {detailsExpanded ? task.details : task.note}
+          </span>
+        ) : null}
         <small>{task.due}</small>
       </button>
+      <span className="board-task__actions">
+        {hasLongDetails ? (
+          <button
+            aria-controls={`board-task-details-${task.id}`}
+            aria-expanded={detailsExpanded}
+            aria-label={`${detailsExpanded ? 'Collapse' : 'Expand'} details for ${task.title}`}
+            className="icon-button"
+            onClick={() => setDetailsExpanded((expanded) => !expanded)}
+            title={detailsExpanded ? 'Collapse details' : 'Expand details'}
+            type="button"
+          >
+            <Icon name={detailsExpanded ? 'chevronUp' : 'chevronDown'} size={15} />
+          </button>
+        ) : null}
+        <button
+          aria-label={`Copy ${task.title} details`}
+          className="icon-button"
+          onClick={handleCopy}
+          title="Copy task details"
+          type="button"
+        >
+          <Icon color="#ff7900" name="clipboard" size={15} />
+        </button>
+      </span>
     </article>
   )
 }
@@ -3086,6 +3223,28 @@ function App() {
     return result
   }
 
+  const convertQuickTaskToOrder = (taskId, input) => {
+    const result = appStore.dispatch({ type: 'task.transferToOrder', taskId, input })
+    if (!result.ok) {
+      setNotice(result.message)
+      return result
+    }
+    setNotice('Task moved to Order.')
+    setUndoAvailable(true)
+    return result
+  }
+
+  const convertQuickOrderToTask = (itemId, input) => {
+    const result = appStore.dispatch({ type: 'order.transferToTask', itemId, input })
+    if (!result.ok) {
+      setNotice(result.message)
+      return result
+    }
+    setNotice('Order item moved to tasks.')
+    setUndoAvailable(true)
+    return result
+  }
+
   const saveReminder = (input) => {
     const result = upsertLocalReminder(localReminders, input)
     if (!result.ok) {
@@ -4183,6 +4342,9 @@ function App() {
                               onReorderEnd={finishPointerReorder}
                               onMoveEarlier={() => moveTaskBy(task.id, -1)}
                               onMoveLater={() => moveTaskBy(task.id, 1)}
+                              onCopy={(copied) => setNotice(copied
+                                ? 'Task details copied.'
+                                : 'Clipboard access is unavailable. Copy the task details from the dialog.')}
                               onOpen={(viewTask) => openTaskEditor('edit', state.tasks[viewTask.id])}
                               onToggle={toggleTask}
                               task={task}
@@ -4249,11 +4411,14 @@ function App() {
                       />
                       <div className="board-column__body">
                          {section.tasks.map((task) => (
-                           <BoardTaskCard
-                             isReordering={reorderMode?.kind === 'task' && reorderMode.id === task.id}
-                             key={task.id}
-                             onCancelReorder={() => cancelReorderMode()}
-                             onLongPressReorder={task.completed ? undefined : () => enterReorderMode('task', task.id)}
+                          <BoardTaskCard
+                            isReordering={reorderMode?.kind === 'task' && reorderMode.id === task.id}
+                            key={task.id}
+                            onCancelReorder={() => cancelReorderMode()}
+                            onCopy={(copied) => setNotice(copied
+                              ? 'Task details copied.'
+                              : 'Clipboard access is unavailable. Copy the task details from the dialog.')}
+                            onLongPressReorder={task.completed ? undefined : () => enterReorderMode('task', task.id)}
                              onOpen={(viewTask) => openTaskEditor('edit', state.tasks[viewTask.id])}
                              onReorderEnd={finishPointerReorder}
                              onReorderMove={moveTaskToPointerTarget}
@@ -4337,6 +4502,8 @@ function App() {
         inboxProjectId={state.preferences.inboxProjectId}
         isOpen={quickOpen}
         onClose={() => setQuickOpen(false)}
+        onConvertOrderToTask={convertQuickOrderToTask}
+        onConvertTaskToOrder={convertQuickTaskToOrder}
         onSaveOrder={saveQuickOrder}
         onSaveTask={saveQuickTask}
         orderItems={orderItems}

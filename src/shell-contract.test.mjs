@@ -16,6 +16,18 @@ const orderStyles = await readFile(
   'utf8',
 )
 const styles = await readFile(new URL('./styles/app-shell.css', import.meta.url), 'utf8')
+const quickCapture = await readFile(
+  new URL('./features/capture/QuickCaptureSheet.jsx', import.meta.url),
+  'utf8',
+)
+const quickCaptureStyles = await readFile(
+  new URL('./features/capture/quick-capture.css', import.meta.url),
+  'utf8',
+)
+const quickCaptureModel = await readFile(
+  new URL('./features/capture/quick-capture-model.ts', import.meta.url),
+  'utf8',
+)
 const main = await readFile(new URL('./main.jsx', import.meta.url), 'utf8')
 const smoothWheel = await readFile(new URL('./core/smooth-wheel.ts', import.meta.url), 'utf8')
 
@@ -102,6 +114,138 @@ test('global shell exposes the required settings and repository affordances', ()
   assert.match(app, /<QuickCaptureSheet/)
   assert.match(app, /<ReminderPlanner/)
   assert.match(app, /setRoute\('order'\)/)
+})
+
+test('Quick saves every task and Order destination in create and edit modes', () => {
+  assert.match(quickCapture, /const \[editingId, setEditingId\] = useState\(''\)/)
+  assert.match(
+    quickCapture,
+    /const matchingSections = useMemo\(\(\) => sections\.filter\(\(section\) => section\.projectId === task\.projectId\), \[sections, task\.projectId\]\)/,
+  )
+  assert.match(
+    quickCapture,
+    /const chooseTask = \(id\) => \{[\s\S]*?const source = tasks\.find\(\(candidate\) => candidate\.id === id\)[\s\S]*?projectId: source\.projectId,[\s\S]*?sectionId: source\.sectionId \?\? '',[\s\S]*?date: source\.due\?\.date \?\? '',[\s\S]*?time: source\.due\?\.time \?\? ''/,
+  )
+  assert.match(
+    quickCapture,
+    /const chooseOrder = \(id\) => \{[\s\S]*?const source = orderItems\.find\(\(candidate\) => candidate\.id === id\)[\s\S]*?lane: source\.lane,[\s\S]*?relationId: source\.relationId \?\? ''/,
+  )
+  assert.match(
+    quickCapture,
+    /onSaveTask\(editingId \|\| null, buildQuickTaskInput\(task\)\)/,
+  )
+  assert.match(
+    quickCapture,
+    /onSaveOrder\(editingId \|\| null, buildQuickOrderInput\(order\)\)/,
+  )
+  assert.match(
+    quickCaptureModel,
+    /export function buildQuickTaskInput\(draft: QuickTaskDraft\) \{[\s\S]*?content: draft\.title,[\s\S]*?description: draft\.details,[\s\S]*?date: draft\.date,[\s\S]*?time: draft\.time \|\| null,[\s\S]*?projectId: draft\.projectId,[\s\S]*?sectionId: draft\.sectionId \|\| null/,
+  )
+  assert.match(
+    quickCaptureModel,
+    /export function buildQuickOrderInput\(draft: QuickOrderDraft\) \{[\s\S]*?lane: draft\.lane,[\s\S]*?relationId: draft\.lane === "after" \? draft\.relationId \|\| null : null/,
+  )
+  assert.match(quickCapture, /<span>Project<\/span>/)
+  assert.match(quickCapture, /<span>Section<\/span>/)
+  assert.match(quickCapture, /<span>Date<\/span>/)
+  assert.match(quickCapture, /<span>Time<\/span>/)
+  assert.match(quickCapture, /QUICK_ORDER_LANES\.map/)
+  assert.match(quickCapture, /orderItems\.filter\(\(item\) => item\.id !== editingId\)/)
+  assert.match(
+    app,
+    /const saveQuickTask = \(taskId, input\) => \{[\s\S]*?taskId\s*\? appStore\.dispatch\(\{ type: 'task\.update', taskId, patch: input \}\)[\s\S]*?: appStore\.dispatch\(\{ type: 'task\.add', input \}\)/,
+  )
+  assert.match(
+    app,
+    /const saveQuickOrder = \(itemId, input\) => \{[\s\S]*?itemId\s*\? updateOrderItem\(itemId, input\)[\s\S]*?: addOrderItem\(input\)/,
+  )
+  assert.match(
+    quickCapture,
+    /onConvertOrderToTask,[\s\S]*?onConvertTaskToOrder,[\s\S]*?const startTaskToOrderConversion = \(\) => \{[\s\S]*?setConversion\(\{ from: 'task', sourceId: editingId, sourceDestination, sourceDraft: task \}\)[\s\S]*?setOrder\(createQuickOrderDraftFromTask\(task\)\)/,
+  )
+  assert.match(
+    quickCapture,
+    /const startOrderToTaskConversion = \(\) => \{[\s\S]*?setConversion\(\{ from: 'order', sourceId: editingId, sourceDestination, sourceDraft: order \}\)[\s\S]*?setTask\(createQuickTaskDraftFromOrder\(order, inboxProjectId\)\)/,
+  )
+  assert.match(
+    quickCapture,
+    /const cancelConversion = \(\) => \{[\s\S]*?setSourceDestination\(conversion\.sourceDestination\)[\s\S]*?setTask\(conversion\.sourceDraft\)[\s\S]*?setOrder\(conversion\.sourceDraft\)/,
+  )
+  assert.match(
+    app,
+    /const convertQuickTaskToOrder = \(taskId, input\) => \{[\s\S]*?type: 'task\.transferToOrder', taskId, input[\s\S]*?const convertQuickOrderToTask = \(itemId, input\) => \{[\s\S]*?type: 'order\.transferToTask', itemId, input/,
+  )
+  assert.match(
+    quickCaptureStyles,
+    /@media \(max-width: 720px\) \{[\s\S]*?env\(safe-area-inset-bottom\)[\s\S]*?width: 100%;/,
+  )
+  assert.match(
+    quickCaptureStyles,
+    /@media \(pointer: coarse\) and \(orientation: landscape\) and \(max-height: 560px\)/,
+  )
+})
+
+test('task duplication, clipboard copy, and JSON export retain portable workspace data', () => {
+  assert.match(
+    app,
+    /const copyTaskFromEditor = \(draft\) => \{[\s\S]*?adaptTaskEditorDraft\(draft, 'create'\)[\s\S]*?appStore\.dispatch\(\{[\s\S]*?type: 'task\.add',[\s\S]*?input: adapted\.value,[\s\S]*?\}\)[\s\S]*?setNotice\('Task copied\.'\)/,
+  )
+  assert.match(
+    app,
+    /function createTaskClipboardText\(task\) \{[\s\S]*?`Title: \$\{task\.title\}`,[\s\S]*?`Details: \$\{task\.details \|\| 'No details'\}`,[\s\S]*?`Project: \$\{task\.projectName\}`,[\s\S]*?`Section: \$\{task\.sectionName\}`,[\s\S]*?`Date: \$\{task\.due\}`/,
+  )
+  assert.match(
+    app,
+    /async function copyTaskClipboardText\(text\) \{[\s\S]*?navigator\.clipboard\?\.writeText[\s\S]*?document\.execCommand\('copy'\)[\s\S]*?window\.prompt\('Copy task details', text\)/,
+  )
+  assert.match(
+    app,
+    /const exportBackup = \(\) => \{[\s\S]*?new Blob\(\[JSON\.stringify\(appStore\.getState\(\), null, 2\)\], \{ type: 'application\/json' \}\)[\s\S]*?anchor\.download = `daymark-backup-\$\{toLocalDate\(new Date\(\)\)\}\.json`[\s\S]*?anchor\.click\(\)[\s\S]*?URL\.revokeObjectURL\(url\)/,
+  )
+  assert.match(app, /onCopyTask=\{copyTaskFromEditor\}/)
+  assert.match(app, /onExport=\{exportBackup\}/)
+})
+
+test('long task details stay compact, expandable, and copyable', () => {
+  assert.match(app, /const COMPACT_TASK_DETAILS_LENGTH = 180/)
+  assert.match(
+    app,
+    /const hasLongDetails = details\.length > COMPACT_TASK_DETAILS_LENGTH \|\| details\.includes\('\\n'\)[\s\S]*?note: hasLongDetails[\s\S]*?\$\{details\.slice\(0, COMPACT_TASK_DETAILS_LENGTH\)\.trimEnd\(\)\}\.\.\./,
+  )
+  assert.match(
+    app,
+    /const hasLongDetails = task\.details\.length > COMPACT_TASK_DETAILS_LENGTH \|\| task\.details\.includes\('\\n'\)/,
+  )
+  assert.match(
+    app,
+    /<span style=\{detailsExpanded \? \{ display: 'none' \} : undefined\}>[\s\S]*?<span className="task-note">\{task\.note\}<\/span>[\s\S]*?className="task-note"[\s\S]*?id=\{`task-details-\$\{task\.id\}`\}[\s\S]*?style=\{detailsExpanded \? \{ display: 'block', whiteSpace: 'pre-wrap' \} : \{ display: 'none' \}\}[\s\S]*?>[\s\S]*?\{task\.details\}/,
+  )
+  assert.match(
+    app,
+    /aria-controls=\{`task-details-\$\{task\.id\}`\}[\s\S]*?aria-expanded=\{detailsExpanded\}[\s\S]*?aria-label=\{`\$\{detailsExpanded \? 'Collapse' : 'Expand'\} details for \$\{task\.title\}`\}[\s\S]*?onClick=\{\(\) => setDetailsExpanded\(\(expanded\) => !expanded\)\}/,
+  )
+  assert.match(
+    app,
+    /aria-label=\{`Copy \$\{task\.title\} details`\}[\s\S]*?onClick=\{handleCopy\}[\s\S]*?<Icon color="#ff7900" name="clipboard" size=\{15\} \/>/,
+  )
+  assert.match(app, /onCopy=\{\(copied\) => setNotice\(copied[\s\S]*?'Task details copied\.'/)
+  assert.match(
+    app,
+    /function BoardTaskCard\(\{[\s\S]*?const hasLongDetails = task\.details\.length > COMPACT_TASK_DETAILS_LENGTH[\s\S]*?className=\{`board-task__details \$\{detailsExpanded \? 'is-expanded' : ''\}`\}[\s\S]*?aria-label=\{`Copy \$\{task\.title\} details`\}/,
+  )
+  assert.match(
+    styles,
+    /\.task-note \{[\s\S]*?overflow-wrap: anywhere;[\s\S]*?white-space: normal;/,
+  )
+  assert.match(
+    styles,
+    /\.task-row__details \{[\s\S]*?display: flex;[\s\S]*?flex-wrap: wrap;[\s\S]*?grid-column: 2;/,
+  )
+  assert.match(
+    styles,
+    /@media \(pointer: coarse\) and \(max-width: 720px\) \{[\s\S]*?\.task-note \{[\s\S]*?display: -webkit-box;[\s\S]*?-webkit-line-clamp: 2;/,
+  )
 })
 
 test('task and Order layouts reserve readable width for complete titles and details', () => {

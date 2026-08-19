@@ -31,8 +31,8 @@ test("Android release exposes the shared responsive app with the premium launche
 
   assert.match(manifest, /android:icon="@drawable\/ic_daymark_launcher"/);
   assert.match(manifest, /android:roundIcon="@drawable\/ic_daymark_launcher"/);
-  assert.match(gradle, /versionCode 29/);
-  assert.match(gradle, /versionName "1\.4\.38"/);
+  assert.match(gradle, /versionCode 30/);
+  assert.match(gradle, /versionName "1\.4\.39"/);
   assert.match(gradle, /def isReleaseRequested = gradle\.startParameter\.taskNames\.any/);
   assert.match(gradle, /if \(isReleaseRequested && !hasDaymarkSigning\)/);
   assert.match(gradle, /A Daymark release requires DAYMARK_SIGNING_STORE/);
@@ -49,8 +49,8 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(releaseVerifier, /exactly one signer/);
   assert.match(releaseVerifier, /GIT_COMMIT/);
   assert.match(releaseVerifier, /APK is not bound to expected Git commit/);
-  assert.match(releaseVerifier, /\$expectedVersionCode = '29'/);
-  assert.match(releaseVerifier, /\$expectedVersionName = '1\.4\.38'/);
+  assert.match(releaseVerifier, /\$expectedVersionCode = '30'/);
+  assert.match(releaseVerifier, /\$expectedVersionName = '1\.4\.39'/);
   assert.match(escrow, /param\(\)/);
   assert.doesNotMatch(escrow, /\[string\]\$ExpectedSigner/);
   assert.match(escrow, /Entry type:\\s\*PrivateKeyEntry/);
@@ -82,7 +82,7 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(activity, /retryCurrentPage/);
   assert.match(activity, /LOAD_CACHE_ELSE_NETWORK/);
   assert.match(activity, /setOffscreenPreRaster\(true\)/);
-  assert.match(activity, /NATIVE_RELEASE = "1\.4\.38"/);
+  assert.match(activity, /NATIVE_RELEASE = "1\.4\.39"/);
   assert.match(activity, /withLaunchMarker/);
   assert.match(activity, /resumeRestoredDocument/);
   assert.match(activity, /sameLogicalUrl/);
@@ -139,6 +139,57 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(taskEditorStyles, /@media \(max-width: 680px\)[\s\S]*?\.task-editor__date-transfer \.date-picker__day\s*\{[\s\S]*?height:\s*44px[\s\S]*?min-height:\s*44px/);
   assert.match(orderStyles, /\.order-editor\s*\{[\s\S]*?overflow-y:\s*auto[\s\S]*?touch-action:\s*pan-y[\s\S]*?-webkit-overflow-scrolling:\s*touch/);
   assert.match(orderStyles, /@media \(max-width: 720px\)[\s\S]*?\.order-editor__calendar-transfer \.date-picker__day\s*\{[\s\S]*?height:\s*44px[\s\S]*?min-height:\s*44px/);
+});
+
+test("Android reuses an already restored offline-capable document before loading again", async () => {
+  const activity = await readFile(
+    new URL("./android/app/src/main/java/com/michaelunkai/daymark/MainActivity.java", root),
+    "utf8",
+  );
+
+  assert.match(
+    activity,
+    /if \(savedInstanceState == null\) \{\s*loadDaymarkUrl\(urlForIntent\(getIntent\(\)\)\);\s*\} else if \(webView\.restoreState\(savedInstanceState\) == null\) \{\s*loadDaymarkUrl\(urlForIntent\(getIntent\(\)\)\);\s*\} else \{\s*resumeRestoredDocument\(urlForIntent\(getIntent\(\)\)\);/,
+  );
+  assert.match(
+    activity,
+    /private void resumeRestoredDocument\(String requestedUrl\) \{[\s\S]*?String restoredUrl = webView == null \? null : webView\.getUrl\(\);[\s\S]*?if \(restoredUrl == null \|\| !sameLogicalUrl\(restoredUrl, requestedUrl\)\) \{[\s\S]*?loadDaymarkUrl\(requestedUrl\);[\s\S]*?return;[\s\S]*?\}[\s\S]*?lastRequestedUrl = requestedUrl;[\s\S]*?hasVisibleDocument = true;[\s\S]*?loadingFailed = false;[\s\S]*?hideLoading\(\);[\s\S]*?scheduleAppReadinessCheck\(webView\);/,
+  );
+  assert.match(
+    activity,
+    /private boolean sameLogicalUrl\(String first, String second\) \{\s*return logicalUrl\(first\)\.equals\(logicalUrl\(second\)\);\s*\}/,
+  );
+  assert.match(
+    activity,
+    /private String logicalUrl\(String value\) \{[\s\S]*?if \("native"\.equals\(name\)\) continue;[\s\S]*?builder\.appendQueryParameter\(name, parameterValue\);/,
+  );
+});
+
+test("Android packages and serves the built client before a network response is needed", async () => {
+  const [gradle, activity] = await Promise.all([
+    readFile(new URL("./android/app/build.gradle", root), "utf8"),
+    readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/MainActivity.java", root), "utf8"),
+  ]);
+
+  assert.match(gradle, /def daymarkWebClientDir = file\("\.\.\/\.\.\/dist\/client"\)/);
+  assert.match(gradle, /tasks\.register\("packageDaymarkWebClient", Sync\)/);
+  assert.match(gradle, /Android packaging requires a built Daymark client/);
+  assert.match(gradle, /assets\.srcDir\(generatedDaymarkWebAssetsDir\)/);
+  assert.match(gradle, /dependsOn\(tasks\.named\("packageDaymarkWebClient"\)\)/);
+  assert.match(activity, /private static final String START_HOST/);
+  assert.match(activity, /private static final String BUNDLED_ASSET_DIRECTORY = "daymark\/";/);
+  assert.match(
+    activity,
+    /private WebResourceResponse bundledDaymarkResponse\(WebResourceRequest request\) \{[\s\S]*?!START_HOST\.equalsIgnoreCase\(request\.getUrl\(\)\.getHost\(\)\)[\s\S]*?if \(path\.contains\("\.\."\)\) \{[\s\S]*?return null;/,
+  );
+  assert.match(
+    activity,
+    /private WebResourceResponse assetResponse\(String path\) throws IOException \{[\s\S]*?getAssets\(\)\.open\([\s\S]*?BUNDLED_ASSET_DIRECTORY \+ path/,
+  );
+  assert.match(
+    activity,
+    /public WebResourceResponse shouldInterceptRequest\([\s\S]*?WebResourceResponse bundledResponse = bundledDaymarkResponse\(request\);[\s\S]*?super\.shouldInterceptRequest\(view, request\)/,
+  );
 });
 
 test("Android reminders stay device-local and schedule native alerts across restarts", async () => {
