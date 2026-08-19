@@ -282,7 +282,7 @@ test("provisions a scoped key and applies idempotent task actions without exposi
   assert.equal(db.audit.length, 3)
 })
 
-test("covers the durable Daymark workspace without exposing raw sync or local-only reminder state", async () => {
+test("covers the durable Daymark workspace without exposing raw sync or reminder delivery controls", async () => {
   const db = new MemoryD1()
   const env = { DB: db, ASSETS: { fetch: () => new Response("missing", { status: 404 }) } }
   const scopes = [

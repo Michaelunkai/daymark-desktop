@@ -1497,7 +1497,7 @@ function agentDiscovery(origin) {
       provisioning: "Generate a scoped AI key in Daymark Settings. The secret is shown once and can be revoked there.",
     },
     persistence: "D1-backed Daymark workspace state with optimistic revision conflicts and idempotency receipts.",
-    excludedData: ["rawSync", "pairingCodes", "backups", "databaseAdministration", "localOnlyReminders", "activityComments"],
+    excludedData: ["rawSync", "pairingCodes", "backups", "databaseAdministration", "reminderDeliveryControls", "activityComments"],
     excludedActions: ["backup.import", "backup.export", "sync.manage", "key.administration.byAgent"],
   }
 }
@@ -1615,6 +1615,7 @@ function mergeSyncStates(local, remote) {
 
   const merged = {
     ...structuredClone(remote),
+    schemaVersion: Math.max(Number(local?.schemaVersion ?? 0), Number(remote?.schemaVersion ?? 0), 6),
     revision: Math.max(Number(local?.revision ?? 0), Number(remote?.revision ?? 0)),
     updatedAt: local?.updatedAt >= remote?.updatedAt ? local.updatedAt : remote.updatedAt,
     clientId: local?.clientId ?? remote?.clientId,
@@ -1625,6 +1626,7 @@ function mergeSyncStates(local, remote) {
     tasks: newerRecord(local?.tasks, remote?.tasks),
     orderItems: newerRecord(local?.orderItems, remote?.orderItems),
     notes: newerRecord(local?.notes, remote?.notes),
+    reminders: newerRecord(local?.reminders, remote?.reminders),
     diaryEntries: newerRecord(local?.diaryEntries, remote?.diaryEntries),
     preferences: local?.updatedAt >= remote?.updatedAt
       ? structuredClone(local.preferences)
@@ -1656,6 +1658,7 @@ function applyTombstones(state) {
     tasks: state.tasks,
     orderItems: state.orderItems,
     notes: state.notes,
+    reminders: state.reminders,
     diaryEntries: state.diaryEntries,
   }
   for (const [key, tombstone] of Object.entries(state.syncTombstones ?? {})) {

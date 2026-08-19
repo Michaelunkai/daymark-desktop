@@ -4,6 +4,7 @@ import {
   type AppState,
   type DiaryEntry,
   type Note,
+  type Reminder,
   type StateStorage,
   type Task,
 } from "./types";
@@ -109,6 +110,7 @@ export function migrate(value: unknown): AppState {
   if (!isRecord(value)) throw new Error("Stored state is not an object.");
   if (value.schemaVersion === CURRENT_SCHEMA_VERSION) return validateCurrentState(value);
   if (
+    value.schemaVersion === 5 ||
     value.schemaVersion === 4 ||
     value.schemaVersion === 3 ||
     value.schemaVersion === 2 ||
@@ -131,6 +133,7 @@ export function migrate(value: unknown): AppState {
       orderItems: isRecord(value.orderItems) ? value.orderItems : {},
       notes: isRecord(value.notes) ? value.notes : {},
       diaryEntries: isRecord(value.diaryEntries) ? value.diaryEntries : {},
+      reminders: isRecord(value.reminders) ? value.reminders : {},
     }))));
   }
   throw new Error("Stored state schema is unsupported.");
@@ -148,12 +151,13 @@ function validateCurrentState(value: Record<string, unknown>): AppState {
     !isRecord(value.orderItems) ||
     !isRecord(value.notes) ||
     !isRecord(value.diaryEntries) ||
+    !isRecord(value.reminders) ||
     !isRecord(value.preferences) ||
     !Array.isArray(value.undoStack)
   ) {
     throw new Error("Stored state is incomplete.");
   }
-  return removeTags(migrateCompletedOrderItems(migrateDiaryEntries(migrateNotes(migrateTasks(value))))) as unknown as AppState;
+  return removeTags(migrateCompletedOrderItems(migrateReminders(migrateDiaryEntries(migrateNotes(migrateTasks(value)))))) as unknown as AppState;
 }
 
 function removeTags(value: Record<string, unknown>): Record<string, unknown> {
@@ -318,6 +322,37 @@ function migrateDiaryEntries(value: Record<string, unknown>): Record<string, unk
     }),
   );
   return { ...value, diaryEntries };
+}
+
+function migrateReminders(value: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(value.reminders)) return value;
+  const reminders = Object.fromEntries(
+    Object.entries(value.reminders).flatMap(([id, rawReminder]) => {
+      if (!isRecord(rawReminder)) return [];
+      const reminder = rawReminder as Partial<Reminder>;
+      const title = typeof reminder.title === "string" ? reminder.title.trim() : "";
+      const eventAt = typeof reminder.eventAt === "string" && Number.isFinite(Date.parse(reminder.eventAt))
+        ? new Date(reminder.eventAt).toISOString()
+        : "";
+      const target = isRecord(reminder.target) ? reminder.target : null;
+      const offsets = Array.isArray(reminder.offsets)
+        ? reminder.offsets.filter((offset) => isRecord(offset))
+        : [];
+      if (!title || !eventAt || !target || !offsets.length) return [];
+      return [[id, {
+        ...rawReminder,
+        id: typeof reminder.id === "string" && reminder.id ? reminder.id : id,
+        title,
+        details: typeof reminder.details === "string" ? reminder.details : "",
+        eventAt,
+        offsets,
+        target,
+        createdAt: typeof reminder.createdAt === "string" ? reminder.createdAt : value.updatedAt,
+        updatedAt: typeof reminder.updatedAt === "string" ? reminder.updatedAt : value.updatedAt,
+      }]];
+    }),
+  );
+  return { ...value, reminders };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

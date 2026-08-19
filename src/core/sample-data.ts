@@ -94,6 +94,7 @@ export function createSampleState(
     },
     notes: {},
     diaryEntries: {},
+    reminders: {},
     preferences: {
       inboxProjectId: inbox.id,
       activeProjectId: inbox.id,

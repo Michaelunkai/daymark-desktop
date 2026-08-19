@@ -111,7 +111,7 @@ test('Sites worker exposes non-sensitive Daymark health diagnostics', async () =
 
 test('Sites worker returns a changed workspace immediately from the revision stream', async () => {
   const state = {
-    schemaVersion: 5,
+    schemaVersion: 6,
     revision: 1876,
     updatedAt: '2026-08-12T19:50:00.000Z',
     projects: {},
@@ -121,6 +121,7 @@ test('Sites worker returns a changed workspace immediately from the revision str
     orderItems: {},
     notes: {},
     diaryEntries: {},
+    reminders: {},
     preferences: {},
     undoStack: [],
   }

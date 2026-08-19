@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  clearLocalReminders,
   deleteLocalReminder,
   loadLocalReminders,
   saveLocalReminders,
@@ -32,10 +33,32 @@ test("local reminders validate and preserve their device-only schedule", () => {
 
 test("local reminders fail closed for malformed persisted values", () => {
   const values = new Map<string, string>();
-  const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => void values.set(key, value) };
+  const storage = {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => void values.set(key, value),
+    removeItem: (key: string) => void values.delete(key),
+  };
   values.set("daymark.local-reminders.v1", "{broken");
   assert.deepEqual(loadLocalReminders(storage), []);
   saveLocalReminders([], storage);
   assert.deepEqual(loadLocalReminders(storage), []);
   assert.equal(upsertLocalReminder([], { ...input, title: " " }).ok, false);
+});
+
+test("clears the legacy device-only copy only after shared-state migration", () => {
+  const values = new Map<string, string>();
+  const storage = {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => void values.set(key, value),
+    removeItem: (key: string) => void values.delete(key),
+  };
+  saveLocalReminders([{
+    ...input,
+    id: "reminder-legacy",
+    createdAt: "2026-08-19T08:00:00.000Z",
+    updatedAt: "2026-08-19T08:00:00.000Z",
+  }], storage);
+  assert.equal(loadLocalReminders(storage).length, 1);
+  clearLocalReminders(storage);
+  assert.deepEqual(loadLocalReminders(storage), []);
 });

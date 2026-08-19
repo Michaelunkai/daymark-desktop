@@ -100,14 +100,15 @@ assert(!saveState(storage, right.state, base.revision).ok, "Stale writer must be
 
 const migrated = migrate({ ...base, schemaVersion: 1, sections: undefined, filters: undefined, orderItems: undefined });
 assert(
-  migrated.schemaVersion === 5 &&
+  migrated.schemaVersion === 6 &&
     Object.keys(migrated.sections).length === 0 &&
     Object.keys(migrated.notes).length === 0 &&
     Object.keys(migrated.diaryEntries).length === 0 &&
+    Object.keys(migrated.reminders).length === 0 &&
     migrated.tasks["task-welcome"].completionContext === null &&
     !("labels" in migrated) &&
     !("labelIds" in migrated.tasks["task-welcome"]),
-  "Legacy state should migrate to schema v5 without tags.",
+  "Legacy state should migrate to schema v6 without tags or missing reminders.",
 );
 
 const legacyCompleted = migrate({
@@ -204,6 +205,37 @@ const longDiary = reduce(base, { type: "diary.upsert", date: "2026-08-04", body:
 assert(
   longDiary.ok && longDiary.state.diaryEntries["2026-08-04"].body.length === longText.length,
   "Large diary content must persist without arbitrary limits.",
+);
+
+const reminderAdded = reduce(
+  base,
+  {
+    type: "reminder.upsert",
+    reminder: {
+      id: "reminder-cross-device",
+      title: "Review project",
+      details: "Open this on Android or desktop.",
+      target: { kind: "project", projectId: "project-personal", sectionId: null, orderLane: null },
+      eventAt: "2026-08-20T09:00:00.000Z",
+      offsets: [{ id: "before-20", minutes: 20, direction: "before", sound: "alert" }],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    },
+  },
+  timestamp,
+);
+assert(
+  reminderAdded.ok && reminderAdded.state.reminders["reminder-cross-device"].title === "Review project",
+  "Reminder definitions should persist in the shared Daymark state.",
+);
+const reminderDeleted = reminderAdded.ok
+  ? reduce(reminderAdded.state, { type: "reminder.delete", reminderId: "reminder-cross-device" }, timestamp)
+  : reminderAdded;
+assert(
+  reminderDeleted.ok &&
+    !reminderDeleted.state.reminders["reminder-cross-device"] &&
+    reminderDeleted.state.syncTombstones?.["reminders:reminder-cross-device"],
+  "Reminder deletion must leave a synchronization tombstone.",
 );
 
 const longProject = reduce(

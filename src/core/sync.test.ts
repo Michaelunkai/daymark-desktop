@@ -42,6 +42,48 @@ remote.tasks["task-welcome"] = {
   updatedAt: older,
 };
 
+const reminderLocal = createSampleState(newer, "reminder-local-client");
+reminderLocal.reminders["reminder-shared"] = {
+  id: "reminder-shared",
+  title: "Created on Android",
+  details: "Show this reminder on every paired device.",
+  target: { kind: "project", projectId: "project-personal", sectionId: "section-next", orderLane: null },
+  eventAt: "2026-08-20T09:00:00.000Z",
+  offsets: [{ id: "before-20", minutes: 20, direction: "before", sound: "alert" }],
+  createdAt: older,
+  updatedAt: newer,
+};
+const reminderRemote = createSampleState(older, "reminder-remote-client");
+reminderRemote.reminders["reminder-shared"] = {
+  ...reminderLocal.reminders["reminder-shared"],
+  title: "Stale desktop copy",
+  updatedAt: older,
+};
+reminderRemote.reminders["reminder-desktop"] = {
+  ...reminderLocal.reminders["reminder-shared"],
+  id: "reminder-desktop",
+  title: "Created on Windows",
+  updatedAt: newer,
+};
+const mergedReminders = mergeSyncStates(reminderLocal, reminderRemote);
+assert(
+  mergedReminders.reminders["reminder-shared"].title === "Created on Android",
+  "An Android-created reminder must be visible on desktop and keep the newer edit.",
+);
+assert(
+  mergedReminders.reminders["reminder-desktop"].title === "Created on Windows",
+  "A desktop-created reminder must be visible on Android.",
+);
+const deletedReminderLocal = createSampleState(newer, "reminder-delete-client");
+deletedReminderLocal.syncTombstones = {
+  "reminders:reminder-shared": { deletedAt: newer },
+};
+const deletedReminderMerged = mergeSyncStates(deletedReminderLocal, reminderRemote);
+assert(
+  !deletedReminderMerged.reminders["reminder-shared"],
+  "Deleting a reminder on either device must prevent an older copy from returning.",
+);
+
 const merged = mergeSyncStates(local, remote);
 
 assert(merged.clientId === "local-client", "Merged state should retain the local client identity.");

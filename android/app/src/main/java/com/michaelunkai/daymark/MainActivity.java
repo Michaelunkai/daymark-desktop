@@ -41,7 +41,7 @@ public final class MainActivity extends Activity {
     private static final String PREFS_NAME = "daymark";
     private static final String SYNC_KEY_PREF = "sync_key";
     private static final int SURFACE_COLOR = Color.BLACK;
-    private static final String NATIVE_RELEASE = "1.4.40";
+    private static final String NATIVE_RELEASE = "1.4.42";
     private static final int CONTENT_READY_TIMEOUT_MS = 9000;
     private static final int RUNTIME_HEALTH_CHECK_MS = 500;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 7401;

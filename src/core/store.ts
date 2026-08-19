@@ -10,6 +10,8 @@ import type {
   Project,
   SavedFilter,
   Section,
+  Reminder,
+  ReminderInput,
   StateStorage,
   StoreAction,
   Task,
@@ -17,7 +19,6 @@ import type {
   UndoAction,
   UndoEntry,
   UserAction,
-  DiaryEntry,
 } from "./types";
 
 const MAX_UNDO_ENTRIES = 20;
@@ -631,6 +632,31 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       markTombstone(state, "diaryEntries", action.date, now);
       return { ok: true, inverse: { type: "diary.restore", entry: structuredClone(entry) } };
     }
+    case "reminder.upsert": {
+      const reminderResult = createReminder(state, action.reminder, now);
+      if (!reminderResult.ok) return reminderResult;
+      const before = state.reminders[reminderResult.reminder.id];
+      state.reminders[reminderResult.reminder.id] = reminderResult.reminder;
+      clearTombstone(state, "reminders", reminderResult.reminder.id);
+      return {
+        ok: true,
+        inverse: before
+          ? { type: "reminder.restore", reminder: structuredClone(before) }
+          : { type: "reminder.remove", reminderId: reminderResult.reminder.id },
+      };
+    }
+    case "reminder.restore":
+      state.reminders[action.reminder.id] = structuredClone(action.reminder);
+      clearTombstone(state, "reminders", action.reminder.id);
+      return { ok: true, inverse: { type: "reminder.remove", reminderId: action.reminder.id } };
+    case "reminder.remove":
+    case "reminder.delete": {
+      const reminder = state.reminders[action.reminderId];
+      if (!reminder) return invalid("The reminder no longer exists.");
+      delete state.reminders[action.reminderId];
+      markTombstone(state, "reminders", action.reminderId, now);
+      return { ok: true, inverse: { type: "reminder.restore", reminder: structuredClone(reminder) } };
+    }
     case "section.add": {
       if (!action.input.name.trim() || !state.projects[action.input.projectId]) return invalid("A section needs a valid project and name.");
       const id = action.input.id ?? createId("section");
@@ -757,6 +783,51 @@ function createOrderItem(
     updatedAt: now,
   };
   return { ok: true, item };
+}
+
+function createReminder(
+  state: AppState,
+  input: ReminderInput,
+  now: string,
+): { ok: true; reminder: Reminder } | InvalidResult {
+  const id = input.id?.trim();
+  const title = input.title?.trim();
+  const eventAt = typeof input.eventAt === "string" && Number.isFinite(Date.parse(input.eventAt))
+    ? new Date(input.eventAt).toISOString()
+    : "";
+  const target = input.target;
+  const offsets = Array.isArray(input.offsets) ? input.offsets : [];
+  if (!id || !title || !eventAt || !target || !offsets.length) {
+    return invalid("Add a title, valid date and time, and at least one alert.");
+  }
+  if (
+    !["diary", "project", "order"].includes(target.kind) ||
+    (target.kind === "project" && !target.projectId) ||
+    (target.kind === "order" && !target.orderLane) ||
+    !offsets.every((offset) =>
+      Boolean(offset.id) &&
+      Number.isInteger(offset.minutes) &&
+      offset.minutes >= 0 &&
+      (offset.direction === "before" || offset.direction === "after") &&
+      (offset.sound === "soft" || offset.sound === "alert" || offset.sound === "alarm"),
+    )
+  ) {
+    return invalid("The reminder details are invalid.");
+  }
+  const existing = state.reminders[id];
+  return {
+    ok: true,
+    reminder: {
+      id,
+      title,
+      details: input.details?.trim() ?? "",
+      eventAt,
+      target: structuredClone(target),
+      offsets: structuredClone(offsets),
+      createdAt: existing?.createdAt ?? input.createdAt ?? now,
+      updatedAt: input.updatedAt ?? now,
+    },
+  };
 }
 
 function clearOrderRelations(state: AppState, itemId: string): void {

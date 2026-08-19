@@ -1,4 +1,4 @@
-import type { AppState } from "./types";
+import { CURRENT_SCHEMA_VERSION, type AppState } from "./types";
 
 const SYNC_KEY = "daymark.sync-key";
 const SYNC_ADOPT_REMOTE_KEY = "daymark.sync-adopt-remote";
@@ -213,6 +213,7 @@ export function mergeSyncStates(local: AppState, remote: AppState): AppState {
 
   const merged: AppState = {
     ...structuredClone(remote),
+    schemaVersion: CURRENT_SCHEMA_VERSION,
     revision: Math.max(local.revision, remote.revision),
     updatedAt: local.updatedAt >= remote.updatedAt ? local.updatedAt : remote.updatedAt,
     clientId: local.clientId,
@@ -222,6 +223,7 @@ export function mergeSyncStates(local: AppState, remote: AppState): AppState {
     tasks: newerRecord(local.tasks, remote.tasks),
     orderItems: newerRecord(local.orderItems, remote.orderItems),
     notes: newerRecord(local.notes, remote.notes),
+    reminders: newerRecord(local.reminders ?? {}, remote.reminders ?? {}),
     diaryEntries: Object.entries(local.diaryEntries).reduce(
       (merged, [date, entry]) => {
         const other = remote.diaryEntries[date];
@@ -299,6 +301,7 @@ function applyTombstones(state: AppState): void {
     tasks: state.tasks,
     orderItems: state.orderItems,
     notes: state.notes,
+    reminders: state.reminders,
     diaryEntries: state.diaryEntries,
   };
   Object.entries(state.syncTombstones ?? {}).forEach(([key, tombstone]) => {

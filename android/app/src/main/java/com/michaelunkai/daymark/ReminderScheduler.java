@@ -33,9 +33,10 @@ final class ReminderScheduler {
     private ReminderScheduler() {}
 
     static void replace(Context context, String rawSchedules) {
+        JSONArray next = parse(rawSchedules);
+        if (next == null || !validSchedules(next)) return;
         JSONArray previous = read(context);
         for (int index = 0; index < previous.length(); index += 1) cancel(context, previous.optJSONObject(index));
-        JSONArray next = parse(rawSchedules);
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(SCHEDULES, next.toString()).apply();
         ensureChannels(context);
         for (int index = 0; index < next.length(); index += 1) schedule(context, next.optJSONObject(index));
@@ -156,15 +157,31 @@ final class ReminderScheduler {
     }
 
     private static JSONArray read(Context context) {
-        return parse(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(SCHEDULES, "[]"));
+        JSONArray schedules = parse(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(SCHEDULES, "[]"));
+        return schedules == null ? new JSONArray() : schedules;
     }
 
     private static JSONArray parse(String rawSchedules) {
         try {
             return new JSONArray(rawSchedules == null ? "[]" : rawSchedules);
         } catch (Exception ignored) {
-            return new JSONArray();
+            return null;
         }
+    }
+
+    private static boolean validSchedules(JSONArray schedules) {
+        for (int index = 0; index < schedules.length(); index += 1) {
+            JSONObject schedule = schedules.optJSONObject(index);
+            if (schedule == null
+                    || schedule.optString("id").isEmpty()
+                    || schedule.optString("title").trim().isEmpty()
+                    || schedule.optLong("eventAt", 0L) <= 0L
+                    || schedule.optLong("alertAt", 0L) <= 0L
+                    || schedule.optInt("minutes", -1) < 0
+                    || !("before".equals(schedule.optString("direction"))
+                    || "after".equals(schedule.optString("direction")))) return false;
+        }
+        return true;
     }
 
     private static Intent reminderIntent(Context context, JSONObject schedule) {

@@ -51,6 +51,14 @@ export function saveLocalReminders(reminders: readonly LocalReminder[], storage 
   }
 }
 
+export function clearLocalReminders(storage = getStorage()): void {
+  try {
+    storage?.removeItem(LOCAL_REMINDERS_KEY);
+  } catch {
+    // Keep the legacy copy until a later launch can safely complete the migration.
+  }
+}
+
 export function upsertLocalReminder(
   reminders: readonly LocalReminder[],
   input: Omit<LocalReminder, "id" | "createdAt" | "updatedAt"> & { id?: string },
@@ -156,7 +164,7 @@ function createReminderId(): string {
   return `reminder-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function getStorage(): Pick<Storage, "getItem" | "setItem"> | undefined {
+function getStorage(): Pick<Storage, "getItem" | "setItem" | "removeItem"> | undefined {
   try {
     return typeof window === "undefined" ? undefined : window.localStorage;
   } catch {

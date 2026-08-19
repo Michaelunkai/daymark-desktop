@@ -41,9 +41,8 @@ import {
 import { QuickCaptureSheet } from './features/capture/QuickCaptureSheet'
 import { ReminderPlanner } from './features/reminders/ReminderPlanner'
 import {
-  deleteLocalReminder,
+  clearLocalReminders,
   loadLocalReminders,
-  saveLocalReminders,
   toNativeReminderSchedules,
   upsertLocalReminder,
 } from './features/reminders/local-reminders'
@@ -2192,6 +2191,7 @@ function JournalView({
 
 function App() {
   const state = useAppState()
+  const reminders = useMemo(() => Object.values(state.reminders), [state.reminders])
   const { setPreference } = useTheme()
   const [route, setRoute] = useState('order')
   const [viewMode, setViewMode] = useState('list')
@@ -2218,7 +2218,6 @@ function App() {
   const [captureNotice, setCaptureNotice] = useState('')
   const [companionOpen, setCompanionOpen] = useState(false)
   const [quickOpen, setQuickOpen] = useState(false)
-  const [localReminders, setLocalReminders] = useState(() => loadLocalReminders())
   const [notificationStatus, setNotificationStatus] = useState(() => getAndroidReminderStatus())
   const [uiSettings, setUiSettings] = useState(() => readUiSettings())
   const [syncKey, setSyncKey] = useState(() => getSyncKey(getBrowserStorage()))
@@ -2244,6 +2243,7 @@ function App() {
   const captureReturnFocusRef = useRef(null)
   const topbarRef = useRef(null)
   const mainContentRef = useRef(null)
+  const legacyRemindersImportedRef = useRef(false)
 
   useEffect(() => {
     appStore.rollOverIncompleteTasks(toLocalDate(new Date()))
@@ -2257,14 +2257,31 @@ function App() {
   }, [])
 
   useEffect(() => {
-    saveLocalReminders(localReminders)
+    if (legacyRemindersImportedRef.current) return
+    legacyRemindersImportedRef.current = true
+    const legacyReminders = loadLocalReminders()
+    if (!legacyReminders.length) return
+
+    for (const reminder of legacyReminders) {
+      const existing = appStore.getState().reminders[reminder.id]
+      if (existing && existing.updatedAt > reminder.updatedAt) continue
+      const result = appStore.dispatch({ type: 'reminder.upsert', reminder })
+      if (!result.ok) {
+        legacyRemindersImportedRef.current = false
+        return
+      }
+    }
+    clearLocalReminders()
+  }, [])
+
+  useEffect(() => {
     try {
-      window.DaymarkAndroid?.syncReminders?.(JSON.stringify(toNativeReminderSchedules(localReminders)))
+      window.DaymarkAndroid?.syncReminders?.(JSON.stringify(toNativeReminderSchedules(reminders)))
       setNotificationStatus(getAndroidReminderStatus())
     } catch {
       setNotificationStatus('browser')
     }
-  }, [localReminders])
+  }, [reminders])
 
   useEffect(() => {
     const refreshNotificationStatus = () => setNotificationStatus(getAndroidReminderStatus())
@@ -3277,18 +3294,27 @@ function App() {
   }
 
   const saveReminder = (input) => {
-    const result = upsertLocalReminder(localReminders, input)
+    const result = upsertLocalReminder(reminders, input)
     if (!result.ok) {
       setNotice(result.message)
       return
     }
-    setLocalReminders(result.reminders)
-    setNotice('Reminder scheduled on this device.')
+    const reminder = result.reminders.find((candidate) => candidate.id === input.id) ?? result.reminders.at(-1)
+    const saved = reminder && appStore.dispatch({ type: 'reminder.upsert', reminder })
+    if (!saved?.ok) {
+      setNotice(saved?.message ?? 'Daymark could not save that reminder.')
+      return
+    }
+    setNotice('Reminder saved and synced. Alerts are scheduled on this device.')
   }
 
   const deleteReminder = (reminderId) => {
-    setLocalReminders((current) => deleteLocalReminder(current, reminderId))
-    setNotice('Reminder removed from this device.')
+    const result = appStore.dispatch({ type: 'reminder.delete', reminderId })
+    if (!result.ok) {
+      setNotice(result.message)
+      return
+    }
+    setNotice('Reminder removed and synced.')
   }
 
   const requestReminderAccess = () => {
@@ -4237,7 +4263,7 @@ function App() {
                 onSave={saveReminder}
                 onTestSound={testReminderSound}
                 projects={Object.values(state.projects)}
-                reminders={localReminders}
+                reminders={reminders}
                 sections={Object.values(state.sections)}
               />
             ) : route === 'notes' || route === 'diary' ? (

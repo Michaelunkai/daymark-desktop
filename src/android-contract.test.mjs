@@ -32,8 +32,8 @@ test("Android release exposes the shared responsive app with the premium launche
 
   assert.match(manifest, /android:icon="@drawable\/ic_daymark_launcher"/);
   assert.match(manifest, /android:roundIcon="@drawable\/ic_daymark_launcher"/);
-  assert.match(gradle, /versionCode 31/);
-  assert.match(gradle, /versionName "1\.4\.40"/);
+  assert.match(gradle, /versionCode 32/);
+  assert.match(gradle, /versionName "1\.4\.42"/);
   assert.match(gradle, /def isReleaseRequested = gradle\.startParameter\.taskNames\.any/);
   assert.match(gradle, /if \(isReleaseRequested && !hasDaymarkSigning\)/);
   assert.match(gradle, /A Daymark release requires DAYMARK_SIGNING_STORE/);
@@ -50,8 +50,8 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(releaseVerifier, /exactly one signer/);
   assert.match(releaseVerifier, /GIT_COMMIT/);
   assert.match(releaseVerifier, /APK is not bound to expected Git commit/);
-  assert.match(releaseVerifier, /\$expectedVersionCode = '31'/);
-  assert.match(releaseVerifier, /\$expectedVersionName = '1\.4\.40'/);
+  assert.match(releaseVerifier, /\$expectedVersionCode = '32'/);
+  assert.match(releaseVerifier, /\$expectedVersionName = '1\.4\.42'/);
   assert.match(escrow, /param\(\)/);
   assert.doesNotMatch(escrow, /\[string\]\$ExpectedSigner/);
   assert.match(escrow, /Entry type:\\s\*PrivateKeyEntry/);
@@ -83,7 +83,7 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(activity, /retryCurrentPage/);
   assert.match(activity, /LOAD_CACHE_ELSE_NETWORK/);
   assert.match(activity, /setOffscreenPreRaster\(true\)/);
-  assert.match(activity, /NATIVE_RELEASE = "1\.4\.40"/);
+  assert.match(activity, /NATIVE_RELEASE = "1\.4\.42"/);
   assert.match(activity, /withLaunchMarker/);
   assert.match(activity, /resumeRestoredDocument/);
   assert.match(activity, /sameLogicalUrl/);
@@ -207,7 +207,7 @@ test("Android packages and serves the built client before a network response is 
   );
 });
 
-test("Android reminders stay device-local and schedule native alerts across restarts", async () => {
+test("Android reminders sync their definitions and schedule native alerts across restarts", async () => {
   const [manifest, activity, scheduler, receiver, bootReceiver, reminderStore, reminderPlanner, appSource] = await Promise.all([
     readFile(new URL("./android/app/src/main/AndroidManifest.xml", root), "utf8"),
     readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/MainActivity.java", root), "utf8"),
@@ -233,6 +233,8 @@ test("Android reminders stay device-local and schedule native alerts across rest
   assert.match(activity, /hasVisibleDocument && sameLogicalUrl\(requestedUrl, lastRequestedUrl\)/);
   assert.match(scheduler, /setExactAndAllowWhileIdle/);
   assert.match(scheduler, /setAndAllowWhileIdle/);
+  assert.match(scheduler, /JSONArray next = parse\(rawSchedules\);\s*if \(next == null \|\| !validSchedules\(next\)\) return;/);
+  assert.match(scheduler, /private static boolean validSchedules\(JSONArray schedules\)/);
   assert.match(scheduler, /CHANNEL_VERSION = "v3"/);
   assert.match(scheduler, /daymark\.reminder\./);
   assert.match(scheduler, /daymark_reminder_soft/);
@@ -252,6 +254,10 @@ test("Android reminders stay device-local and schedule native alerts across rest
   assert.match(reminderPlanner, /Test \$\{offset\.sound\} sound/);
   assert.match(appSource, /id: 'reminders', label: 'Reminders', icon: 'clock'/);
   assert.match(appSource, /route === 'reminders' \? \(\s*<ReminderPlanner/);
+  assert.match(appSource, /state\.reminders/);
+  assert.match(appSource, /type:\s*['"]reminder\.upsert['"]/);
+  assert.match(appSource, /type:\s*['"]reminder\.delete['"]/);
+  assert.doesNotMatch(appSource, /useState\(\(\)\s*=>\s*loadLocalReminders\(\)\)/);
   assert.doesNotMatch(appSource, /aria-label="Diary tabs"/);
   assert.doesNotMatch(reminderStore, /core\/sync/);
 });

@@ -1,4 +1,4 @@
-export const CURRENT_SCHEMA_VERSION = 5 as const;
+export const CURRENT_SCHEMA_VERSION = 6 as const;
 
 export type EntityId = string;
 export type Priority = 1 | 2 | 3 | 4;
@@ -103,6 +103,35 @@ export interface DiaryEntry {
   updatedAt: string;
 }
 
+export type ReminderSound = "soft" | "alert" | "alarm";
+export type ReminderDirection = "before" | "after";
+export type ReminderTargetKind = "diary" | "project" | "order";
+
+export interface ReminderOffset {
+  id: string;
+  minutes: number;
+  direction: ReminderDirection;
+  sound: ReminderSound;
+}
+
+export interface ReminderTarget {
+  kind: ReminderTargetKind;
+  projectId: EntityId | null;
+  sectionId: EntityId | null;
+  orderLane: OrderLane | null;
+}
+
+export interface Reminder {
+  id: EntityId;
+  title: string;
+  details: string;
+  eventAt: string;
+  offsets: ReminderOffset[];
+  target: ReminderTarget;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AppPreferences {
   inboxProjectId: EntityId;
   activeProjectId: EntityId | null;
@@ -134,6 +163,7 @@ export interface AppState {
   orderItems: Record<EntityId, OrderItem>;
   notes: Record<EntityId, Note>;
   diaryEntries: Record<string, DiaryEntry>;
+  reminders: Record<EntityId, Reminder>;
   preferences: AppPreferences;
   undoStack: UndoEntry[];
   syncTombstones?: Record<string, SyncTombstone>;
@@ -212,6 +242,11 @@ export type DiaryPatch = Partial<
   Pick<DiaryEntry, "body" | "morning" | "highlights" | "reflection" | "tomorrow">
 >;
 
+export type ReminderInput = Omit<Reminder, "createdAt" | "updatedAt"> & {
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type SectionInput = {
   id?: EntityId;
   projectId: EntityId;
@@ -253,6 +288,8 @@ export type UserAction =
   | { type: "note.delete"; noteId: EntityId }
   | { type: "diary.upsert"; date: string; body: string }
   | { type: "diary.update"; date: string; patch: DiaryPatch }
+  | { type: "reminder.upsert"; reminder: ReminderInput }
+  | { type: "reminder.delete"; reminderId: EntityId }
   | { type: "section.add"; input: SectionInput }
   | { type: "section.update"; sectionId: EntityId; patch: Partial<Pick<Section, "name" | "order" | "isCollapsed">> }
   | { type: "filter.add"; input: FilterInput }
@@ -288,6 +325,8 @@ export type UndoAction =
   | { type: "diary.restore"; entry: DiaryEntry }
   | { type: "diary.update"; date: string; patch: DiaryPatch }
   | { type: "diary.remove"; date: string }
+  | { type: "reminder.restore"; reminder: Reminder }
+  | { type: "reminder.remove"; reminderId: EntityId }
   | { type: "section.restore"; section: Section }
   | { type: "section.remove"; sectionId: EntityId }
   | { type: "section.update"; sectionId: EntityId; patch: Partial<Pick<Section, "name" | "order" | "isCollapsed">> }

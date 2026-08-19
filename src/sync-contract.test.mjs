@@ -21,6 +21,7 @@ test("remote sync contract is present in the client and Sites worker", async () 
   assert.match(sync, /BroadcastChannel/);
   assert.match(sync, /createInteractionSyncGate/);
   assert.match(sync, /waitForSyncChange/);
+  assert.match(sync, /reminders:\s*newerRecord\(local\.reminders \?\? \{\}, remote\.reminders \?\? \{\}\)/);
   assert.match(app, /interactionSyncGateRef\.current\.defer/);
   assert.match(app, /pushSyncStateWithRebase/);
   assert.match(app, /waitForSyncChange/);
@@ -46,5 +47,6 @@ test("remote sync contract is present in the client and Sites worker", async () 
   assert.match(worker, /Set-Cookie/);
   assert.match(worker, /const nextRevision = Math\.max/);
   assert.match(worker, /applyTombstones/);
+  assert.match(worker, /reminders:\s*newerRecord\(local\?\.reminders, remote\?\.reminders\)/);
   assert.match(hosting, /"d1":\s*"DB"/);
 });

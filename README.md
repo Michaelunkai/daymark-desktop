@@ -14,21 +14,20 @@ https://daymark-desktop.michaelovsky55555.chatgpt.site
 
 The latest compatible Android download remains available here:
 
-- [Android APK](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.36/Daymark-Android-Install.apk)
-- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.36)
+- [Android APK](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.42/Daymark-Android-Install.apk)
+- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.42)
 
 The Android shell targets Android 6.0+ and opens the same responsive Daymark
 application used by Windows and mobile browsers.
-The downloadable APK is the verified original-signer `1.4.20` shell currently
-running on the reference Android device. Daymark's interface and shared
-workspace load from the production application, so newly installed devices
-receive the same current app and synchronization behavior.
+The downloadable APK is the verified original-signer `1.4.42` shell. Daymark's
+interface and shared workspace load from the production application, so newly
+installed devices receive the same current app and synchronization behavior.
 
-The current `1.4.40` Android source adds the phone-first calendar layout,
-44px calendar controls, and the compact selected-day agenda. Its debug build
-is intentionally not published: Android updates must use the original Daymark
-signing certificate so they install over the existing app without removing
-data.
+The current `1.4.42` Android source synchronizes reminder definitions between
+Android and desktop while keeping native alarm delivery local to each phone.
+Its debug build is intentionally not published: Android updates must use the
+original Daymark signing certificate so they install over the existing app
+without removing data.
 
 ## Windows app
 
@@ -37,11 +36,11 @@ dedicated, persistent desktop session. It uses the existing pairing code,
 optimistic revision checks, timestamp merges, and deletion tombstones rather
 than introducing a separate desktop data store.
 
-Download Daymark for Windows `1.4.41`:
+Download Daymark for Windows `1.4.42`:
 
-- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.41/Daymark-Windows-Setup-1.4.41-x64.exe)
-- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.41/Daymark-Windows-Portable-1.4.41-x64.exe)
-- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.41)
+- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.42/Daymark-Windows-Setup-1.4.42-x64.exe)
+- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.42/Daymark-Windows-Portable-1.4.42-x64.exe)
+- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.42)
 
 SHA-256 values for every downloadable artifact are published in
 `Daymark-SHA256SUMS.txt` on the release.
@@ -59,7 +58,7 @@ npm run desktop:verify
 The generated artifacts are written to `release/windows`. The installer keeps
 Daymark's local Windows session data when uninstalling so an accidental
 uninstall does not silently erase the desktop pairing and cached workspace.
-Windows `1.4.41` uses a native detached launcher, so Command Prompt and
+Windows `1.4.42` uses a native detached launcher, so Command Prompt and
 PowerShell return immediately with no Electron diagnostics while the Daymark
 window keeps running. It provides smooth mouse-wheel scrolling and visible
 draggable scrollbars across the projects sidebar and main workspace. Task and
@@ -73,14 +72,14 @@ while Order moves remove it only after the dated Inbox task is created.
 Responsive checks cover narrow windows and 150% Windows display scaling so
 controls remain reachable instead of being cropped.
 
-Windows `1.4.41` opens the same current workspace experience as Android:
+Windows `1.4.42` opens the same current workspace experience as Android:
 Order is the default route; Quick can create, edit, move, copy, and convert
 tasks and Order items; Reminders is a standalone workspace; and long task or
 Order details stay compact until their full text is explicitly revealed and
 copied.
 
 The Android download uses package `com.michaelunkai.daymark`, version code
-`24`, and version name `1.4.20`. It is signed with the same certificate as the
+`32`, and version name `1.4.42`. It is signed with the same certificate as the
 installed reference app and loads the current shared task and Order
 date-transfer controls from the deployed application.
 The older `1.4.6` release remains documented below as historical provenance.
@@ -188,9 +187,9 @@ token. Undo only succeeds when no later workspace revision has intervened.
 
 The API intentionally excludes raw sync state, pairing codes, backups,
 database administration, account administration, activity/comments, and
-reminders. Reminders are local presentational scheduler data in this product,
-not a durable shared entity. Scheduled tasks are available through the
-calendar endpoint instead.
+reminder delivery controls. Reminder definitions are durable shared workspace
+data, while native alarm delivery remains device-local and is not exposed
+through the API.
 
 Production uses the existing D1 binding. The Worker creates its four
 integration tables on first authenticated use, so this release requires no
