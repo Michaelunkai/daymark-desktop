@@ -19,6 +19,77 @@ const PRIORITIES = [
   { value: 4, label: 'Normal' },
 ]
 
+const COMPACT_ORDER_DETAILS_LENGTH = 180
+const COMPACT_ORDER_DETAILS_LINES = 3
+const EMPTY_ORDER_DETAILS = 'No details yet. Open this item to add context.'
+
+function getOrderDetails(item) {
+  return item.details?.trim() || EMPTY_ORDER_DETAILS
+}
+
+function hasLongOrderDetails(item) {
+  const details = item.details?.trim() || ''
+  return details.length > COMPACT_ORDER_DETAILS_LENGTH
+    || details.split(/\r?\n/).length > COMPACT_ORDER_DETAILS_LINES
+}
+
+function getCompactOrderDetails(details) {
+  const preview = details
+    .split(/\r?\n/)
+    .slice(0, COMPACT_ORDER_DETAILS_LINES)
+    .join('\n')
+    .slice(0, COMPACT_ORDER_DETAILS_LENGTH)
+    .trimEnd()
+  return preview === details ? preview : `${preview}...`
+}
+
+function createOrderItemClipboardText(item, orderedItems) {
+  const lane = LANES.find((candidate) => candidate.id === item.lane)
+  const priority = PRIORITIES.find((candidate) => candidate.value === item.priority)
+  const relation = item.relationId
+    ? orderedItems.find((candidate) => candidate.id === item.relationId)?.title
+    : null
+
+  return [
+    `Title: ${item.title}`,
+    `Details: ${item.details?.trim() || 'No details'}`,
+    `Lane: ${lane?.label || item.lane}`,
+    `Priority: ${priority?.label || item.priority}`,
+    `Status: ${item.status}`,
+    relation ? `After: ${relation}` : null,
+  ].filter(Boolean).join('\n')
+}
+
+async function copyOrderItemText(text) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch {
+      // WebViews can expose the clipboard API without granting write access.
+    }
+  }
+
+  if (typeof document === 'undefined' || !document.body) return false
+
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.setAttribute('readonly', '')
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  let copied = false
+  try {
+    textarea.focus()
+    textarea.select()
+    copied = document.execCommand('copy')
+  } catch {
+    copied = false
+  }
+  textarea.remove()
+  return copied
+}
+
 function OrderItemCard({
   dragging,
   index,
@@ -27,14 +98,19 @@ function OrderItemCard({
   onComplete,
   onEdit,
   onMove,
+  onNotice,
   onSetDragging,
   onUpdate,
   orderedItems,
 }) {
+  const [detailsExpanded, setDetailsExpanded] = useState(false)
   const lastTargetRef = useRef(null)
   const callbacksRef = useRef({ itemId: item.id, onMove, onSetDragging, onUpdate })
   callbacksRef.current = { itemId: item.id, onMove, onSetDragging, onUpdate }
   const controllerRef = useRef(null)
+  const details = getOrderDetails(item)
+  const longDetails = hasLongOrderDetails(item)
+  const visibleDetails = detailsExpanded || !longDetails ? details : getCompactOrderDetails(details)
 
   if (!controllerRef.current) {
     controllerRef.current = createLongPressReorderController({
@@ -62,6 +138,12 @@ function OrderItemCard({
   }
 
   useEffect(() => () => controllerRef.current?.dispose(), [])
+
+  const handleShowAndCopy = async () => {
+    setDetailsExpanded(true)
+    const copied = await copyOrderItemText(createOrderItemClipboardText(item, orderedItems))
+    onNotice?.(copied ? 'Order item details copied.' : 'Order item details could not be copied.')
+  }
 
   return (
     <article
@@ -102,9 +184,30 @@ function OrderItemCard({
           <button className="order-item__title" onClick={() => onEdit(item)} type="button">{item.title}</button>
           <span className={`order-priority order-priority--${item.priority}`}>{PRIORITIES.find((priority) => priority.value === item.priority)?.label}</span>
         </div>
-        <p className="order-item__details">
-          {item.details || 'No details yet. Open this item to add context.'}
-        </p>
+        <p className={`order-item__details ${detailsExpanded ? 'is-expanded' : ''}`} id={`order-item-details-${item.id}`}>{visibleDetails}</p>
+        {longDetails ? (
+          <div className="order-item__detail-controls">
+            <button
+              aria-controls={`order-item-details-${item.id}`}
+              aria-expanded={detailsExpanded}
+              className="order-item__details-toggle"
+              onClick={() => setDetailsExpanded((expanded) => !expanded)}
+              type="button"
+            >
+              {detailsExpanded ? 'Hide details' : 'Show more'}
+            </button>
+            <button
+              aria-label={`Show and copy full details for ${item.title}`}
+              aria-controls={`order-item-details-${item.id}`}
+              className="order-item__details-copy"
+              onClick={handleShowAndCopy}
+              title="Show full details and copy them"
+              type="button"
+            >
+              Show full &amp; copy
+            </button>
+          </div>
+        ) : null}
         <div className="order-item__meta">
           <span className={`order-status order-status--${item.status}`}>{item.status}</span>
           {item.relationId ? <span>after {orderedItems.find((candidate) => candidate.id === item.relationId)?.title ?? 'another item'}</span> : null}
@@ -153,6 +256,7 @@ function OrderLane({
   onDrop,
   onEdit,
   onMove,
+  onNotice,
   onSetDragging,
   onUpdate,
   orderedItems,
@@ -182,6 +286,7 @@ function OrderLane({
             onComplete={onComplete}
             onEdit={onEdit}
             onMove={onMove}
+            onNotice={onNotice}
             onSetDragging={onSetDragging}
             onUpdate={onUpdate}
             orderedItems={orderedItems}
@@ -203,6 +308,7 @@ export function OrderWorkspace({
   sections = [],
   onMoveToTask,
   onCopyToTask,
+  onNotice,
 }) {
   const [editing, setEditing] = useState(null)
   const [draft, setDraft] = useState(null)
@@ -358,6 +464,7 @@ export function OrderWorkspace({
               onDrop={dropIntoLane}
               onEdit={openEdit}
               onMove={onMove}
+              onNotice={onNotice}
               onSetDragging={setDraggingId}
               onUpdate={onUpdate}
               orderedItems={orderedItems}

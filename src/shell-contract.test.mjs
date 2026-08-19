@@ -30,6 +30,12 @@ const quickCaptureModel = await readFile(
 )
 const main = await readFile(new URL('./main.jsx', import.meta.url), 'utf8')
 const smoothWheel = await readFile(new URL('./core/smooth-wheel.ts', import.meta.url), 'utf8')
+const taskRow = app.slice(app.indexOf('function TaskRow('), app.indexOf('function SectionHeading('))
+const boardTaskCard = app.slice(app.indexOf('function BoardTaskCard('), app.indexOf('function TaskComposer('))
+const orderItemCard = orderWorkspace.slice(
+  orderWorkspace.indexOf('function OrderItemCard('),
+  orderWorkspace.indexOf('function onMoveBy('),
+)
 
 test('global shell exposes the required settings and repository affordances', () => {
   assert.match(app, /SettingsPanel/)
@@ -210,7 +216,7 @@ test('task duplication, clipboard copy, and JSON export retain portable workspac
   assert.match(app, /onExport=\{exportBackup\}/)
 })
 
-test('long task details stay compact, expandable, and copyable', () => {
+test('long task details stay compact and expose show-full-and-copy controls', () => {
   assert.match(app, /const COMPACT_TASK_DETAILS_LENGTH = 180/)
   assert.match(
     app,
@@ -234,8 +240,20 @@ test('long task details stay compact, expandable, and copyable', () => {
   )
   assert.match(app, /onCopy=\{\(copied\) => setNotice\(copied[\s\S]*?'Task details copied\.'/)
   assert.match(
-    app,
-    /function BoardTaskCard\(\{[\s\S]*?const hasLongDetails = task\.details\.length > COMPACT_TASK_DETAILS_LENGTH[\s\S]*?className=\{`board-task__details \$\{detailsExpanded \? 'is-expanded' : ''\}`\}[\s\S]*?aria-label=\{`Copy \$\{task\.title\} details`\}/,
+    taskRow,
+    /const handleExpandAndCopy = async \(\) => \{[\s\S]*?setDetailsExpanded\(true\)[\s\S]*?copyTaskClipboardText\(createTaskClipboardText\(task\)\)[\s\S]*?onCopy\?\.\(copied\)/,
+  )
+  assert.match(
+    taskRow,
+    /aria-label=\{`[^`]*(?:full details[^`]*(?:copy|clipboard)|(?:copy|clipboard)[^`]*full details)[^`]*\$\{task\.title\}[^`]*`\}[\s\S]*?onClick=\{handleExpandAndCopy\}/i,
+  )
+  assert.match(
+    boardTaskCard,
+    /const handleExpandAndCopy = async \(\) => \{[\s\S]*?setDetailsExpanded\(true\)[\s\S]*?copyTaskClipboardText\(createTaskClipboardText\(task\)\)[\s\S]*?onCopy\?\.\(copied\)/,
+  )
+  assert.match(
+    boardTaskCard,
+    /aria-label=\{`[^`]*(?:full details[^`]*(?:copy|clipboard)|(?:copy|clipboard)[^`]*full details)[^`]*\$\{task\.title\}[^`]*`\}[\s\S]*?onClick=\{handleExpandAndCopy\}/i,
   )
   assert.match(
     styles,
@@ -299,6 +317,50 @@ test('task and Order layouts reserve readable width for complete titles and deta
   assert.match(
     orderStyles,
     /\.order-item__details \{[\s\S]*?white-space: pre-wrap;/,
+  )
+})
+
+test('Order long details stay compact and expose a show-full-and-copy control', () => {
+  assert.match(orderWorkspace, /const COMPACT_ORDER_DETAILS_LENGTH = 180/)
+  assert.match(orderWorkspace, /const COMPACT_ORDER_DETAILS_LINES = 3/)
+  assert.match(
+    orderWorkspace,
+    /function hasLongOrderDetails\(item\) \{[\s\S]*?details\.length > COMPACT_ORDER_DETAILS_LENGTH[\s\S]*?details\.split\(\/\\r\?\\n\/\)\.length > COMPACT_ORDER_DETAILS_LINES/,
+  )
+  assert.match(
+    orderWorkspace,
+    /function getCompactOrderDetails\(details\) \{[\s\S]*?slice\(0, COMPACT_ORDER_DETAILS_LINES\)[\s\S]*?slice\(0, COMPACT_ORDER_DETAILS_LENGTH\)[\s\S]*?\$\{preview\}\.\.\./,
+  )
+  assert.match(
+    orderWorkspace,
+    /function createOrderItemClipboardText\(item, orderedItems\) \{[\s\S]*?`Title: \$\{item\.title\}`[\s\S]*?`Details: \$\{item\.details\?\.trim\(\) \|\| 'No details'\}`/,
+  )
+  assert.match(orderItemCard, /const \[detailsExpanded, setDetailsExpanded\] = useState\(false\)/)
+  assert.match(
+    orderItemCard,
+    /const details = getOrderDetails\(item\)[\s\S]*?const longDetails = hasLongOrderDetails\(item\)[\s\S]*?const visibleDetails = detailsExpanded \|\| !longDetails \? details : getCompactOrderDetails\(details\)/,
+  )
+  assert.match(
+    orderItemCard,
+    /className=\{`order-item__details \$\{detailsExpanded \? 'is-expanded' : ''\}`\} id=\{`order-item-details-\$\{item\.id\}`\}>\{visibleDetails\}/,
+  )
+  assert.match(orderItemCard, /<div className="order-item__detail-controls">/)
+  assert.match(
+    orderItemCard,
+    /aria-expanded=\{detailsExpanded\}[\s\S]*?onClick=\{\(\) => setDetailsExpanded\(\(expanded\) => !expanded\)\}/,
+  )
+  assert.match(
+    orderItemCard,
+    /const handleShowAndCopy = async \(\) => \{[\s\S]*?setDetailsExpanded\(true\)[\s\S]*?copyOrderItemText\(createOrderItemClipboardText\(item, orderedItems\)\)[\s\S]*?onNotice\?\./,
+  )
+  assert.match(
+    orderItemCard,
+    /aria-label=\{`[^`]*(?:full details[^`]*(?:copy|clipboard)|(?:copy|clipboard)[^`]*full details)[^`]*\$\{item\.title\}[^`]*`\}[\s\S]*?onClick=\{handleShowAndCopy\}/i,
+  )
+  assert.match(orderStyles, /\.order-item__details \{[\s\S]*?-webkit-line-clamp: 3;/)
+  assert.match(
+    orderStyles,
+    /\.order-item__details\.is-expanded[\s\S]*?-webkit-line-clamp: unset;[\s\S]*?overflow: visible;/,
   )
 })
 

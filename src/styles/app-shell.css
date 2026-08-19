@@ -3209,6 +3209,20 @@ kbd {
   gap: 4px;
 }
 
+.task-details-reveal-copy,
+.board-task__reveal-copy {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.task-details-reveal-copy:hover,
+.task-details-reveal-copy:focus-visible,
+.board-task__reveal-copy:hover,
+.board-task__reveal-copy:focus-visible {
+  background: var(--accent);
+  color: var(--surface);
+}
+
 /* Android touch input should scroll the workspace until a deliberate long press begins. */
 .main-content,
 .project-sidebar-item__main,

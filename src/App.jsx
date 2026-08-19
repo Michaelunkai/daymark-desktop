@@ -688,6 +688,11 @@ function TaskRow({
     const copied = await copyTaskClipboardText(createTaskClipboardText(task))
     onCopy?.(copied)
   }
+  const handleExpandAndCopy = async () => {
+    setDetailsExpanded(true)
+    const copied = await copyTaskClipboardText(createTaskClipboardText(task))
+    onCopy?.(copied)
+  }
 
   return (
     <article className={`task-row ${task.completed ? 'is-completed' : ''} ${isReordering ? 'is-reordering' : ''}`}>
@@ -751,27 +756,42 @@ function TaskRow({
           <Icon name="chevronDown" size={15} />
         </button>
         {hasLongDetails ? (
+          <>
+            <button
+              aria-controls={`task-details-${task.id}`}
+              aria-expanded={detailsExpanded}
+              aria-label={`${detailsExpanded ? 'Collapse' : 'Expand'} details for ${task.title}`}
+              className="icon-button"
+              onClick={() => setDetailsExpanded((expanded) => !expanded)}
+              title={detailsExpanded ? 'Collapse details' : 'Expand details'}
+              type="button"
+            >
+              <Icon name={detailsExpanded ? 'chevronUp' : 'chevronDown'} size={15} />
+            </button>
+            <button
+              aria-controls={`task-details-${task.id}`}
+              aria-expanded={detailsExpanded}
+              aria-label={`Show full details and copy ${task.title}`}
+              className="icon-button task-details-reveal-copy"
+              onClick={handleExpandAndCopy}
+              title="Show full details and copy"
+              type="button"
+            >
+              <Icon color="#ff7900" name="clipboard" size={15} />
+            </button>
+          </>
+        ) : null}
+        {!hasLongDetails ? (
           <button
-            aria-controls={`task-details-${task.id}`}
-            aria-expanded={detailsExpanded}
-            aria-label={`${detailsExpanded ? 'Collapse' : 'Expand'} details for ${task.title}`}
+            aria-label={`Copy ${task.title} details`}
             className="icon-button"
-            onClick={() => setDetailsExpanded((expanded) => !expanded)}
-            title={detailsExpanded ? 'Collapse details' : 'Expand details'}
+            onClick={handleCopy}
+            title="Copy task details"
             type="button"
           >
-            <Icon name={detailsExpanded ? 'chevronUp' : 'chevronDown'} size={15} />
+            <Icon color="#ff7900" name="clipboard" size={15} />
           </button>
         ) : null}
-        <button
-          aria-label={`Copy ${task.title} details`}
-          className="icon-button"
-          onClick={handleCopy}
-          title="Copy task details"
-          type="button"
-        >
-          <Icon color="#ff7900" name="clipboard" size={15} />
-        </button>
         <button aria-label={`More actions for ${task.title}`} className="icon-button task-more" title="More actions" type="button">
           <Icon name="more" size={16} />
         </button>
@@ -952,6 +972,11 @@ function BoardTaskCard({
     const copied = await copyTaskClipboardText(createTaskClipboardText(task))
     onCopy?.(copied)
   }
+  const handleExpandAndCopy = async () => {
+    setDetailsExpanded(true)
+    const copied = await copyTaskClipboardText(createTaskClipboardText(task))
+    onCopy?.(copied)
+  }
 
   return (
     <article
@@ -1006,27 +1031,42 @@ function BoardTaskCard({
       </button>
       <span className="board-task__actions">
         {hasLongDetails ? (
+          <>
+            <button
+              aria-controls={`board-task-details-${task.id}`}
+              aria-expanded={detailsExpanded}
+              aria-label={`${detailsExpanded ? 'Collapse' : 'Expand'} details for ${task.title}`}
+              className="icon-button"
+              onClick={() => setDetailsExpanded((expanded) => !expanded)}
+              title={detailsExpanded ? 'Collapse details' : 'Expand details'}
+              type="button"
+            >
+              <Icon name={detailsExpanded ? 'chevronUp' : 'chevronDown'} size={15} />
+            </button>
+            <button
+              aria-controls={`board-task-details-${task.id}`}
+              aria-expanded={detailsExpanded}
+              aria-label={`Show full details and copy ${task.title}`}
+              className="icon-button board-task__reveal-copy"
+              onClick={handleExpandAndCopy}
+              title="Show full details and copy"
+              type="button"
+            >
+              <Icon color="#ff7900" name="clipboard" size={15} />
+            </button>
+          </>
+        ) : null}
+        {!hasLongDetails ? (
           <button
-            aria-controls={`board-task-details-${task.id}`}
-            aria-expanded={detailsExpanded}
-            aria-label={`${detailsExpanded ? 'Collapse' : 'Expand'} details for ${task.title}`}
+            aria-label={`Copy ${task.title} details`}
             className="icon-button"
-            onClick={() => setDetailsExpanded((expanded) => !expanded)}
-            title={detailsExpanded ? 'Collapse details' : 'Expand details'}
+            onClick={handleCopy}
+            title="Copy task details"
             type="button"
           >
-            <Icon name={detailsExpanded ? 'chevronUp' : 'chevronDown'} size={15} />
+            <Icon color="#ff7900" name="clipboard" size={15} />
           </button>
         ) : null}
-        <button
-          aria-label={`Copy ${task.title} details`}
-          className="icon-button"
-          onClick={handleCopy}
-          title="Copy task details"
-          type="button"
-        >
-          <Icon color="#ff7900" name="clipboard" size={15} />
-        </button>
       </span>
     </article>
   )
@@ -4180,6 +4220,7 @@ function App() {
                 onComplete={completeOrderItem}
                 onMove={moveOrderItem}
                 onMoveToTask={moveOrderItemToTask}
+                onNotice={setNotice}
                 onUpdate={updateOrderItem}
                 projects={toTaskEditorProjectOptions(Object.values(state.projects))}
                 sections={Object.values(state.sections).map((section) => ({

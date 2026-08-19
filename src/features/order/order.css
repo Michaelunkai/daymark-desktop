@@ -272,14 +272,94 @@
 }
 
 .order-item__details {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  max-height: calc(1.55em * 3);
   min-height: 1.55em;
   overflow-wrap: anywhere;
+  overflow: hidden;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
+.order-item__details.is-expanded,
+.order-item__details[data-expanded="true"],
+.order-item__details.order-item__details--expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  max-height: none;
+  overflow: visible;
+}
+
 .order-item__details:empty {
   display: block;
+}
+
+.order-item__detail-controls {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.order-item__detail-controls > button,
+.order-item__details-toggle,
+.order-item__details-reveal,
+.order-item__details-copy {
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 750;
+  justify-content: center;
+  line-height: 1.25;
+  min-height: 44px;
+  padding: 9px 12px;
+  touch-action: manipulation;
+  width: 100%;
+}
+
+.order-item__details-toggle,
+.order-item__details-reveal {
+  background: var(--surface-soft);
+  color: var(--ink-soft);
+}
+
+.order-item__details-copy {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line-strong));
+  color: var(--accent-strong);
+}
+
+.order-item__detail-controls > button:hover,
+.order-item__detail-controls > button:focus-visible,
+.order-item__details-toggle:hover,
+.order-item__details-toggle:focus-visible,
+.order-item__details-reveal:hover,
+.order-item__details-reveal:focus-visible {
+  background: var(--surface-tint);
+  border-color: var(--ink-muted);
+  color: var(--ink);
+}
+
+.order-item__details-copy:hover,
+.order-item__details-copy:focus-visible {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface);
+}
+
+.order-item__detail-controls > button:disabled,
+.order-item__details-toggle:disabled,
+.order-item__details-reveal:disabled,
+.order-item__details-copy:disabled {
+  cursor: not-allowed;
+  opacity: .48;
 }
 
 .order-priority {
