@@ -37,11 +37,11 @@ dedicated, persistent desktop session. It uses the existing pairing code,
 optimistic revision checks, timestamp merges, and deletion tombstones rather
 than introducing a separate desktop data store.
 
-Download Daymark for Windows `1.4.40`:
+Download Daymark for Windows `1.4.41`:
 
-- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.40/Daymark-Windows-Setup-1.4.40-x64.exe)
-- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.40/Daymark-Windows-Portable-1.4.40-x64.exe)
-- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.40)
+- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.41/Daymark-Windows-Setup-1.4.41-x64.exe)
+- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.41/Daymark-Windows-Portable-1.4.41-x64.exe)
+- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.41)
 
 SHA-256 values for every downloadable artifact are published in
 `Daymark-SHA256SUMS.txt` on the release.
@@ -59,7 +59,7 @@ npm run desktop:verify
 The generated artifacts are written to `release/windows`. The installer keeps
 Daymark's local Windows session data when uninstalling so an accidental
 uninstall does not silently erase the desktop pairing and cached workspace.
-Windows `1.4.40` uses a native detached launcher, so Command Prompt and
+Windows `1.4.41` uses a native detached launcher, so Command Prompt and
 PowerShell return immediately with no Electron diagnostics while the Daymark
 window keeps running. It provides smooth mouse-wheel scrolling and visible
 draggable scrollbars across the projects sidebar and main workspace. Task and
@@ -72,6 +72,12 @@ actions with a full six-week calendar. Order copies retain the source item,
 while Order moves remove it only after the dated Inbox task is created.
 Responsive checks cover narrow windows and 150% Windows display scaling so
 controls remain reachable instead of being cropped.
+
+Windows `1.4.41` opens the same current workspace experience as Android:
+Order is the default route; Quick can create, edit, move, copy, and convert
+tasks and Order items; Reminders is a standalone workspace; and long task or
+Order details stay compact until their full text is explicitly revealed and
+copied.
 
 The Android download uses package `com.michaelunkai.daymark`, version code
 `24`, and version name `1.4.20`. It is signed with the same certificate as the
