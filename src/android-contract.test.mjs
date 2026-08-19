@@ -31,8 +31,8 @@ test("Android release exposes the shared responsive app with the premium launche
 
   assert.match(manifest, /android:icon="@drawable\/ic_daymark_launcher"/);
   assert.match(manifest, /android:roundIcon="@drawable\/ic_daymark_launcher"/);
-  assert.match(gradle, /versionCode 27/);
-  assert.match(gradle, /versionName "1\.4\.34"/);
+  assert.match(gradle, /versionCode 28/);
+  assert.match(gradle, /versionName "1\.4\.37"/);
   assert.match(gradle, /def isReleaseRequested = gradle\.startParameter\.taskNames\.any/);
   assert.match(gradle, /if \(isReleaseRequested && !hasDaymarkSigning\)/);
   assert.match(gradle, /A Daymark release requires DAYMARK_SIGNING_STORE/);
@@ -80,7 +80,7 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(activity, /retryCurrentPage/);
   assert.match(activity, /LOAD_CACHE_ELSE_NETWORK/);
   assert.match(activity, /setOffscreenPreRaster\(true\)/);
-  assert.match(activity, /NATIVE_RELEASE = "1\.4\.34"/);
+  assert.match(activity, /NATIVE_RELEASE = "1\.4\.37"/);
   assert.match(activity, /withLaunchMarker/);
   assert.match(activity, /onAppReady/);
   assert.match(activity, /verifyAppRendered/);
