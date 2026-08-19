@@ -12,16 +12,17 @@ https://daymark-desktop.michaelovsky55555.chatgpt.site
 
 ## Android app
 
-The latest compatible Android download remains available here:
+The latest verified Android download remains available here:
 
-- [Android APK](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.42/Daymark-Android-Install.apk)
-- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.42)
+- [Android APK](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.36/Daymark-Android-Install.apk)
+- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.36)
 
 The Android shell targets Android 6.0+ and opens the same responsive Daymark
 application used by Windows and mobile browsers.
-The downloadable APK is the verified original-signer `1.4.42` shell. Daymark's
-interface and shared workspace load from the production application, so newly
-installed devices receive the same current app and synchronization behavior.
+The downloadable APK is the verified original-signer shell currently available
+for in-place Android updates. The `1.4.42` Android source is ready for release,
+but an APK is not published until the protected original-signing environment
+is available to verify an in-place update.
 
 The current `1.4.42` Android source synchronizes reminder definitions between
 Android and desktop while keeping native alarm delivery local to each phone.
