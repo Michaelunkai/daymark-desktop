@@ -31,7 +31,11 @@ public final class ReminderAlarmReceiver extends BroadcastReceiver {
                 .setAutoCancel(true)
                 .setContentIntent(contentIntent)
                 .setPriority(Notification.PRIORITY_HIGH);
+        String scheduleId = ReminderScheduler.id(intent);
+        int notificationId = (scheduleId == null || scheduleId.isEmpty()
+                ? ReminderScheduler.title(intent) + ReminderScheduler.ordinal(intent)
+                : scheduleId).hashCode();
         ((NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE))
-                .notify((ReminderScheduler.title(intent) + ReminderScheduler.ordinal(intent)).hashCode(), builder.build());
+                .notify(notificationId, builder.build());
     }
 }

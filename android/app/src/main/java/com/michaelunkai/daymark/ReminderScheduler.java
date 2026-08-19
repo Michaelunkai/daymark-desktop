@@ -121,6 +121,7 @@ final class ReminderScheduler {
     }
 
     static String title(Intent intent) { return intent.getStringExtra(EXTRA_TITLE); }
+    static String id(Intent intent) { return intent.getStringExtra(EXTRA_ID); }
     static String details(Intent intent) { return intent.getStringExtra(EXTRA_DETAILS); }
     static int minutes(Intent intent) { return intent.getIntExtra(EXTRA_MINUTES, 0); }
     static String direction(Intent intent) { return intent.getStringExtra(EXTRA_DIRECTION); }

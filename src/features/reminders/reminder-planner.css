@@ -224,6 +224,36 @@
   }
 }
 
+@media (pointer: coarse) {
+  .reminder-planner__create,
+  .reminder-planner__target-tabs button,
+  .reminder-planner__remove-alert,
+  .reminder-planner__item-main {
+    min-height: 44px;
+  }
+}
+
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 560px) {
+  .reminder-planner {
+    gap: 12px;
+  }
+
+  .reminder-planner__editor,
+  .reminder-planner__alerts,
+  .reminder-planner__empty {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .reminder-planner__toolbar h2 {
+    font-size: 19px;
+  }
+
+  .reminder-planner__item {
+    min-height: 60px;
+  }
+}
+
 [data-theme] .app-shell .reminder-planner__create,
 [data-theme] body .reminder-planner__create {
   background-color: #ff7900 !important;

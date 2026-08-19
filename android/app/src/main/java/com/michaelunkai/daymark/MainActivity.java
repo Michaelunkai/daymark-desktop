@@ -33,7 +33,7 @@ public final class MainActivity extends Activity {
     private static final String PREFS_NAME = "daymark";
     private static final String SYNC_KEY_PREF = "sync_key";
     private static final int SURFACE_COLOR = Color.BLACK;
-    private static final String NATIVE_RELEASE = "1.4.37";
+    private static final String NATIVE_RELEASE = "1.4.38";
     private static final int CONTENT_READY_TIMEOUT_MS = 9000;
     private static final int RUNTIME_HEALTH_CHECK_MS = 500;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 7401;
@@ -98,7 +98,7 @@ public final class MainActivity extends Activity {
         } else if (webView.restoreState(savedInstanceState) == null) {
             loadDaymarkUrl(urlForIntent(getIntent()));
         } else {
-            lastRequestedUrl = webView.getUrl();
+            resumeRestoredDocument(urlForIntent(getIntent()));
         }
     }
 
@@ -107,7 +107,7 @@ public final class MainActivity extends Activity {
         super.onNewIntent(intent);
         setIntent(intent);
         String requestedUrl = urlForIntent(intent);
-        if (hasVisibleDocument && requestedUrl.equals(lastRequestedUrl)) return;
+        if (hasVisibleDocument && sameLogicalUrl(requestedUrl, lastRequestedUrl)) return;
         loadDaymarkUrl(requestedUrl);
     }
 
@@ -200,12 +200,43 @@ public final class MainActivity extends Activity {
         loadDaymarkUrl(lastRequestedUrl == null ? urlForIntent(getIntent()) : lastRequestedUrl);
     }
 
+    private void resumeRestoredDocument(String requestedUrl) {
+        String restoredUrl = webView == null ? null : webView.getUrl();
+        if (restoredUrl == null || !sameLogicalUrl(restoredUrl, requestedUrl)) {
+            loadDaymarkUrl(requestedUrl);
+            return;
+        }
+        lastRequestedUrl = requestedUrl;
+        hasVisibleDocument = true;
+        loadingFailed = false;
+        loadGeneration += 1;
+        hideLoading();
+        scheduleAppReadinessCheck(webView);
+    }
+
     private String withLaunchMarker(String url) {
         return Uri.parse(url)
                 .buildUpon()
                 .appendQueryParameter("native", NATIVE_RELEASE)
                 .build()
                 .toString();
+    }
+
+    private boolean sameLogicalUrl(String first, String second) {
+        return logicalUrl(first).equals(logicalUrl(second));
+    }
+
+    private String logicalUrl(String value) {
+        if (value == null) return "";
+        Uri uri = Uri.parse(value);
+        Uri.Builder builder = uri.buildUpon().clearQuery();
+        for (String name : uri.getQueryParameterNames()) {
+            if ("native".equals(name)) continue;
+            for (String parameterValue : uri.getQueryParameters(name)) {
+                builder.appendQueryParameter(name, parameterValue);
+            }
+        }
+        return builder.build().toString();
     }
 
     private void verifyAppRendered(WebView view, int generation) {

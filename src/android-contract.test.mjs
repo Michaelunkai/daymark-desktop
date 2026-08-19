@@ -31,8 +31,8 @@ test("Android release exposes the shared responsive app with the premium launche
 
   assert.match(manifest, /android:icon="@drawable\/ic_daymark_launcher"/);
   assert.match(manifest, /android:roundIcon="@drawable\/ic_daymark_launcher"/);
-  assert.match(gradle, /versionCode 28/);
-  assert.match(gradle, /versionName "1\.4\.37"/);
+  assert.match(gradle, /versionCode 29/);
+  assert.match(gradle, /versionName "1\.4\.38"/);
   assert.match(gradle, /def isReleaseRequested = gradle\.startParameter\.taskNames\.any/);
   assert.match(gradle, /if \(isReleaseRequested && !hasDaymarkSigning\)/);
   assert.match(gradle, /A Daymark release requires DAYMARK_SIGNING_STORE/);
@@ -49,6 +49,8 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(releaseVerifier, /exactly one signer/);
   assert.match(releaseVerifier, /GIT_COMMIT/);
   assert.match(releaseVerifier, /APK is not bound to expected Git commit/);
+  assert.match(releaseVerifier, /\$expectedVersionCode = '29'/);
+  assert.match(releaseVerifier, /\$expectedVersionName = '1\.4\.38'/);
   assert.match(escrow, /param\(\)/);
   assert.doesNotMatch(escrow, /\[string\]\$ExpectedSigner/);
   assert.match(escrow, /Entry type:\\s\*PrivateKeyEntry/);
@@ -80,8 +82,11 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(activity, /retryCurrentPage/);
   assert.match(activity, /LOAD_CACHE_ELSE_NETWORK/);
   assert.match(activity, /setOffscreenPreRaster\(true\)/);
-  assert.match(activity, /NATIVE_RELEASE = "1\.4\.37"/);
+  assert.match(activity, /NATIVE_RELEASE = "1\.4\.38"/);
   assert.match(activity, /withLaunchMarker/);
+  assert.match(activity, /resumeRestoredDocument/);
+  assert.match(activity, /sameLogicalUrl/);
+  assert.match(activity, /logicalUrl/);
   assert.match(activity, /onAppReady/);
   assert.match(activity, /verifyAppRendered/);
   assert.match(activity, /CONTENT_READY_TIMEOUT_MS/);
@@ -155,11 +160,13 @@ test("Android reminders stay device-local and schedule native alerts across rest
   assert.match(activity, /getNotificationStatus/);
   assert.match(activity, /requestNotificationPermission/);
   assert.match(activity, /openExactAlarmSettings/);
-  assert.match(activity, /hasVisibleDocument && requestedUrl\.equals\(lastRequestedUrl\)/);
+  assert.match(activity, /hasVisibleDocument && sameLogicalUrl\(requestedUrl, lastRequestedUrl\)/);
   assert.match(scheduler, /setExactAndAllowWhileIdle/);
   assert.match(scheduler, /setAndAllowWhileIdle/);
   assert.match(scheduler, /daymark\.reminder\./);
   assert.match(receiver, /Alert /);
+  assert.match(scheduler, /static String id\(Intent intent\)/);
+  assert.match(receiver, /String scheduleId = ReminderScheduler\.id\(intent\)/);
   assert.match(bootReceiver, /ReminderScheduler\.reschedule/);
   assert.match(reminderStore, /daymark\.local-reminders\.v1/);
   assert.match(reminderStore, /toNativeReminderSchedules/);

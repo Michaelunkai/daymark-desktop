@@ -3822,7 +3822,7 @@ function App() {
             <Icon name="companion" size={17} />
           </button>
           <span className="topbar__divider" />
-          <button className="avatar-button" title="Open profile menu" type="button">ML</button>
+          <button aria-label="Open settings" className="avatar-button" onClick={() => setRoute('settings')} title="Open settings" type="button">ML</button>
         </div>
       </header>
 

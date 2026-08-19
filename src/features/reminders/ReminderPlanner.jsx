@@ -164,7 +164,7 @@ export function ReminderPlanner({
 
           <div className="reminder-planner__destination">
             <span>Where it belongs</span>
-            <div className="reminder-planner__target-tabs" role="group">
+            <div aria-label="Reminder destination" className="reminder-planner__target-tabs" role="group">
               {[
                 ['diary', 'Diary'],
                 ['project', 'Project'],
