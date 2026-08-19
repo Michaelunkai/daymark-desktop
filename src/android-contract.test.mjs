@@ -32,8 +32,8 @@ test("Android release exposes the shared responsive app with the premium launche
 
   assert.match(manifest, /android:icon="@drawable\/ic_daymark_launcher"/);
   assert.match(manifest, /android:roundIcon="@drawable\/ic_daymark_launcher"/);
-  assert.match(gradle, /versionCode 32/);
-  assert.match(gradle, /versionName "1\.4\.42"/);
+  assert.match(gradle, /versionCode 33/);
+  assert.match(gradle, /versionName "1\.4\.43"/);
   assert.match(gradle, /def isReleaseRequested = gradle\.startParameter\.taskNames\.any/);
   assert.match(gradle, /if \(isReleaseRequested && !hasDaymarkSigning\)/);
   assert.match(gradle, /A Daymark release requires DAYMARK_SIGNING_STORE/);
@@ -50,8 +50,8 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(releaseVerifier, /exactly one signer/);
   assert.match(releaseVerifier, /GIT_COMMIT/);
   assert.match(releaseVerifier, /APK is not bound to expected Git commit/);
-  assert.match(releaseVerifier, /\$expectedVersionCode = '32'/);
-  assert.match(releaseVerifier, /\$expectedVersionName = '1\.4\.42'/);
+  assert.match(releaseVerifier, /\$expectedVersionCode = '33'/);
+  assert.match(releaseVerifier, /\$expectedVersionName = '1\.4\.43'/);
   assert.match(escrow, /param\(\)/);
   assert.doesNotMatch(escrow, /\[string\]\$ExpectedSigner/);
   assert.match(escrow, /Entry type:\\s\*PrivateKeyEntry/);
@@ -83,7 +83,7 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(activity, /retryCurrentPage/);
   assert.match(activity, /LOAD_CACHE_ELSE_NETWORK/);
   assert.match(activity, /setOffscreenPreRaster\(true\)/);
-  assert.match(activity, /NATIVE_RELEASE = "1\.4\.42"/);
+  assert.match(activity, /NATIVE_RELEASE = "1\.4\.43"/);
   assert.match(activity, /withLaunchMarker/);
   assert.match(activity, /resumeRestoredDocument/);
   assert.match(activity, /sameLogicalUrl/);

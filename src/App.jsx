@@ -158,7 +158,9 @@ function notifyAndroidBackHandled(atRoot) {
 
 function getAndroidReminderStatus() {
   try {
-    return window.DaymarkAndroid?.getNotificationStatus?.() ?? 'browser'
+    return window.DaymarkAndroid?.getNotificationStatus?.()
+      ?? window.DaymarkDesktop?.getReminderStatus?.()
+      ?? 'browser'
   } catch {
     return 'browser'
   }
@@ -2277,6 +2279,7 @@ function App() {
   useEffect(() => {
     try {
       window.DaymarkAndroid?.syncReminders?.(JSON.stringify(toNativeReminderSchedules(reminders)))
+      window.DaymarkDesktop?.syncReminders?.(JSON.stringify(toNativeReminderSchedules(reminders)))
       setNotificationStatus(getAndroidReminderStatus())
     } catch {
       setNotificationStatus('browser')
@@ -3335,7 +3338,11 @@ function App() {
 
   const testReminderSound = (sound) => {
     try {
-      window.DaymarkAndroid?.testReminderSound?.(sound)
+      if (window.DaymarkAndroid?.testReminderSound) {
+        window.DaymarkAndroid.testReminderSound(sound)
+      } else {
+        window.DaymarkDesktop?.testReminderSound?.(sound)
+      }
       setNotificationStatus(getAndroidReminderStatus())
       setNotice('Daymark sent a native sound test.')
     } catch {

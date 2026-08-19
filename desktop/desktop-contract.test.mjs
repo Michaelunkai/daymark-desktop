@@ -3,6 +3,11 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const main = await readFile(new URL("./main.mjs", import.meta.url), "utf8");
+const preload = await readFile(new URL("./preload.cjs", import.meta.url), "utf8");
+const reminderScheduler = await readFile(
+  new URL("./reminder-scheduler.mjs", import.meta.url),
+  "utf8",
+);
 const windowsLauncher = await readFile(
   new URL("./windows-launcher.cs", import.meta.url),
   "utf8",
@@ -23,6 +28,10 @@ const syncVerifier = await readFile(
   new URL("../scripts/verify-windows-sync.mjs", import.meta.url),
   "utf8",
 );
+const reminderVerifier = await readFile(
+  new URL("../scripts/verify-windows-reminders.mjs", import.meta.url),
+  "utf8",
+);
 const packageJson = JSON.parse(
   await readFile(new URL("../package.json", import.meta.url), "utf8"),
 );
@@ -34,6 +43,25 @@ test("desktop shell uses the exact production Daymark origin", () => {
   assert.match(main, /session\.fromPartition/);
   assert.match(main, /\/api\/sync\/pair-canonical/);
   assert.match(main, /desktopSession\.cookies\.set/);
+});
+
+test("desktop shell persists native Windows reminder schedules and keeps them alive in the tray", () => {
+  assert.match(main, /ipcMain\.on\("daymark:reminders:replace"/);
+  assert.match(main, /readReminderSchedules/);
+  assert.match(main, /persistReminderSchedules/);
+  assert.match(main, /rescheduleReminders/);
+  assert.match(main, /new Notification/);
+  assert.match(main, /new Tray/);
+  assert.match(main, /setLoginItemSettings/);
+  assert.match(main, /preload:\s*path\.join\(__dirname, "preload\.cjs"\)/);
+  assert.match(preload, /contextBridge\.exposeInMainWorld\("DaymarkDesktop"/);
+  assert.match(preload, /daymark:reminders:replace/);
+  assert.match(reminderScheduler, /normalizeReminderSchedules/);
+  assert.match(reminderScheduler, /notificationForSchedule/);
+  assert.match(reminderVerifier, /DaymarkDesktop\.syncReminders/);
+  assert.match(reminderVerifier, /reminder-schedules\.json/);
+  assert.match(reminderVerifier, /daymark_reminder_\$\{sound\}\.wav/);
+  assert.equal(packageJson.build.extraResources[0].to, "assets");
 });
 
 test("desktop shell accepts only valid Daymark pairing deep links", () => {

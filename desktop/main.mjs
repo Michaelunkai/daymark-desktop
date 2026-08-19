@@ -1,6 +1,23 @@
-import { app, BrowserWindow, nativeTheme, session, shell } from "electron";
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  Menu,
+  nativeTheme,
+  Notification,
+  session,
+  shell,
+  Tray,
+} from "electron";
+import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  notificationForSchedule,
+  normalizeReminderSchedules,
+  timerDelayForSchedule,
+} from "./reminder-scheduler.mjs";
 
 const PRODUCT_NAME = "Daymark";
 const PRODUCTION_ORIGIN = "https://daymark-desktop.michaelovsky55555.chatgpt.site";
@@ -15,6 +32,13 @@ const iconPath = path.join(__dirname, "assets", "daymark.ico");
 
 let mainWindow = null;
 let pendingDeepLink = null;
+let reminderTray = null;
+let isQuitting = false;
+let launchHidden = process.argv.includes("--daymark-background");
+const shouldExitOnWindowClose = process.argv.includes("--daymark-detached-child")
+  || process.env.DAYMARK_VERIFY_EXIT === "1";
+let scheduledReminders = [];
+const reminderTimers = new Map();
 
 app.setName(PRODUCT_NAME);
 app.setAppUserModelId(APP_USER_MODEL_ID);
@@ -128,9 +152,135 @@ async function pairCanonicalWorkspace() {
 }
 
 function showMainWindow() {
+  if (launchHidden) return;
   if (!mainWindow || mainWindow.isDestroyed()) return;
   mainWindow.show();
   mainWindow.focus();
+}
+
+function revealMainWindow() {
+  launchHidden = false;
+  showMainWindow();
+}
+
+function reminderStorePath() {
+  return path.join(app.getPath("userData"), "reminder-schedules.json");
+}
+
+function readReminderSchedules() {
+  try {
+    return normalizeReminderSchedules(JSON.parse(readFileSync(reminderStorePath(), "utf8")));
+  } catch {
+    return [];
+  }
+}
+
+function persistReminderSchedules() {
+  const destination = reminderStorePath();
+  const temporary = `${destination}.tmp`;
+  writeFileSync(temporary, JSON.stringify(scheduledReminders), "utf8");
+  renameSync(temporary, destination);
+}
+
+function reminderSoundPath(sound) {
+  const filename = `daymark_reminder_${sound === "alarm" ? "alarm" : sound === "alert" ? "alert" : "soft"}.wav`;
+  return app.isPackaged
+    ? path.join(process.resourcesPath, "assets", filename)
+    : path.join(__dirname, "assets", filename);
+}
+
+function playReminderSound(sound) {
+  if (process.platform !== "win32") return;
+  const audioPath = reminderSoundPath(sound);
+  if (!existsSync(audioPath)) return;
+  const powershell = path.join(
+    process.env.SystemRoot ?? "C:\\Windows",
+    "System32",
+    "WindowsPowerShell",
+    "v1.0",
+    "powershell.exe",
+  );
+  const player = spawn(
+    powershell,
+    [
+      "-NoLogo",
+      "-NoProfile",
+      "-NonInteractive",
+      "-WindowStyle",
+      "Hidden",
+      "-Command",
+      "$player = [System.Media.SoundPlayer]::new($args[0]); $player.PlaySync()",
+      audioPath,
+    ],
+    { stdio: "ignore", windowsHide: true },
+  );
+  player.unref();
+}
+
+function deliverReminder(schedule) {
+  const payload = notificationForSchedule(schedule);
+  playReminderSound(schedule.sound);
+  const notification = new Notification({
+    ...payload,
+    silent: false,
+  });
+  notification.on("click", revealMainWindow);
+  notification.show();
+}
+
+function scheduleReminder(schedule) {
+  const timer = setTimeout(() => {
+    if (Date.now() + 500 < schedule.alertAt) {
+      scheduleReminder(schedule);
+      return;
+    }
+    reminderTimers.delete(schedule.id);
+    deliverReminder(schedule);
+  }, timerDelayForSchedule(schedule));
+  reminderTimers.set(schedule.id, timer);
+}
+
+function rescheduleReminders() {
+  for (const timer of reminderTimers.values()) clearTimeout(timer);
+  reminderTimers.clear();
+  for (const schedule of scheduledReminders) scheduleReminder(schedule);
+}
+
+function replaceReminderSchedules(rawSchedules) {
+  try {
+    const parsed = typeof rawSchedules === "string" ? JSON.parse(rawSchedules) : rawSchedules;
+    scheduledReminders = normalizeReminderSchedules(parsed);
+    persistReminderSchedules();
+    rescheduleReminders();
+  } catch {
+    // Keep the last known valid native schedule if a renderer payload is malformed.
+  }
+}
+
+function createReminderTray() {
+  if (process.platform !== "win32" || reminderTray) return;
+  reminderTray = new Tray(iconPath);
+  reminderTray.setToolTip("Daymark reminders");
+  reminderTray.setContextMenu(Menu.buildFromTemplate([
+    { label: "Open Daymark", click: revealMainWindow },
+    {
+      label: "Quit Daymark",
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      },
+    },
+  ]));
+  reminderTray.on("click", revealMainWindow);
+}
+
+function enableWindowsBackgroundReminders() {
+  if (process.platform !== "win32" || process.defaultApp) return;
+  app.setLoginItemSettings({
+    openAtLogin: true,
+    openAsHidden: true,
+    args: ["--daymark-background"],
+  });
 }
 
 async function createWindow() {
@@ -159,6 +309,7 @@ async function createWindow() {
       partition: SESSION_PARTITION,
       contextIsolation: true,
       nodeIntegration: false,
+      preload: path.join(__dirname, "preload.cjs"),
       sandbox: true,
       spellcheck: true,
       devTools: false,
@@ -198,6 +349,11 @@ async function createWindow() {
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
+  mainWindow.on("close", (event) => {
+    if (isQuitting || shouldExitOnWindowClose || process.platform !== "win32") return;
+    event.preventDefault();
+    mainWindow.hide();
+  });
 
   void mainWindow.loadURL(launchUrl ?? START_URL);
 }
@@ -209,11 +365,8 @@ app.on("second-instance", (_event, argv) => {
   } else if (deepLink) {
     pendingDeepLink = deepLink;
   }
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.show();
-    mainWindow.focus();
-  }
+  if (mainWindow?.isMinimized()) mainWindow.restore();
+  revealMainWindow();
 });
 
 app.on("open-url", (event, url) => {
@@ -225,6 +378,16 @@ app.on("open-url", (event, url) => {
 });
 
 app.whenReady().then(() => {
+  scheduledReminders = readReminderSchedules();
+  rescheduleReminders();
+  ipcMain.on("daymark:reminders:replace", (_event, schedules) => {
+    replaceReminderSchedules(schedules);
+  });
+  ipcMain.on("daymark:reminders:test-sound", (_event, sound) => {
+    playReminderSound(sound);
+  });
+  enableWindowsBackgroundReminders();
+  createReminderTray();
   ensureWindowsShortcut();
   void createWindow();
   app.on("activate", () => {
@@ -234,4 +397,12 @@ app.whenReady().then(() => {
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
+});
+
+app.on("before-quit", () => {
+  isQuitting = true;
+  for (const timer of reminderTimers.values()) clearTimeout(timer);
+  reminderTimers.clear();
+  reminderTray?.destroy();
+  reminderTray = null;
 });

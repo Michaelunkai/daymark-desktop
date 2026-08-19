@@ -166,7 +166,7 @@ const commandPromptResult = await verifyShell(
   commandPrompt,
   ["/d", "/q"],
   (exe, profile, marker) => (
-    `"${exe}" "--daymark-user-data-dir=${profile}"\r\n`
+    `"${exe}" "--daymark-detached-child" "--daymark-user-data-dir=${profile}"\r\n`
     + `echo ${marker}\r\n`
     + "exit\r\n"
   ),
@@ -177,7 +177,7 @@ const powershellResult = await verifyShell(
   powershell,
   ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", "-"],
   (exe, profile, marker) => (
-    `& '${escapePowerShell(exe)}' '--daymark-user-data-dir=${escapePowerShell(profile)}'\r\n`
+    `& '${escapePowerShell(exe)}' '--daymark-detached-child' '--daymark-user-data-dir=${escapePowerShell(profile)}'\r\n`
     + `Write-Output '${marker}'\r\n`
     + "exit\r\n"
   ),

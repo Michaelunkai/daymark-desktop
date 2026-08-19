@@ -20,11 +20,11 @@ The latest verified Android download remains available here:
 The Android shell targets Android 6.0+ and opens the same responsive Daymark
 application used by Windows and mobile browsers.
 The downloadable APK is the verified original-signer shell currently available
-for in-place Android updates. The `1.4.42` Android source is ready for release,
+for in-place Android updates. The `1.4.43` Android source is ready for release,
 but an APK is not published until the protected original-signing environment
 is available to verify an in-place update.
 
-The current `1.4.42` Android source synchronizes reminder definitions between
+The current `1.4.43` Android source synchronizes reminder definitions between
 Android and desktop while keeping native alarm delivery local to each phone.
 Its debug build is intentionally not published: Android updates must use the
 original Daymark signing certificate so they install over the existing app
@@ -37,11 +37,11 @@ dedicated, persistent desktop session. It uses the existing pairing code,
 optimistic revision checks, timestamp merges, and deletion tombstones rather
 than introducing a separate desktop data store.
 
-Download Daymark for Windows `1.4.42`:
+Download Daymark for Windows `1.4.43`:
 
-- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.42/Daymark-Windows-Setup-1.4.42-x64.exe)
-- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.42/Daymark-Windows-Portable-1.4.42-x64.exe)
-- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.42)
+- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.43/Daymark-Windows-Setup-1.4.43-x64.exe)
+- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.43/Daymark-Windows-Portable-1.4.43-x64.exe)
+- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.43)
 
 SHA-256 values for every downloadable artifact are published in
 `Daymark-SHA256SUMS.txt` on the release.
@@ -59,7 +59,7 @@ npm run desktop:verify
 The generated artifacts are written to `release/windows`. The installer keeps
 Daymark's local Windows session data when uninstalling so an accidental
 uninstall does not silently erase the desktop pairing and cached workspace.
-Windows `1.4.42` uses a native detached launcher, so Command Prompt and
+Windows `1.4.43` uses a native detached launcher, so Command Prompt and
 PowerShell return immediately with no Electron diagnostics while the Daymark
 window keeps running. It provides smooth mouse-wheel scrolling and visible
 draggable scrollbars across the projects sidebar and main workspace. Task and
@@ -73,16 +73,15 @@ while Order moves remove it only after the dated Inbox task is created.
 Responsive checks cover narrow windows and 150% Windows display scaling so
 controls remain reachable instead of being cropped.
 
-Windows `1.4.42` opens the same current workspace experience as Android:
+Windows `1.4.43` opens the same current workspace experience as Android:
 Order is the default route; Quick can create, edit, move, copy, and convert
 tasks and Order items; Reminders is a standalone workspace; and long task or
 Order details stay compact until their full text is explicitly revealed and
 copied.
 
-The Android download uses package `com.michaelunkai.daymark`, version code
-`32`, and version name `1.4.42`. It is signed with the same certificate as the
-installed reference app and loads the current shared task and Order
-date-transfer controls from the deployed application.
+The Android source uses package `com.michaelunkai.daymark`, version code
+`33`, and version name `1.4.43`. An installable APK is withheld until the
+original signer is recovered and verified against the installed reference app.
 The older `1.4.6` release remains documented below as historical provenance.
 
 The deployed application supports the root route and client-side workspace

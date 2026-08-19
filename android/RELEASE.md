@@ -20,7 +20,7 @@ certificate. The native shell loads the current production Daymark
 application, including the latest date and Order transfer controls, smooth
 mobile scrolling, and cross-device synchronization.
 
-`1.4.42` is the Android release for the same shared Daymark
+`1.4.43` is the Android release for the same shared Daymark
 application used by Windows and the deployed website. It restores a saved
 WebView without a visible loading cover or a redundant same-workspace reload,
 opens Order by default, and keeps Android touch scrolling and safe-area-aware
@@ -33,7 +33,7 @@ cross-device workspace with default 30, 20, and 10 minute alerts, custom
 before or after offsets, and distinct sound channels. Reminder definitions
 sync through the paired Daymark workspace; Android keeps scheduling native
 alarms on-device. A release APK is deliberately not produced until
-`Verify-DaymarkRelease.ps1` confirms version code `32`, version name `1.4.42`,
+`Verify-DaymarkRelease.ps1` confirms version code `33`, version name `1.4.43`,
 and use of the original signer of the installed Daymark app.
 
 `daymark-android-1.4.21.apk` is the Android Order completion and touch-navigation update.
