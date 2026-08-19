@@ -22,6 +22,7 @@
 }
 
 .date-picker__entry input {
+  min-height: 44px;
   border: 1px solid var(--border, #d7d9dd);
   border-radius: 6px;
   padding: 9px 10px;
@@ -132,4 +133,26 @@
 .date-picker button:disabled {
   cursor: not-allowed;
   opacity: 0.35;
+}
+
+@media (max-width: 620px) {
+  .date-picker {
+    width: 100%;
+    max-width: none;
+  }
+
+  .date-picker__quick-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .date-picker__quick-actions button {
+    width: 100%;
+    padding: 0 8px;
+  }
+
+  .date-picker__weekdays {
+    font-size: 10px;
+  }
 }

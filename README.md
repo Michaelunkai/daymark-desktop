@@ -12,7 +12,7 @@ https://daymark-desktop.michaelovsky55555.chatgpt.site
 
 ## Android app
 
-Download Daymark for Android:
+The latest compatible Android download remains available here:
 
 - [Android APK](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.36/Daymark-Android-Install.apk)
 - [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.36)
@@ -24,6 +24,12 @@ running on the reference Android device. Daymark's interface and shared
 workspace load from the production application, so newly installed devices
 receive the same current app and synchronization behavior.
 
+The current `1.4.40` Android source adds the phone-first calendar layout,
+44px calendar controls, and the compact selected-day agenda. Its debug build
+is intentionally not published: Android updates must use the original Daymark
+signing certificate so they install over the existing app without removing
+data.
+
 ## Windows app
 
 The official Windows application opens the same production Daymark origin in a
@@ -31,11 +37,11 @@ dedicated, persistent desktop session. It uses the existing pairing code,
 optimistic revision checks, timestamp merges, and deletion tombstones rather
 than introducing a separate desktop data store.
 
-Download Daymark for Windows `1.4.36`:
+Download Daymark for Windows `1.4.40`:
 
-- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.36/Daymark-Windows-Setup-1.4.36-x64.exe)
-- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.36/Daymark-Windows-Portable-1.4.36-x64.exe)
-- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.36)
+- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.40/Daymark-Windows-Setup-1.4.40-x64.exe)
+- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.40/Daymark-Windows-Portable-1.4.40-x64.exe)
+- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.40)
 
 SHA-256 values for every downloadable artifact are published in
 `Daymark-SHA256SUMS.txt` on the release.
@@ -53,7 +59,7 @@ npm run desktop:verify
 The generated artifacts are written to `release/windows`. The installer keeps
 Daymark's local Windows session data when uninstalling so an accidental
 uninstall does not silently erase the desktop pairing and cached workspace.
-Windows `1.4.36` uses a native detached launcher, so Command Prompt and
+Windows `1.4.40` uses a native detached launcher, so Command Prompt and
 PowerShell return immediately with no Electron diagnostics while the Daymark
 window keeps running. It provides smooth mouse-wheel scrolling and visible
 draggable scrollbars across the projects sidebar and main workspace. Task and

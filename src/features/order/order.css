@@ -494,7 +494,7 @@
 .order-editor__date-transfer-footer > span { color: var(--ink-muted); font-size: 12px; }
 .order-editor__calendar-transfer .date-picker { --textPrimary: var(--ink); --textSecondary: var(--ink-soft); --textTertiary: var(--ink-muted); --border: var(--line); --surfaceHover: var(--surface-tint); --accent: var(--accent); --accentHover: var(--accent-strong); --focusRing: var(--focus-ring); font-family: inherit; max-width: none; width: 100%; }
 .order-editor__calendar-transfer .date-picker__quick-actions { gap: 8px; margin-bottom: 14px; }
-.order-editor__calendar-transfer .date-picker__quick-actions button { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; color: var(--ink-soft); font-weight: 700; min-height: 34px; padding: 6px 11px; }
+.order-editor__calendar-transfer .date-picker__quick-actions button { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; color: var(--ink-soft); font-weight: 700; min-height: 44px; padding: 6px 11px; }
 .order-editor__calendar-transfer .date-picker__header strong { color: var(--ink); font-size: 17px; }
 .order-editor__calendar-transfer .date-picker__grid { gap: 4px; }
 .order-editor__calendar-transfer .date-picker__day { aspect-ratio: auto; border: 1px solid transparent; border-radius: 7px; font-size: 14px; height: 48px; min-height: 48px; }
@@ -505,7 +505,7 @@
 .order-editor__transfer-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .order-editor__transfer-date { grid-column: 1 / -1; }
 .order-editor__date-shortcuts { display: flex; flex-wrap: wrap; gap: 7px; }
-.order-editor__date-shortcuts button { background: var(--surface-soft); border: 1px solid var(--line-strong); border-radius: 6px; color: var(--ink-soft); cursor: pointer; font-size: 11px; min-height: 34px; padding: 6px 11px; }
+.order-editor__date-shortcuts button { background: var(--surface-soft); border: 1px solid var(--line-strong); border-radius: 6px; color: var(--ink-soft); cursor: pointer; font-size: 11px; min-height: 44px; padding: 6px 11px; }
 .order-editor__date-shortcuts button:hover, .order-editor__date-shortcuts button:focus-visible { border-color: var(--ink-muted); color: var(--ink); }
 .order-editor__transfer-error { color: var(--accent-strong); font-size: 11px; margin: -4px 0 0; }
 .order-editor__footer { align-items: flex-end; border-top: 1px solid var(--line); display: flex; gap: 12px; justify-content: space-between; margin-top: 3px; padding-top: 15px; }

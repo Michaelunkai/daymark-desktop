@@ -567,7 +567,7 @@
 
 @media (max-width: 620px) {
   .upcoming-calendar {
-    --calendar-cell-min-height: 8rem;
+    --calendar-cell-min-height: 4.5rem;
   }
 
   .upcoming-calendar__toolbar {
@@ -588,6 +588,7 @@
 
   .upcoming-calendar__view-button {
     flex: 1;
+    min-height: 44px;
     padding: 0 var(--space-2);
   }
 
@@ -595,8 +596,13 @@
     flex: 1;
   }
 
+  .upcoming-calendar__nav-button,
   .upcoming-calendar__add-button {
-    width: var(--control-size-md);
+    width: 44px;
+    min-height: 44px;
+  }
+
+  .upcoming-calendar__add-button {
     padding: 0;
   }
 
@@ -605,22 +611,33 @@
   }
 
   .upcoming-calendar__surface {
-    min-width: 52.5rem;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .upcoming-calendar__viewport {
+    overflow-x: hidden;
+    touch-action: pan-y;
   }
 
   .upcoming-calendar__weekday {
-    padding: var(--space-2);
-    font-size: var(--font-size-xs);
+    padding: var(--space-2) 0;
+    font-size: 10px;
   }
 
   .upcoming-calendar__day {
-    gap: var(--space-2);
+    align-items: center;
+    gap: 0;
     min-height: var(--calendar-cell-min-height);
-    padding: var(--space-2);
+    padding: 4px 0;
   }
 
-  .upcoming-calendar__day-number,
-  .upcoming-calendar__add-day {
+  .upcoming-calendar__day-header {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .upcoming-calendar__day-number {
     width: 44px;
     min-height: 44px;
     height: 44px;
@@ -628,44 +645,102 @@
   }
 
   .upcoming-calendar__add-day {
-    opacity: 1;
+    display: none;
   }
 
-  .upcoming-calendar__task {
-    min-height: 44px;
-    padding: 6px;
+  .upcoming-calendar__day-tasks {
+    display: none;
   }
 
-  .upcoming-calendar__task-label {
-    display: -webkit-box;
-    overflow: hidden;
-    white-space: normal;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-  }
-
-  .upcoming-calendar__task::before {
-    width: 5px;
-    height: 5px;
-  }
-
-  .upcoming-calendar__more-tasks {
-    min-height: 44px;
-    padding: 0 6px;
-    font-size: var(--font-size-xs);
-  }
-
-  .upcoming-calendar__more-tasks::before {
-    content: none;
+  .upcoming-calendar__day--has-tasks::before {
+    top: 7px;
+    right: max(5px, calc((100% - 44px) / 2 - 3px));
   }
 
   .upcoming-calendar__year-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .upcoming-selected-day .upcoming-agenda__header {
+    align-items: center;
+  }
+
+  .upcoming-agenda__task {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    min-height: 44px;
+  }
+
+  .upcoming-agenda__check,
+  .upcoming-agenda__edit {
+    width: 44px;
+    min-height: 44px;
+    height: 44px;
+  }
+
+  .upcoming-agenda__edit {
+    padding: 0;
+  }
+
   .upcoming-agenda {
     margin-top: var(--space-4);
     padding-top: var(--space-4);
+  }
+}
+
+@media (pointer: coarse) {
+  .upcoming-calendar__nav-button,
+  .upcoming-calendar__today-button,
+  .upcoming-calendar__view-button,
+  .upcoming-calendar__add-button {
+    min-height: 44px;
+  }
+
+  .upcoming-calendar__nav-button,
+  .upcoming-calendar__add-day {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    height: 44px;
+  }
+
+  .upcoming-calendar__add-day {
+    opacity: 1;
+  }
+
+  .upcoming-calendar__task,
+  .upcoming-calendar__more-tasks,
+  .upcoming-agenda__task-body {
+    min-height: 44px;
+  }
+
+  .upcoming-agenda__check,
+  .upcoming-agenda__edit {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (pointer: coarse) and (min-width: 361px) {
+  .upcoming-calendar__day-number {
+    min-width: 44px;
+    min-height: 44px;
+    height: 44px;
+  }
+
+  .date-picker__day {
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 360px) {
+  .upcoming-calendar__day-number {
+    width: 40px;
+    min-height: 40px;
+    height: 40px;
+  }
+
+  .upcoming-calendar__day--has-tasks::before {
+    right: max(3px, calc((100% - 40px) / 2 - 3px));
   }
 }
 

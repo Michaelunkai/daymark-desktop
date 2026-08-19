@@ -5,7 +5,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 
 test("Android release exposes the shared responsive app with the premium launcher icon", async () => {
-  const [manifest, gradle, activity, icon, shellStyles, appSource, commandStyles, searchStyles, mainSource, releaseVerifier, escrow, readiness, buildScript, taskEditor, taskEditorStyles, orderWorkspace, orderStyles, calendarGrid, upcomingCalendar, upcomingCalendarStyles, datePickerStyles] = await Promise.all([
+  const [manifest, gradle, activity, icon, shellStyles, appSource, commandStyles, searchStyles, mainSource, releaseVerifier, escrow, readiness, buildScript, taskEditor, taskEditorStyles, orderWorkspace, orderStyles, calendarGrid, upcomingCalendar, upcomingCalendarStyles, datePickerStyles, datePicker] = await Promise.all([
     readFile(new URL("./android/app/src/main/AndroidManifest.xml", root), "utf8"),
     readFile(new URL("./android/app/build.gradle", root), "utf8"),
     readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/MainActivity.java", root), "utf8"),
@@ -27,12 +27,13 @@ test("Android release exposes the shared responsive app with the premium launche
     readFile(new URL("./src/features/calendar/UpcomingCalendar.tsx", root), "utf8"),
     readFile(new URL("./src/features/calendar/upcoming-calendar.css", root), "utf8"),
     readFile(new URL("./src/features/calendar/date-picker.css", root), "utf8"),
+    readFile(new URL("./src/features/calendar/DatePicker.tsx", root), "utf8"),
   ]);
 
   assert.match(manifest, /android:icon="@drawable\/ic_daymark_launcher"/);
   assert.match(manifest, /android:roundIcon="@drawable\/ic_daymark_launcher"/);
-  assert.match(gradle, /versionCode 30/);
-  assert.match(gradle, /versionName "1\.4\.39"/);
+  assert.match(gradle, /versionCode 31/);
+  assert.match(gradle, /versionName "1\.4\.40"/);
   assert.match(gradle, /def isReleaseRequested = gradle\.startParameter\.taskNames\.any/);
   assert.match(gradle, /if \(isReleaseRequested && !hasDaymarkSigning\)/);
   assert.match(gradle, /A Daymark release requires DAYMARK_SIGNING_STORE/);
@@ -49,8 +50,8 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(releaseVerifier, /exactly one signer/);
   assert.match(releaseVerifier, /GIT_COMMIT/);
   assert.match(releaseVerifier, /APK is not bound to expected Git commit/);
-  assert.match(releaseVerifier, /\$expectedVersionCode = '30'/);
-  assert.match(releaseVerifier, /\$expectedVersionName = '1\.4\.39'/);
+  assert.match(releaseVerifier, /\$expectedVersionCode = '31'/);
+  assert.match(releaseVerifier, /\$expectedVersionName = '1\.4\.40'/);
   assert.match(escrow, /param\(\)/);
   assert.doesNotMatch(escrow, /\[string\]\$ExpectedSigner/);
   assert.match(escrow, /Entry type:\\s\*PrivateKeyEntry/);
@@ -82,7 +83,7 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(activity, /retryCurrentPage/);
   assert.match(activity, /LOAD_CACHE_ELSE_NETWORK/);
   assert.match(activity, /setOffscreenPreRaster\(true\)/);
-  assert.match(activity, /NATIVE_RELEASE = "1\.4\.39"/);
+  assert.match(activity, /NATIVE_RELEASE = "1\.4\.40"/);
   assert.match(activity, /withLaunchMarker/);
   assert.match(activity, /resumeRestoredDocument/);
   assert.match(activity, /sameLogicalUrl/);
@@ -126,19 +127,33 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(orderWorkspace, /<DatePicker[\s\S]*?onChange=\{transferOrderItemToDate\}/);
   assert.match(calendarGrid, /Array\.from\(\{ length: 42 \}/);
   assert.match(upcomingCalendar, /return Array\.from\(\{ length: 42 \},/);
+  assert.match(upcomingCalendar, /if \(event\.key === "Enter" \|\| event\.key === " "\) \{\s*event\.preventDefault\(\)\s*selectDate\(date\)\s*\}/);
+  assert.doesNotMatch(upcomingCalendar, /if \(event\.key === "Enter" \|\| event\.key === " "\) \{[\s\S]*?onTaskAdd\?\.\(date\)/);
   assert.match(upcomingCalendar, /className="upcoming-calendar__viewport"[\s\S]*?role="region"[\s\S]*?tabIndex=\{0\}/);
   assert.match(upcomingCalendarStyles, /\.upcoming-calendar__viewport\s*\{[\s\S]*?overflow-x:\s*auto[\s\S]*?-webkit-overflow-scrolling:\s*touch[\s\S]*?touch-action:\s*pan-x pan-y/);
-  assert.match(upcomingCalendarStyles, /@media \(max-width: 620px\)[\s\S]*?\.upcoming-calendar__surface\s*\{[\s\S]*?min-width:\s*52\.5rem/);
-  assert.match(upcomingCalendarStyles, /@media \(max-width: 620px\)[\s\S]*?\.upcoming-calendar__day-number,[\s\S]*?width:\s*44px[\s\S]*?min-height:\s*44px[\s\S]*?height:\s*44px/);
-  assert.match(upcomingCalendarStyles, /@media \(max-width: 620px\)[\s\S]*?\.upcoming-calendar__task\s*\{[\s\S]*?min-height:\s*44px[\s\S]*?\.upcoming-calendar__task-label\s*\{[\s\S]*?display:\s*-webkit-box/);
-  assert.doesNotMatch(upcomingCalendarStyles, /@media \(max-width: 620px\)[\s\S]*?\.upcoming-calendar__task-label\s*\{[\s\S]*?display:\s*none/);
+  assert.match(upcomingCalendarStyles, /@media \(max-width: 620px\)[\s\S]*?\.upcoming-calendar__surface\s*\{[\s\S]*?width:\s*100%[\s\S]*?min-width:\s*0/);
+  assert.match(upcomingCalendarStyles, /@media \(max-width: 620px\)[\s\S]*?\.upcoming-calendar__viewport\s*\{[\s\S]*?overflow-x:\s*hidden[\s\S]*?touch-action:\s*pan-y/);
+  assert.match(upcomingCalendarStyles, /@media \(max-width: 620px\)[\s\S]*?\.upcoming-calendar__day-number\s*\{[\s\S]*?width:\s*44px[\s\S]*?min-height:\s*44px[\s\S]*?height:\s*44px/);
+  assert.match(upcomingCalendarStyles, /@media \(max-width: 620px\)[\s\S]*?\.upcoming-calendar__day-tasks\s*\{[\s\S]*?display:\s*none/);
+  assert.match(upcomingCalendarStyles, /@media \(max-width: 620px\)[\s\S]*?\.upcoming-calendar__nav-button,[\s\S]*?\.upcoming-calendar__add-button\s*\{[\s\S]*?width:\s*44px[\s\S]*?min-height:\s*44px/);
+  assert.match(upcomingCalendarStyles, /@media \(max-width: 620px\)[\s\S]*?\.upcoming-calendar__view-button\s*\{[\s\S]*?min-height:\s*44px/);
+  assert.match(upcomingCalendarStyles, /@media \(max-width: 620px\)[\s\S]*?\.upcoming-agenda__check,[\s\S]*?\.upcoming-agenda__edit\s*\{[\s\S]*?width:\s*44px[\s\S]*?min-height:\s*44px[\s\S]*?height:\s*44px/);
+  assert.match(upcomingCalendarStyles, /@media \(pointer: coarse\)[\s\S]*?\.upcoming-calendar__today-button,[\s\S]*?\.upcoming-calendar__view-button,[\s\S]*?\.upcoming-calendar__add-button\s*\{[\s\S]*?min-height:\s*44px/);
+  assert.match(upcomingCalendarStyles, /@media \(max-width: 360px\)[\s\S]*?\.upcoming-calendar__day-number\s*\{[\s\S]*?width:\s*40px[\s\S]*?min-height:\s*40px[\s\S]*?height:\s*40px/);
   assert.match(datePickerStyles, /\.date-picker__quick-actions button\s*\{[\s\S]*?min-height:\s*44px/);
+  assert.match(datePickerStyles, /\.date-picker__entry input\s*\{[\s\S]*?min-height:\s*44px/);
   assert.match(datePickerStyles, /\.date-picker__header button\s*\{[\s\S]*?height:\s*44px[\s\S]*?width:\s*44px/);
   assert.match(datePickerStyles, /\.date-picker__day\s*\{[\s\S]*?min-height:\s*44px/);
+  assert.match(datePickerStyles, /@media \(max-width: 620px\)[\s\S]*?\.date-picker\s*\{[\s\S]*?width:\s*100%[\s\S]*?max-width:\s*none/);
+  assert.match(datePicker, /const target = shiftMonth\(date, event\.shiftKey \? -12 : -1\)\s*setVisibleMonth\(target\)\s*setPendingFocus\(target\)/);
+  assert.match(datePicker, /const target = shiftMonth\(date, event\.shiftKey \? 12 : 1\)\s*setVisibleMonth\(target\)\s*setPendingFocus\(target\)/);
   assert.match(taskEditorStyles, /\.task-editor__content\s*\{[\s\S]*?overflow-y:\s*auto[\s\S]*?-webkit-overflow-scrolling:\s*touch[\s\S]*?touch-action:\s*pan-y/);
+  assert.match(taskEditorStyles, /\.task-editor__date-transfer \.date-picker__quick-actions button\s*\{[\s\S]*?min-height:\s*44px/);
   assert.match(taskEditorStyles, /@media \(max-width: 680px\)[\s\S]*?\.task-editor__date-transfer \.date-picker__day\s*\{[\s\S]*?height:\s*44px[\s\S]*?min-height:\s*44px/);
   assert.match(orderStyles, /\.order-editor\s*\{[\s\S]*?overflow-y:\s*auto[\s\S]*?touch-action:\s*pan-y[\s\S]*?-webkit-overflow-scrolling:\s*touch/);
   assert.match(orderStyles, /@media \(max-width: 720px\)[\s\S]*?\.order-editor__calendar-transfer \.date-picker__day\s*\{[\s\S]*?height:\s*44px[\s\S]*?min-height:\s*44px/);
+  assert.match(orderStyles, /\.order-editor__calendar-transfer \.date-picker__quick-actions button\s*\{[\s\S]*?min-height:\s*44px/);
+  assert.match(orderStyles, /\.order-editor__date-shortcuts button\s*\{[\s\S]*?min-height:\s*44px/);
 });
 
 test("Android reuses an already restored offline-capable document before loading again", async () => {

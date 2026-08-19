@@ -65,8 +65,8 @@ android {
         applicationId "com.michaelunkai.daymark"
         minSdk 23
         targetSdk 34
-        versionCode 30
-        versionName "1.4.39"
+        versionCode 31
+        versionName "1.4.40"
         manifestPlaceholders = [daymarkGitCommit: daymarkGitCommit ?: "unverified"]
     }
 

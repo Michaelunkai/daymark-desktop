@@ -101,7 +101,7 @@ async function waitForDaymarkWindow() {
   const deadline = Date.now() + 60000;
   while (Date.now() < deadline) {
     const window = findDaymarkWindow();
-    if (window) return window;
+    if (window?.responding && window.title) return window;
     await new Promise((resolve) => setTimeout(resolve, 300));
   }
   throw new Error("The detached Daymark window did not appear within 60 seconds.");

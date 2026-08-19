@@ -78,12 +78,16 @@ export function DatePicker({
   function onDayKeyDown(event: KeyboardEvent<HTMLButtonElement>, date: LocalDate): void {
     if (event.key === "PageUp") {
       event.preventDefault()
-      setVisibleMonth((month) => shiftMonth(month, event.shiftKey ? -12 : -1))
+      const target = shiftMonth(date, event.shiftKey ? -12 : -1)
+      setVisibleMonth(target)
+      setPendingFocus(target)
       return
     }
     if (event.key === "PageDown") {
       event.preventDefault()
-      setVisibleMonth((month) => shiftMonth(month, event.shiftKey ? 12 : 1))
+      const target = shiftMonth(date, event.shiftKey ? 12 : 1)
+      setVisibleMonth(target)
+      setPendingFocus(target)
       return
     }
     if (event.key === "Escape") {

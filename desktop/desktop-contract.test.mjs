@@ -15,6 +15,10 @@ const scrollVerifier = await readFile(
   new URL("../scripts/verify-windows-scroll.mjs", import.meta.url),
   "utf8",
 );
+const detachedLaunchVerifier = await readFile(
+  new URL("../scripts/verify-windows-detached-launch.mjs", import.meta.url),
+  "utf8",
+);
 const syncVerifier = await readFile(
   new URL("../scripts/verify-windows-sync.mjs", import.meta.url),
   "utf8",
@@ -93,6 +97,10 @@ test("desktop window becomes visible after a successful detached load", () => {
   assert.match(main, /function showMainWindow\(\)/);
   assert.match(main, /mainWindow\.webContents\.once\("did-finish-load", showMainWindow\)/);
   assert.match(main, /mainWindow\.once\("ready-to-show", showMainWindow\)/);
+  assert.match(
+    detachedLaunchVerifier,
+    /if \(window\?\.responding && window\.title\) return window;/,
+  );
 });
 
 test("packaged scroll verification counts movement from the known start position", () => {

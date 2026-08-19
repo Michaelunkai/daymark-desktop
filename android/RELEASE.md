@@ -20,16 +20,19 @@ certificate. The native shell loads the current production Daymark
 application, including the latest date and Order transfer controls, smooth
 mobile scrolling, and cross-device synchronization.
 
-`1.4.39` is the pending Android release for the same shared Daymark
+`1.4.40` is the pending Android release for the same shared Daymark
 application used by Windows and the deployed website. It restores a saved
 WebView without a visible loading cover or a redundant same-workspace reload,
 opens Order by default, and keeps Android touch scrolling and safe-area-aware
-controls reachable in portrait and short landscape. Quick capture can create
+controls reachable in portrait and short landscape. The calendar keeps its
+month grid fully on-screen on Android phones, moves dense task detail into the
+selected-day agenda, and uses comfortable date and action targets throughout.
+Quick capture can create
 or edit tasks and Order items directly, while Diary includes local native
 reminders with default 30, 20, and 10 minute alerts, custom before or after
 offsets, and distinct sound channels. A release APK is deliberately not
-produced until `Verify-DaymarkRelease.ps1` confirms version code `30`, version
-name `1.4.39`, and use of the original signer of the installed Daymark app.
+produced until `Verify-DaymarkRelease.ps1` confirms version code `31`, version
+name `1.4.40`, and use of the original signer of the installed Daymark app.
 
 `daymark-android-1.4.21.apk` is the Android Order completion and touch-navigation update.
 Removing or completing an Order item now immediately preserves it as a completed

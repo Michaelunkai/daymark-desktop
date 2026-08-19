@@ -136,7 +136,6 @@ export function UpcomingCalendar({
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault()
       selectDate(date)
-      onTaskAdd?.(date)
     }
   }
 

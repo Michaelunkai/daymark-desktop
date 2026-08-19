@@ -399,7 +399,7 @@
 }
 
 .task-editor__date-transfer .date-picker__quick-actions button {
-  min-height: 34px;
+  min-height: 44px;
   padding: 6px 11px;
   border: 1px solid var(--editor-border);
   border-radius: 6px;

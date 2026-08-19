@@ -23,21 +23,6 @@ const orderDateTransfers = [
 const today = new Date();
 const moveDate = localDateAfter(today, 7);
 const copyDate = localDateAfter(today, 8);
-const calendarScreenshot = path.join(
-  root,
-  "release",
-  "windows",
-  "evidence",
-  "task-date-transfer-calendar.png",
-);
-const compactCalendarScreenshot = path.join(
-  root,
-  "release",
-  "windows",
-  "evidence",
-  "task-date-transfer-calendar-compact.png",
-);
-
 await mkdir(path.dirname(profilePath), { recursive: true });
 await rm(profilePath, { recursive: true, force: true });
 
@@ -260,7 +245,6 @@ try {
   if (await calendar.locator(".date-picker__day").count() !== 42) {
     throw new Error("Date picker did not render a complete six-week calendar.");
   }
-  await page.screenshot({ path: calendarScreenshot, fullPage: false });
   await calendar.locator(`[data-date="${moveDate}"]`).click();
   await page.locator(".task-editor__surface").waitFor({ state: "detached", timeout: 10000 });
   await pollRemote(
@@ -326,7 +310,6 @@ try {
     `.task-editor__date-transfer [data-date="${copyDate}"]`,
   );
   await compactCopyDate.scrollIntoViewIfNeeded();
-  await page.screenshot({ path: compactCalendarScreenshot, fullPage: false });
   await compactCopyDate.click();
   await page.locator(".task-editor__surface").waitFor({ state: "detached", timeout: 10000 });
   await pollRemote(
@@ -506,8 +489,7 @@ try {
     calendarMoveDate: moveDate,
     calendarCopyDate: copyDate,
     calendarPreservedTime: "10:30",
-    calendarScreenshot,
-    compactCalendarScreenshot,
+    calendarGeometry,
     compactCalendarMouseScroll: true,
     compactCalendarLayout: compactLayout,
     orderCalendarTransfers: orderDateResults,
