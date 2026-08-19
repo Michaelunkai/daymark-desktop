@@ -580,5 +580,19 @@ public final class MainActivity extends Activity {
                 }
             });
         }
+
+        @JavascriptInterface
+        public void openReminderNotificationSettings() {
+            runOnUiThread(() -> {
+                Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+                startActivity(intent);
+            });
+        }
+
+        @JavascriptInterface
+        public void testReminderSound(String sound) {
+            runOnUiThread(() -> ReminderAlarmReceiver.postTest(MainActivity.this, sound));
+        }
     }
 }

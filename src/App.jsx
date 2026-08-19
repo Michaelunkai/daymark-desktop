@@ -69,6 +69,7 @@ const NAV_ITEMS = [
   { id: 'order', label: 'Order', icon: 'list', count: 0 },
   { id: 'notes', label: 'Notes', icon: 'note', count: 0 },
   { id: 'diary', label: 'Diary', icon: 'note', count: 0 },
+  { id: 'reminders', label: 'Reminders', icon: 'clock', count: 0 },
 ]
 
 const PROJECT_COLORS = {
@@ -1274,6 +1275,9 @@ function getRouteInfo(route, state) {
   if (route === 'diary') {
     return { title: 'Diary', kicker: 'DAILY REFLECTION', subtitle: 'Write a private, durable record of the day.' }
   }
+  if (route === 'reminders') {
+    return { title: 'Reminders', kicker: 'DEVICE ALERTS', subtitle: 'Set audible alerts for the exact moments that matter.' }
+  }
   if (route.startsWith('project:')) {
     const project = state.projects[route.slice('project:'.length)]
     return {
@@ -1981,14 +1985,7 @@ function DiaryField({ label, value, placeholder, onChange, rows = 5 }) {
 
 function JournalView({
   journal,
-  reminders,
-  projects,
-  sections,
-  notificationStatus,
   onDiaryUpdate,
-  onReminderDelete,
-  onReminderSave,
-  onRequestReminderAccess,
   onNoteAdd,
   onNoteComplete,
   onNoteDelete,
@@ -1999,7 +1996,6 @@ function JournalView({
   const today = toLocalDate(new Date())
   const [selectedDate, setSelectedDate] = useState(today)
   const [selectedNoteId, setSelectedNoteId] = useState(() => journal.notes[0]?.id ?? null)
-  const [diaryTab, setDiaryTab] = useState('entry')
   const selectedNote = journal.notes.find((note) => note.id === selectedNoteId) ?? null
   const diaryEntry = journal.diaryEntries[selectedDate] ?? {
     body: '',
@@ -2017,22 +2013,6 @@ function JournalView({
   if (route === 'diary') {
     return (
       <section aria-label="Diary" className="journal-view">
-        <div aria-label="Diary tabs" className="journal-tabs" role="tablist">
-          <button aria-selected={diaryTab === 'entry'} onClick={() => setDiaryTab('entry')} role="tab" type="button">Diary</button>
-          <button aria-selected={diaryTab === 'reminders'} onClick={() => setDiaryTab('reminders')} role="tab" type="button">Reminder</button>
-        </div>
-        {diaryTab === 'reminders' ? (
-          <ReminderPlanner
-            notificationStatus={notificationStatus}
-            onDelete={onReminderDelete}
-            onRequestNotificationAccess={onRequestReminderAccess}
-            onSave={onReminderSave}
-            projects={projects}
-            reminders={reminders}
-            sections={sections}
-          />
-        ) : (
-          <>
         <div className="journal-toolbar">
           <div className="diary-date-controls">
             <button
@@ -2087,8 +2067,6 @@ function JournalView({
             />
           </label>
         </div>
-          </>
-        )}
       </section>
     )
   }
@@ -2247,6 +2225,19 @@ function App() {
       setNotificationStatus('browser')
     }
   }, [localReminders])
+
+  useEffect(() => {
+    const refreshNotificationStatus = () => setNotificationStatus(getAndroidReminderStatus())
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') refreshNotificationStatus()
+    }
+    window.addEventListener('focus', refreshNotificationStatus)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    return () => {
+      window.removeEventListener('focus', refreshNotificationStatus)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+    }
+  }, [])
 
   useEffect(() => {
     const root = document.documentElement
@@ -3262,14 +3253,27 @@ function App() {
 
   const requestReminderAccess = () => {
     try {
-      if (getAndroidReminderStatus() === 'exact-alarm-required') {
+      const status = getAndroidReminderStatus()
+      if (status === 'exact-alarm-required') {
         window.DaymarkAndroid?.openExactAlarmSettings?.()
+      } else if (status === 'sound-required' || status === 'notifications-disabled') {
+        window.DaymarkAndroid?.openReminderNotificationSettings?.()
       } else {
         window.DaymarkAndroid?.requestNotificationPermission?.()
       }
       window.setTimeout(() => setNotificationStatus(getAndroidReminderStatus()), 700)
     } catch {
       setNotificationStatus('browser')
+    }
+  }
+
+  const testReminderSound = (sound) => {
+    try {
+      window.DaymarkAndroid?.testReminderSound?.(sound)
+      setNotificationStatus(getAndroidReminderStatus())
+      setNotice('Daymark sent a native sound test.')
+    } catch {
+      setNotice('Sound tests are available in the Daymark Android app.')
     }
   }
 
@@ -4184,6 +4188,17 @@ function App() {
                   projectId: section.projectId,
                 }))}
               />
+            ) : route === 'reminders' ? (
+              <ReminderPlanner
+                notificationStatus={notificationStatus}
+                onDelete={deleteReminder}
+                onRequestNotificationAccess={requestReminderAccess}
+                onSave={saveReminder}
+                onTestSound={testReminderSound}
+                projects={Object.values(state.projects)}
+                reminders={localReminders}
+                sections={Object.values(state.sections)}
+              />
             ) : route === 'notes' || route === 'diary' ? (
               <JournalView
                 journal={journal}
@@ -4193,14 +4208,7 @@ function App() {
                 onNoteDelete={deleteNote}
                 onNoteMove={moveNoteToTarget}
                 onNoteUpdate={updateNote}
-                notificationStatus={notificationStatus}
-                onReminderDelete={deleteReminder}
-                onReminderSave={saveReminder}
-                onRequestReminderAccess={requestReminderAccess}
-                projects={Object.values(state.projects)}
-                reminders={localReminders}
                 route={route}
-                sections={Object.values(state.sections)}
               />
             ) : route === 'upcoming' ? (
               <>

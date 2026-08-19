@@ -66,6 +66,7 @@ export function ReminderPlanner({
   onDelete,
   onRequestNotificationAccess,
   onSave,
+  onTestSound,
 }) {
   const [editor, setEditor] = useState(null)
   const [error, setError] = useState('')
@@ -135,10 +136,10 @@ export function ReminderPlanner({
       <div className="reminder-planner__toolbar">
         <div>
           <h2>Reminders</h2>
-          <p>{notificationStatus === 'ready' ? 'Notifications are ready.' : notificationStatus === 'exact-alarm-required' ? 'Allow precise alarms for exact alert timing.' : notificationStatus === 'browser' ? 'Alerts are scheduled when you use Daymark on Android.' : 'Allow notifications to hear every alert.'}</p>
+          <p>{notificationStatus === 'ready' ? 'Every alert has an audible Android channel.' : notificationStatus === 'exact-alarm-required' ? 'Allow precise alarms for exact alert timing.' : notificationStatus === 'sound-required' ? 'Turn on sound for Daymark reminders.' : notificationStatus === 'notifications-disabled' ? 'Turn on Daymark notifications to hear alerts.' : notificationStatus === 'browser' ? 'Alerts are scheduled when you use Daymark on Android.' : 'Allow notifications to hear every alert.'}</p>
         </div>
         <div className="reminder-planner__toolbar-actions">
-          {notificationStatus !== 'ready' && notificationStatus !== 'browser' ? <button className="secondary-button" onClick={onRequestNotificationAccess} type="button">{notificationStatus === 'exact-alarm-required' ? 'Allow precise alarms' : 'Allow alerts'}</button> : null}
+          {notificationStatus !== 'ready' && notificationStatus !== 'browser' ? <button className="secondary-button" onClick={onRequestNotificationAccess} type="button">{notificationStatus === 'exact-alarm-required' ? 'Allow precise alarms' : notificationStatus === 'sound-required' || notificationStatus === 'notifications-disabled' ? 'Open notification settings' : 'Allow alerts'}</button> : null}
           <button className="reminder-planner__create" onClick={() => setEditor(newDraft())} type="button">New reminder</button>
         </div>
       </div>
@@ -227,10 +228,11 @@ export function ReminderPlanner({
                   <option value="after">After</option>
                 </select>
                 <select aria-label="Alert sound" onChange={(event) => changeOffset(offset.id, { sound: event.target.value })} value={offset.sound}>
-                  <option value="soft">Soft sound</option>
-                  <option value="alert">Alert sound</option>
-                  <option value="alarm">Alarm sound</option>
+                  <option value="soft">Notification tone</option>
+                  <option value="alert">Phone ringtone</option>
+                  <option value="alarm">Alarm tone</option>
                 </select>
+                <button aria-label={`Test ${offset.sound} sound`} className="secondary-button" onClick={() => onTestSound?.(offset.sound)} type="button">Test sound</button>
                 <button aria-label={`Remove ${describeOffset(offset)} alert`} className="reminder-planner__remove-alert" onClick={() => setEditor((current) => ({
                   ...current,
                   offsets: current.offsets.filter((candidate) => candidate.id !== offset.id),

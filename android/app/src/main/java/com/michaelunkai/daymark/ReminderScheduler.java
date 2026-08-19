@@ -17,6 +17,9 @@ import org.json.JSONObject;
 final class ReminderScheduler {
     private static final String PREFS = "daymark.reminders";
     private static final String SCHEDULES = "schedules";
+    // Android permanently retains a channel's sound after it is first created.
+    // A versioned ID gives existing installations a fresh, audible reminder channel.
+    private static final String CHANNEL_VERSION = "v2";
     private static final String ACTION_REMINDER = "com.michaelunkai.daymark.REMINDER";
     private static final String EXTRA_ID = "id";
     private static final String EXTRA_TITLE = "title";
@@ -35,11 +38,13 @@ final class ReminderScheduler {
         for (int index = 0; index < previous.length(); index += 1) cancel(context, previous.optJSONObject(index));
         JSONArray next = parse(rawSchedules);
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(SCHEDULES, next.toString()).apply();
+        ensureChannels(context);
         for (int index = 0; index < next.length(); index += 1) schedule(context, next.optJSONObject(index));
     }
 
     static void reschedule(Context context) {
         JSONArray schedules = read(context);
+        ensureChannels(context);
         for (int index = 0; index < schedules.length(); index += 1) schedule(context, schedules.optJSONObject(index));
     }
 
@@ -47,8 +52,12 @@ final class ReminderScheduler {
         if (Build.VERSION.SDK_INT >= 33
                 && context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
                 != android.content.pm.PackageManager.PERMISSION_GRANTED) return "notifications-required";
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        if (Build.VERSION.SDK_INT >= 24 && !manager.areNotificationsEnabled()) return "notifications-disabled";
         if (Build.VERSION.SDK_INT >= 31
                 && !((AlarmManager) context.getSystemService(Context.ALARM_SERVICE)).canScheduleExactAlarms()) return "exact-alarm-required";
+        ensureChannels(context);
+        if (Build.VERSION.SDK_INT >= 26 && !hasAudibleChannels(manager)) return "sound-required";
         return "ready";
     }
 
@@ -77,21 +86,67 @@ final class ReminderScheduler {
     }
 
     static String channelId(String sound) {
-        return "daymark.reminder." + ("alarm".equals(sound) ? "alarm" : "alert".equals(sound) ? "alert" : "soft");
+        return "daymark.reminder." + CHANNEL_VERSION + "." + normalizeSound(sound);
     }
 
     static void ensureChannel(Context context, String sound) {
         if (Build.VERSION.SDK_INT < 26) return;
-        String channelId = channelId(sound);
+        String normalizedSound = normalizeSound(sound);
+        String channelId = channelId(normalizedSound);
         NotificationManager manager = context.getSystemService(NotificationManager.class);
         if (manager.getNotificationChannel(channelId) != null) return;
-        String title = "Daymark " + ("alarm".equals(sound) ? "alarm" : "alert".equals(sound) ? "alerts" : "reminders");
+        String title = "Daymark " + channelLabel(normalizedSound);
         NotificationChannel channel = new NotificationChannel(channelId, title, NotificationManager.IMPORTANCE_HIGH);
-        Uri tone = RingtoneManager.getDefaultUri(
-                "alarm".equals(sound) ? RingtoneManager.TYPE_ALARM : "alert".equals(sound) ? RingtoneManager.TYPE_NOTIFICATION : RingtoneManager.TYPE_RINGTONE);
-        channel.setSound(tone, new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build());
+        channel.setDescription("Audible Daymark reminder alerts");
+        channel.setSound(soundUri(normalizedSound), audioAttributes(normalizedSound));
         channel.enableVibration(true);
+        channel.setVibrationPattern(new long[]{0L, 180L, 120L, 180L});
+        channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
         manager.createNotificationChannel(channel);
+    }
+
+    static void ensureChannels(Context context) {
+        ensureChannel(context, "soft");
+        ensureChannel(context, "alert");
+        ensureChannel(context, "alarm");
+    }
+
+    static Uri soundUri(String sound) {
+        return RingtoneManager.getDefaultUri(
+                "alarm".equals(normalizeSound(sound))
+                        ? RingtoneManager.TYPE_ALARM
+                        : "alert".equals(normalizeSound(sound))
+                                ? RingtoneManager.TYPE_RINGTONE
+                                : RingtoneManager.TYPE_NOTIFICATION);
+    }
+
+    static AudioAttributes audioAttributes(String sound) {
+        int usage = "alarm".equals(normalizeSound(sound))
+                ? AudioAttributes.USAGE_ALARM
+                : AudioAttributes.USAGE_NOTIFICATION;
+        return new AudioAttributes.Builder().setUsage(usage).build();
+    }
+
+    private static boolean hasAudibleChannels(NotificationManager manager) {
+        for (String sound : new String[]{"soft", "alert", "alarm"}) {
+            NotificationChannel channel = manager.getNotificationChannel(channelId(sound));
+            if (channel == null
+                    || channel.getImportance() == NotificationManager.IMPORTANCE_NONE
+                    || channel.getSound() == null) return false;
+        }
+        return true;
+    }
+
+    private static String normalizeSound(String sound) {
+        return "alarm".equals(sound) ? "alarm" : "alert".equals(sound) ? "alert" : "soft";
+    }
+
+    static String channelLabel(String sound) {
+        return "alarm".equals(sound)
+                ? "alarm reminders"
+                : "alert".equals(sound)
+                        ? "ringtone reminders"
+                        : "notification reminders";
     }
 
     private static JSONArray read(Context context) {

@@ -208,13 +208,15 @@ test("Android packages and serves the built client before a network response is 
 });
 
 test("Android reminders stay device-local and schedule native alerts across restarts", async () => {
-  const [manifest, activity, scheduler, receiver, bootReceiver, reminderStore] = await Promise.all([
+  const [manifest, activity, scheduler, receiver, bootReceiver, reminderStore, reminderPlanner, appSource] = await Promise.all([
     readFile(new URL("./android/app/src/main/AndroidManifest.xml", root), "utf8"),
     readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/MainActivity.java", root), "utf8"),
     readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/ReminderScheduler.java", root), "utf8"),
     readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/ReminderAlarmReceiver.java", root), "utf8"),
     readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/ReminderBootReceiver.java", root), "utf8"),
     readFile(new URL("./src/features/reminders/local-reminders.ts", root), "utf8"),
+    readFile(new URL("./src/features/reminders/ReminderPlanner.jsx", root), "utf8"),
+    readFile(new URL("./src/App.jsx", root), "utf8"),
   ]);
   assert.match(manifest, /POST_NOTIFICATIONS/);
   assert.match(manifest, /SCHEDULE_EXACT_ALARM/);
@@ -226,15 +228,30 @@ test("Android reminders stay device-local and schedule native alerts across rest
   assert.match(activity, /getNotificationStatus/);
   assert.match(activity, /requestNotificationPermission/);
   assert.match(activity, /openExactAlarmSettings/);
+  assert.match(activity, /openReminderNotificationSettings/);
+  assert.match(activity, /testReminderSound/);
   assert.match(activity, /hasVisibleDocument && sameLogicalUrl\(requestedUrl, lastRequestedUrl\)/);
   assert.match(scheduler, /setExactAndAllowWhileIdle/);
   assert.match(scheduler, /setAndAllowWhileIdle/);
+  assert.match(scheduler, /CHANNEL_VERSION = "v2"/);
   assert.match(scheduler, /daymark\.reminder\./);
+  assert.match(scheduler, /RingtoneManager\.TYPE_NOTIFICATION/);
+  assert.match(scheduler, /RingtoneManager\.TYPE_RINGTONE/);
+  assert.match(scheduler, /RingtoneManager\.TYPE_ALARM/);
+  assert.match(scheduler, /AudioAttributes\.USAGE_ALARM/);
+  assert.match(scheduler, /areNotificationsEnabled/);
+  assert.match(scheduler, /hasAudibleChannels/);
   assert.match(receiver, /Alert /);
+  assert.match(receiver, /postTest/);
+  assert.match(receiver, /ReminderScheduler\.soundUri/);
   assert.match(scheduler, /static String id\(Intent intent\)/);
-  assert.match(receiver, /String scheduleId = ReminderScheduler\.id\(intent\)/);
+  assert.match(receiver, /post\(context, sound, content, ReminderScheduler\.details\(intent\), ReminderScheduler\.id\(intent\)\)/);
   assert.match(bootReceiver, /ReminderScheduler\.reschedule/);
   assert.match(reminderStore, /daymark\.local-reminders\.v1/);
   assert.match(reminderStore, /toNativeReminderSchedules/);
+  assert.match(reminderPlanner, /Test \$\{offset\.sound\} sound/);
+  assert.match(appSource, /id: 'reminders', label: 'Reminders', icon: 'clock'/);
+  assert.match(appSource, /route === 'reminders' \? \(\s*<ReminderPlanner/);
+  assert.doesNotMatch(appSource, /aria-label="Diary tabs"/);
   assert.doesNotMatch(reminderStore, /core\/sync/);
 });
