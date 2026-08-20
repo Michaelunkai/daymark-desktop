@@ -110,12 +110,41 @@ async function mutateRemote(key, mutate, attempts = 6) {
 
 async function pollRemote(key, predicate, timeoutMs = 60000) {
   const deadline = Date.now() + timeoutMs;
+  let lastPayload = null;
   while (Date.now() < deadline) {
     const payload = await readRemote(key);
+    lastPayload = payload;
     if (predicate(payload.state)) return payload;
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
-  throw new Error("Timed out waiting for the remote sync state.");
+  throw new Error(`Timed out waiting for the remote sync state: ${JSON.stringify(
+    summarizeVerificationState(lastPayload),
+  )}`);
+}
+
+function summarizeVerificationState(payload) {
+  const state = payload?.state ?? {};
+  return {
+    revision: payload?.revision ?? null,
+    tasks: Object.values(state.tasks ?? {})
+      .filter((task) => task.content?.includes(runId))
+      .map((task) => ({
+        id: task.id,
+        content: task.content,
+        projectId: task.projectId,
+        sectionId: task.sectionId,
+        due: task.due,
+        updatedAt: task.updatedAt,
+      })),
+    orderItems: Object.values(state.orderItems ?? {})
+      .filter((item) => item.title?.includes(runId))
+      .map((item) => ({
+        id: item.id,
+        title: item.title,
+        lane: item.lane,
+        updatedAt: item.updatedAt,
+      })),
+  };
 }
 
 let page = null;
@@ -420,6 +449,25 @@ try {
     await moveCalendar.waitFor({ state: "visible", timeout: 10000 });
     await moveCalendar.locator(`[data-date="${orderMoveDate}"]`).click();
     await page.locator(".order-editor").waitFor({ state: "detached", timeout: 10000 });
+    const orderMoveLocal = await page.evaluate(({ itemId, title, date }) => {
+      const state = window.DaymarkAI.getState();
+      return {
+        revision: state.revision,
+        orderItemPresent: Boolean(state.orderItems?.[itemId]),
+        movedTasks: Object.values(state.tasks ?? {})
+          .filter((task) => task.content === title && task.due?.date === date)
+          .map((task) => ({
+            id: task.id,
+            projectId: task.projectId,
+            sectionId: task.sectionId,
+            due: task.due,
+            updatedAt: task.updatedAt,
+          })),
+      };
+    }, { itemId: createdOrderItem.id, title: transfer.title, date: orderMoveDate });
+    if (orderMoveLocal.orderItemPresent || orderMoveLocal.movedTasks.length !== 1) {
+      throw new Error(`Order ${transfer.lane} move did not commit locally: ${JSON.stringify(orderMoveLocal)}`);
+    }
     const orderMoveRemote = await pollRemote(
       key,
       (state) => {

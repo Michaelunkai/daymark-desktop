@@ -1,7 +1,7 @@
 {
   "name": "daymark-desktop",
   "private": true,
-  "version": "1.4.43",
+  "version": "1.4.44",
   "description": "The official Daymark desktop application for Windows.",
   "author": "Michael Fedorovsky",
   "main": "desktop/main.mjs",
@@ -18,7 +18,7 @@
     "desktop:scroll": "node scripts/verify-windows-scroll.mjs",
     "desktop:reminders": "node scripts/verify-windows-reminders.mjs",
     "desktop:sync": "node scripts/verify-windows-sync.mjs",
-    "desktop:pack": "npm run desktop:icon && npm run desktop:test && node scripts/pack-windows.mjs",
+    "desktop:pack": "npm run build && npm run desktop:icon && npm run desktop:test && node scripts/pack-windows.mjs",
     "desktop:verify": "npm run verify && npm run desktop:pack && npm run desktop:detach && npm run desktop:scroll && npm run desktop:reminders",
     "export:data": "node scripts/export-daymark-database.mjs",
     "test:core": "tsx --test src/core/store.test.ts src/core/sync.test.ts src/core/smooth-wheel.test.ts src/core/agent-api.test.ts src/core/dates/dates.test.ts",
@@ -26,7 +26,8 @@
     "test:shell": "node --test src/shell-contract.test.mjs",
     "test:sites": "node --test src/sites-build-contract.test.mjs src/sync-contract.test.mjs src/android-contract.test.mjs src/agent-contract.test.mjs src/agent-api.test.mjs src/database-export-contract.test.mjs",
     "test:sites-artifact": "node --test src/sites-build-artifact.test.mjs",
-    "test": "npm run test:core && npm run test:features && npm run test:shell && npm run test:sites",
+    "test:acceptance": "node --test scripts/acceptance-receipt.test.mjs scripts/startup-timing.test.mjs scripts/reminder-harness.test.mjs scripts/verify-reminder-delivery.mjs scripts/verify-reminder-sync.mjs",
+    "test": "npm run test:core && npm run test:features && npm run test:shell && npm run test:sites && npm run test:acceptance",
     "verify": "npm test && npm run build && npm run test:sites-artifact"
   },
   "dependencies": {
@@ -53,6 +54,7 @@
     },
     "files": [
       "desktop/**/*",
+      "dist/client/**/*",
       "package.json"
     ],
     "asar": true,

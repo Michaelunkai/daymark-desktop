@@ -1,4 +1,13 @@
+import { migrate } from "./storage";
 import { CURRENT_SCHEMA_VERSION, type AppState } from "./types";
+import {
+  canonicalizeReminderTombstones,
+  canonicalizeReminders,
+  compareMutationTimestamp,
+  compareRecordAuthority,
+  compareTombstoneAuthority,
+  stableSerialize,
+} from "./reminder-identity";
 
 const SYNC_KEY = "daymark.sync-key";
 const SYNC_ADOPT_REMOTE_KEY = "daymark.sync-adopt-remote";
@@ -18,6 +27,28 @@ export type DeferredRemoteState<T> = {
   revision: number;
 };
 
+export type SyncPushSkipMarker = Pick<AppState, "clientId" | "revision" | "updatedAt">;
+
+export function createSyncPushSkipMarker(state: AppState): SyncPushSkipMarker {
+  return {
+    clientId: state.clientId,
+    revision: state.revision,
+    updatedAt: state.updatedAt,
+  };
+}
+
+export function shouldSkipSyncPush(
+  marker: SyncPushSkipMarker | null,
+  state: AppState,
+): boolean {
+  return Boolean(
+    marker &&
+    marker.clientId === state.clientId &&
+    marker.revision === state.revision &&
+    marker.updatedAt === state.updatedAt,
+  );
+}
+
 export function createInteractionSyncGate<T>() {
   let interactionOpen = false;
   let deferred: DeferredRemoteState<T> | null = null;
@@ -32,7 +63,9 @@ export function createInteractionSyncGate<T>() {
     },
     defer(state: T, revision: number): boolean {
       if (!interactionOpen) return false;
-      deferred = { state, revision };
+      if (!deferred || revision >= deferred.revision) {
+        deferred = { state, revision };
+      }
       return true;
     },
   };
@@ -153,14 +186,79 @@ export function getAndroidSyncLink(key: string): string {
   return `daymark://sync/${encodeURIComponent(key)}`;
 }
 
-export async function pullSyncState(key: string): Promise<{ state: AppState | null; revision: number }> {
+function syncHttpError(message: string, status: number): Error & { status: number } {
+  return Object.assign(new Error(message), { status });
+}
+
+async function readSyncPayload(response: Response, operation: string): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    throw syncHttpError(`Sync ${operation} returned malformed JSON.`, response.status);
+  }
+}
+
+function parseSyncEnvelope(
+  payload: unknown,
+  operation: string,
+  status: number,
+): { state: AppState; revision: number } {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw syncHttpError(`Sync ${operation} returned a malformed response.`, status);
+  }
+  const envelope = payload as { state?: unknown; revision?: unknown };
+  if (typeof envelope.revision !== "number" || !Number.isInteger(envelope.revision) || envelope.revision < 0) {
+    throw syncHttpError(`Sync ${operation} returned an invalid revision.`, status);
+  }
+  let state: AppState;
+  try {
+    state = migrate(envelope.state);
+  } catch {
+    throw syncHttpError(`Sync ${operation} returned an invalid state.`, status);
+  }
+  if (state.revision !== envelope.revision) {
+    throw syncHttpError(`Sync ${operation} returned mismatched state metadata.`, status);
+  }
+  return { state, revision: envelope.revision };
+}
+
+function parseConflictPayload(
+  payload: unknown,
+  status: number,
+): { state: AppState | null; revision: number } {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw syncHttpError("Sync conflict returned a malformed response.", status);
+  }
+  const envelope = payload as { state?: unknown; revision?: unknown };
+  if (typeof envelope.revision !== "number" || !Number.isInteger(envelope.revision) || envelope.revision < 0) {
+    throw syncHttpError("Sync conflict returned an invalid revision.", status);
+  }
+  if (envelope.state === null || envelope.state === undefined) {
+    return { state: null, revision: envelope.revision };
+  }
+  let state: AppState;
+  try {
+    state = migrate(envelope.state);
+  } catch {
+    throw syncHttpError("Sync conflict returned an invalid state.", status);
+  }
+  if (state.revision !== envelope.revision) {
+    throw syncHttpError("Sync conflict returned mismatched state metadata.", status);
+  }
+  return { state, revision: envelope.revision };
+}
+
+export async function pullSyncState(
+  key: string,
+  signal?: AbortSignal,
+): Promise<{ state: AppState | null; revision: number }> {
   const response = await fetch(`/api/sync/${encodeURIComponent(key)}`, {
     headers: { Accept: "application/json" },
+    signal,
   });
   if (response.status === 404) return { state: null, revision: 0 };
-  if (!response.ok) throw new Error(`Sync read failed (${response.status}).`);
-  const payload = await response.json();
-  return { state: payload.state ?? null, revision: Number(payload.revision ?? payload.state?.revision ?? 0) };
+  if (!response.ok) throw syncHttpError(`Sync read failed (${response.status}).`, response.status);
+  return parseSyncEnvelope(await readSyncPayload(response, "read"), "read", response.status);
 }
 
 export async function waitForSyncChange(
@@ -173,49 +271,60 @@ export async function waitForSyncChange(
     { headers: { Accept: "application/json" }, signal },
   );
   if (response.status === 204) return { state: null, revision: afterRevision };
-  if (!response.ok) throw new Error(`Sync change stream failed (${response.status}).`);
-  const payload = await response.json();
-  return { state: payload.state ?? null, revision: Number(payload.revision ?? 0) };
+  if (!response.ok) throw syncHttpError(`Sync change stream failed (${response.status}).`, response.status);
+  return parseSyncEnvelope(await readSyncPayload(response, "change stream"), "change stream", response.status);
 }
 
 export async function pushSyncState(
   key: string,
   state: AppState,
   expectedRevision: number,
+  signal?: AbortSignal,
 ): Promise<{ state: AppState; revision: number }> {
   const response = await fetch(`/api/sync/${encodeURIComponent(key)}`, {
     method: "PUT",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify({ expectedRevision, state }),
+    signal,
   });
-  const payload = await response.json().catch(() => ({}));
   if (response.status === 409) {
+    const conflict = parseConflictPayload(await readSyncPayload(response, "conflict"), response.status);
     const error = new Error("Sync conflict.");
-    Object.assign(error, { code: "conflict", state: payload.state ?? null, revision: payload.revision ?? 0 });
+    Object.assign(error, {
+      code: "conflict",
+      status: response.status,
+      state: conflict.state,
+      revision: conflict.revision,
+      missingState: conflict.state === null,
+    });
     throw error;
   }
-  if (!response.ok) throw new Error(`Sync write failed (${response.status}).`);
-  return { state: payload.state, revision: Number(payload.revision ?? state.revision) };
+  if (!response.ok) throw syncHttpError(`Sync write failed (${response.status}).`, response.status);
+  return parseSyncEnvelope(await readSyncPayload(response, "write"), "write", response.status);
 }
 
 export function mergeSyncStates(local: AppState, remote: AppState): AppState {
-  const newerRecord = <T extends { id: string; updatedAt: string }>(
+  const newerRecord = <T extends { updatedAt: string }>(
     left: Record<string, T>,
     right: Record<string, T>,
   ): Record<string, T> => {
     const merged: Record<string, T> = { ...right };
     Object.entries(left).forEach(([id, value]) => {
       const other = right[id];
-      if (!other || value.updatedAt >= other.updatedAt) merged[id] = structuredClone(value);
+      if (!other || compareRecordAuthority(value, other) > 0) merged[id] = structuredClone(value);
     });
     return merged;
   };
+  const localReminders = canonicalizeReminders(local.reminders);
+  const remoteReminders = canonicalizeReminders(remote.reminders);
+  const mergedReminders = newerRecord(localReminders, remoteReminders);
+  const authoritativeState = compareRecordAuthority(local, remote) >= 0 ? local : remote;
 
   const merged: AppState = {
     ...structuredClone(remote),
     schemaVersion: CURRENT_SCHEMA_VERSION,
     revision: Math.max(local.revision, remote.revision),
-    updatedAt: local.updatedAt >= remote.updatedAt ? local.updatedAt : remote.updatedAt,
+    updatedAt: compareMutationTimestamp(local.updatedAt, remote.updatedAt) >= 0 ? local.updatedAt : remote.updatedAt,
     clientId: local.clientId,
     projects: newerRecord(local.projects, remote.projects),
     sections: newerRecord(local.sections, remote.sections),
@@ -223,18 +332,17 @@ export function mergeSyncStates(local: AppState, remote: AppState): AppState {
     tasks: newerRecord(local.tasks, remote.tasks),
     orderItems: newerRecord(local.orderItems, remote.orderItems),
     notes: newerRecord(local.notes, remote.notes),
-    reminders: newerRecord(local.reminders ?? {}, remote.reminders ?? {}),
-    diaryEntries: Object.entries(local.diaryEntries).reduce(
-      (merged, [date, entry]) => {
-        const other = remote.diaryEntries[date];
-        merged[date] = !other || entry.updatedAt >= other.updatedAt ? structuredClone(entry) : other;
-        return merged;
-      },
-      { ...remote.diaryEntries },
+    reminders: canonicalizeReminders(mergedReminders),
+    diaryEntries: newerRecord(local.diaryEntries, remote.diaryEntries),
+    preferences: structuredClone(authoritativeState.preferences),
+    undoStack: structuredClone(authoritativeState.undoStack),
+    syncTombstones: canonicalizeReminderTombstones(
+      mergeTombstones(
+        canonicalizeReminderTombstones(local.syncTombstones, local.reminders),
+        canonicalizeReminderTombstones(remote.syncTombstones, remote.reminders),
+      ),
+      { ...local.reminders, ...remote.reminders, ...mergedReminders },
     ),
-    preferences: local.updatedAt >= remote.updatedAt ? structuredClone(local.preferences) : structuredClone(remote.preferences),
-    undoStack: local.updatedAt >= remote.updatedAt ? structuredClone(local.undoStack) : structuredClone(remote.undoStack),
-    syncTombstones: mergeTombstones(local.syncTombstones, remote.syncTombstones),
   };
   applyTombstones(merged);
   return merged;
@@ -267,18 +375,9 @@ function syncComparableState(state: AppState): Omit<AppState, "clientId" | "revi
   delete comparable.clientId;
   delete comparable.revision;
   delete comparable.updatedAt;
+  comparable.reminders = canonicalizeReminders(comparable.reminders);
+  comparable.syncTombstones = canonicalizeReminderTombstones(comparable.syncTombstones, comparable.reminders);
   return comparable;
-}
-
-function stableSerialize(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(stableSerialize).join(",")}]`;
-  if (value && typeof value === "object") {
-    return `{${Object.entries(value as Record<string, unknown>)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, entry]) => `${JSON.stringify(key)}:${stableSerialize(entry)}`)
-      .join(",")}}`;
-  }
-  return JSON.stringify(value);
 }
 
 function mergeTombstones(
@@ -288,7 +387,9 @@ function mergeTombstones(
   const merged = { ...(remote ?? {}) };
   Object.entries(local ?? {}).forEach(([key, tombstone]) => {
     const other = merged[key];
-    if (!other || tombstone.deletedAt >= other.deletedAt) merged[key] = structuredClone(tombstone);
+    if (!other || compareTombstoneAuthority(tombstone, other) > 0) {
+      merged[key] = structuredClone(tombstone);
+    }
   });
   return merged;
 }
@@ -310,7 +411,9 @@ function applyTombstones(state: AppState): void {
     const collection = key.slice(0, separator);
     const id = key.slice(separator + 1);
     const record = collections[collection]?.[id];
-    if (record && tombstone.deletedAt >= record.updatedAt) delete collections[collection][id];
+    if (record && compareMutationTimestamp(tombstone.deletedAt, record.updatedAt) >= 0) {
+      delete collections[collection][id];
+    }
   });
 }
 

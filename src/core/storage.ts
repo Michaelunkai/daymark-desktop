@@ -1,5 +1,11 @@
 import { createSampleState } from "./sample-data";
 import {
+  canonicalReminderId,
+  canonicalizeReminderTombstones,
+  canonicalizeReminders,
+  semanticReminderId,
+} from "./reminder-identity";
+import {
   CURRENT_SCHEMA_VERSION,
   type AppState,
   type DiaryEntry,
@@ -71,6 +77,7 @@ export function loadState(storage: StateStorage, fallback = createSampleState): 
 export function saveState(storage: StateStorage, next: AppState, expectedRevision: number): SaveResult {
   let raw: string | null = null;
   let readFailed = false;
+  let current: AppState | null = null;
   try {
     raw = storage.read();
   } catch {
@@ -80,12 +87,13 @@ export function saveState(storage: StateStorage, next: AppState, expectedRevisio
     return { ok: true, state: next };
   }
   if (raw) {
-    let current: AppState;
     try {
       current = migrate(JSON.parse(raw));
     } catch {
       try {
-        storage.write(JSON.stringify(next));
+        const persisted = prepareStateForSave(next, null);
+        storage.write(JSON.stringify(persisted));
+        return { ok: true, state: persisted };
       } catch {
         // Keep the in-memory state usable when durable storage is unavailable.
       }
@@ -95,15 +103,16 @@ export function saveState(storage: StateStorage, next: AppState, expectedRevisio
       return { ok: false, reason: "conflict", state: current };
     }
   } else if (expectedRevision !== 0) {
-    return { ok: false, reason: "conflict", state: createSampleState() };
+    return { ok: false, reason: "conflict", state: next };
   }
 
+  const persisted = prepareStateForSave(next, current);
   try {
-    storage.write(JSON.stringify(next));
+    storage.write(JSON.stringify(persisted));
   } catch {
     // Keep the in-memory state usable when durable storage is unavailable.
   }
-  return { ok: true, state: next };
+  return { ok: true, state: persisted };
 }
 
 export function migrate(value: unknown): AppState {
@@ -326,7 +335,7 @@ function migrateDiaryEntries(value: Record<string, unknown>): Record<string, unk
 
 function migrateReminders(value: Record<string, unknown>): Record<string, unknown> {
   if (!isRecord(value.reminders)) return value;
-  const reminders = Object.fromEntries(
+  const normalized = Object.fromEntries(
     Object.entries(value.reminders).flatMap(([id, rawReminder]) => {
       if (!isRecord(rawReminder)) return [];
       const reminder = rawReminder as Partial<Reminder>;
@@ -339,20 +348,84 @@ function migrateReminders(value: Record<string, unknown>): Record<string, unknow
         ? reminder.offsets.filter((offset) => isRecord(offset))
         : [];
       if (!title || !eventAt || !target || !offsets.length) return [];
+      const createdAt = normalizeStoredTimestamp(reminder.createdAt, value.updatedAt);
+      const updatedAt = normalizeStoredTimestamp(reminder.updatedAt, value.updatedAt);
       return [[id, {
         ...rawReminder,
-        id: typeof reminder.id === "string" && reminder.id ? reminder.id : id,
+        id: typeof reminder.id === "string" && reminder.id.trim() ? reminder.id : id,
         title,
         details: typeof reminder.details === "string" ? reminder.details : "",
         eventAt,
         offsets,
         target,
-        createdAt: typeof reminder.createdAt === "string" ? reminder.createdAt : value.updatedAt,
-        updatedAt: typeof reminder.updatedAt === "string" ? reminder.updatedAt : value.updatedAt,
+        createdAt,
+        updatedAt,
       }]];
     }),
   );
-  return { ...value, reminders };
+  const reminders = canonicalizeReminders(normalized as Record<string, Reminder>);
+  const syncTombstones = canonicalizeReminderTombstones(
+    isRecord(value.syncTombstones) ? value.syncTombstones : {},
+    normalized as Record<string, Reminder>,
+  );
+  return { ...value, reminders, syncTombstones };
+}
+
+function normalizeStoredTimestamp(value: unknown, fallback: unknown): string {
+  const candidate = typeof value === "string" && Number.isFinite(Date.parse(value))
+    ? value
+    : typeof fallback === "string" && Number.isFinite(Date.parse(fallback))
+      ? fallback
+      : new Date(0).toISOString();
+  return new Date(candidate).toISOString();
+}
+
+function prepareStateForSave(next: AppState, current: AppState | null): AppState {
+  const persisted = structuredClone(next);
+  if (!persisted.syncTombstones) return persisted;
+
+  const previousReminders = current?.reminders ?? {};
+  const tombstones = Object.fromEntries(
+    Object.entries(persisted.syncTombstones).map(([key, tombstone]) => {
+      const separator = key.indexOf(":");
+      if (separator < 1 || key.slice(0, separator) !== "reminders") return [key, tombstone];
+      const rawId = key.slice(separator + 1);
+      const previous = previousReminders[rawId] ?? Object.values(previousReminders)
+        .find((reminder) => reminder.id === rawId);
+      const metadata = tombstone as typeof tombstone & {
+        aliases?: string[];
+        canonicalId?: string;
+        semanticId?: string;
+      };
+      const metadataAliases = Array.isArray(metadata.aliases)
+        ? metadata.aliases.filter((value): value is string => typeof value === "string")
+        : [];
+      const canonicalId = previous
+        ? canonicalReminderId(previous)
+        : typeof metadata.canonicalId === "string"
+          ? metadata.canonicalId
+          : "";
+      const aliases = Array.from(new Set([
+        rawId,
+        ...metadataAliases,
+        previous?.id ?? "",
+        canonicalId,
+      ].map((value) => value.trim()).filter(Boolean)));
+      const semanticId = previous
+        ? semanticReminderId(previous)
+        : typeof metadata.semanticId === "string"
+          ? metadata.semanticId
+          : "";
+      return [
+        key,
+        canonicalId
+          ? { ...tombstone, canonicalId, semanticId, aliases }
+          : tombstone,
+      ];
+    }),
+  );
+  persisted.syncTombstones = tombstones;
+  return persisted;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

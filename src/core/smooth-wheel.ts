@@ -114,10 +114,20 @@ export function installSmoothWheelScrolling(targetWindow: Window = window): () =
   const animate = (element: HTMLElement) => {
     const animation = animations.get(element);
     if (!animation) return;
+    animation.target = Math.min(
+      maxScroll(element, animation.axis),
+      Math.max(0, animation.target),
+    );
     const current = currentScroll(element, animation.axis);
     const next = nextSmoothScrollPosition(current, animation.target);
     setCurrentScroll(element, animation.axis, next);
-    if (next === animation.target) {
+    const applied = currentScroll(element, animation.axis);
+    if (
+      next === animation.target
+      || Math.abs(animation.target - applied) <= SETTLED_DISTANCE
+      || Math.abs(applied - current) < 0.1
+    ) {
+      setCurrentScroll(element, animation.axis, animation.target);
       element.classList.remove(ACTIVE_SCROLL_CLASS);
       animations.delete(element);
       return;

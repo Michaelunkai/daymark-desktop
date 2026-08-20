@@ -7,6 +7,8 @@ import './components/ui/ui.css'
 import './styles/theme.css'
 import './styles/app-shell.css'
 
+const FIRST_FRAME_MARKER = 'interactive'
+
 class AppErrorBoundary extends Component {
   constructor(props) {
     super(props)
@@ -53,8 +55,13 @@ class AppErrorBoundary extends Component {
 function AndroidReadyApp() {
   useEffect(() => {
     try {
-      document.getElementById('root')?.setAttribute('data-daymark-ready', 'true')
+      const root = document.getElementById('root')
+      root?.setAttribute('data-daymark-ready', 'true')
+      root?.setAttribute('data-daymark-first-frame', FIRST_FRAME_MARKER)
+      root?.setAttribute('data-daymark-interactive', 'true')
+      document.documentElement.setAttribute('data-daymark-first-frame', FIRST_FRAME_MARKER)
       window.DaymarkAndroid?.onAppReady?.()
+      window.DaymarkDesktop?.onAppReady?.()
     } catch {
       // The Android shell is optional.
     }

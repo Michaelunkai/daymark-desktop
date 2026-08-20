@@ -555,6 +555,14 @@ try {
     return root?.getAttribute("data-daymark-ready") === "true"
       && /^[A-Za-z0-9_-]{22}$/.test(localStorage.getItem("daymark.sync-key") ?? "");
   }, null, { timeout: 60000 });
+  await page.waitForFunction(async () => {
+    const key = localStorage.getItem("daymark.sync-key") ?? "";
+    if (!/^[A-Za-z0-9_-]{22}$/.test(key)) return false;
+    const response = await fetch(`/api/sync/${encodeURIComponent(key)}`, {
+      headers: { Accept: "application/json" },
+    });
+    return response.ok;
+  }, null, { timeout: 60000 });
   const syncKey = await page.evaluate(() => localStorage.getItem("daymark.sync-key"));
   const remoteResponse = await fetch(
     `${productionOrigin}/api/sync/${encodeURIComponent(syncKey)}`,

@@ -66,6 +66,12 @@ const worker = {
         : json({ error: "sync_unavailable" }, 503)
     }
 
+    if (pathname.startsWith("/api/")) {
+      return json({ error: "not_found" }, 404)
+    }
+
+    const isHtmlAsset = pathname === "/index.html" || pathname.endsWith(".html")
+    const isHashedAsset = pathname.startsWith("/assets/") && HASHED_ASSET_PATTERN.test(pathname)
     const isStaticAsset = pathname.startsWith('/assets/') || /\.[^/]+$/.test(pathname)
     if (!isStaticAsset && ['GET', 'HEAD'].includes(request.method)) {
       const headers = new Headers(request.headers)
@@ -80,9 +86,14 @@ const worker = {
       return canonicalSyncKey ? withPairingCookie(response, canonicalSyncKey) : response
     }
 
-    return env.ASSETS.fetch(request)
+    const response = await env.ASSETS.fetch(request)
+    if (isHtmlAsset) return noStoreAssetResponse(response)
+    if (isHashedAsset) return immutableAssetResponse(response)
+    return response
   },
 }
+
+const HASHED_ASSET_PATTERN = /\/[^/]+-[A-Za-z0-9_-]{8,}\.[^/]+$/
 
 async function getCanonicalSyncKey(db) {
   try {
@@ -219,10 +230,21 @@ async function handleSync(request, db, syncKey) {
       }, 409)
     }
   } else {
-    await db
-      .prepare("INSERT INTO daymark_sync_states (sync_key, revision, state_json, updated_at) VALUES (?1, ?2, ?3, ?4)")
+    const insert = await db
+      .prepare("INSERT OR IGNORE INTO daymark_sync_states (sync_key, revision, state_json, updated_at) VALUES (?1, ?2, ?3, ?4)")
       .bind(syncKey, nextRevision, stateJson, updatedAt)
       .run()
+    if (!insert.meta?.changes) {
+      const latest = await db
+        .prepare("SELECT revision, state_json, updated_at FROM daymark_sync_states WHERE sync_key = ?1")
+        .bind(syncKey)
+        .first()
+      return json({
+        error: "conflict",
+        revision: latest?.revision ?? 0,
+        state: latest ? JSON.parse(latest.state_json) : null,
+      }, 409)
+    }
   }
   return json({ revision: nextRevision, state: mergedState, updatedAt })
 }
@@ -1608,16 +1630,20 @@ function mergeSyncStates(local, remote) {
     const merged = { ...right }
     for (const [id, value] of Object.entries(left ?? {})) {
       const other = right?.[id]
-      if (!other || value.updatedAt >= other.updatedAt) merged[id] = structuredClone(value)
+      if (!other || compareRecordAuthority(value, other) > 0) merged[id] = structuredClone(value)
     }
     return merged
   }
+  const localReminders = canonicalizeReminders(local?.reminders)
+  const remoteReminders = canonicalizeReminders(remote?.reminders)
+  const mergedReminders = newerRecord(localReminders, remoteReminders)
+  const authoritativeState = compareRecordAuthority(local ?? {}, remote ?? {}) >= 0 ? local : remote
 
   const merged = {
     ...structuredClone(remote),
     schemaVersion: Math.max(Number(local?.schemaVersion ?? 0), Number(remote?.schemaVersion ?? 0), 6),
     revision: Math.max(Number(local?.revision ?? 0), Number(remote?.revision ?? 0)),
-    updatedAt: local?.updatedAt >= remote?.updatedAt ? local.updatedAt : remote.updatedAt,
+    updatedAt: compareMutationTimestamp(local?.updatedAt, remote?.updatedAt) >= 0 ? local?.updatedAt : remote?.updatedAt,
     clientId: local?.clientId ?? remote?.clientId,
     projects: newerRecord(local?.projects, remote?.projects),
     sections: newerRecord(local?.sections, remote?.sections),
@@ -1626,15 +1652,17 @@ function mergeSyncStates(local, remote) {
     tasks: newerRecord(local?.tasks, remote?.tasks),
     orderItems: newerRecord(local?.orderItems, remote?.orderItems),
     notes: newerRecord(local?.notes, remote?.notes),
-    reminders: newerRecord(local?.reminders, remote?.reminders),
+    reminders: canonicalizeReminders(mergedReminders),
     diaryEntries: newerRecord(local?.diaryEntries, remote?.diaryEntries),
-    preferences: local?.updatedAt >= remote?.updatedAt
-      ? structuredClone(local.preferences)
-      : structuredClone(remote.preferences),
-    undoStack: local?.updatedAt >= remote?.updatedAt
-      ? structuredClone(local.undoStack)
-      : structuredClone(remote.undoStack),
-    syncTombstones: mergeTombstones(local?.syncTombstones, remote?.syncTombstones),
+    preferences: structuredClone(authoritativeState?.preferences ?? {}),
+    undoStack: structuredClone(authoritativeState?.undoStack ?? []),
+    syncTombstones: canonicalizeReminderTombstones(
+      mergeTombstones(
+        canonicalizeReminderTombstones(local?.syncTombstones, local?.reminders),
+        canonicalizeReminderTombstones(remote?.syncTombstones, remote?.reminders),
+      ),
+      { ...local?.reminders, ...remote?.reminders, ...mergedReminders },
+    ),
   }
   applyTombstones(merged)
   return merged
@@ -1644,7 +1672,9 @@ function mergeTombstones(local, remote) {
   const merged = { ...(remote ?? {}) }
   for (const [key, tombstone] of Object.entries(local ?? {})) {
     const other = merged[key]
-    if (!other || tombstone.deletedAt >= other.deletedAt) merged[key] = structuredClone(tombstone)
+    if (!other || compareTombstoneAuthority(tombstone, other) > 0) {
+      merged[key] = structuredClone(tombstone)
+    }
   }
   return merged
 }
@@ -1668,8 +1698,189 @@ function applyTombstones(state) {
     const id = key.slice(separator + 1)
     const collection = collections[collectionName]
     const record = collection?.[id]
-    if (record && tombstone.deletedAt >= record.updatedAt) delete collection[id]
+    if (record && compareMutationTimestamp(tombstone.deletedAt, record.updatedAt) >= 0) delete collection[id]
   }
+}
+
+function compareMutationTimestamp(left, right) {
+  const leftMs = Date.parse(left ?? "")
+  const rightMs = Date.parse(right ?? "")
+  const leftValid = Number.isFinite(leftMs)
+  const rightValid = Number.isFinite(rightMs)
+  if (leftValid && rightValid && leftMs !== rightMs) return leftMs - rightMs
+  if (leftValid && !rightValid) return 1
+  if (!leftValid && rightValid) return -1
+  return compareBinaryStrings(String(left ?? ""), String(right ?? ""))
+}
+
+function compareRecordAuthority(left, right) {
+  const timestampOrder = compareMutationTimestamp(left?.updatedAt, right?.updatedAt)
+  if (timestampOrder !== 0) return timestampOrder
+  return compareBinaryStrings(stableSerialize(left), stableSerialize(right))
+}
+
+function compareTombstoneAuthority(left, right) {
+  const timestampOrder = compareMutationTimestamp(left?.deletedAt, right?.deletedAt)
+  if (timestampOrder !== 0) return timestampOrder
+  return compareBinaryStrings(stableSerialize(left), stableSerialize(right))
+}
+
+function canonicalizeReminders(reminders) {
+  const canonical = {}
+  const semanticIds = new Map()
+  for (const [key, reminder] of Object.entries(reminders ?? {})) {
+    if (!reminder || typeof reminder !== "object") continue
+    const id = canonicalReminderId({ ...reminder, id: reminder.id || key })
+    const semanticId = semanticReminderId(reminder)
+    const candidate = { ...structuredClone(reminder), id }
+    const existing = canonical[id] ?? canonical[semanticIds.get(semanticId) ?? ""]
+    if (!existing || compareRecordAuthority(candidate, existing) > 0) {
+      if (existing && existing.id !== id) delete canonical[existing.id]
+      canonical[id] = candidate
+      semanticIds.set(semanticId, id)
+    }
+  }
+  return canonical
+}
+
+function canonicalizeReminderTombstones(tombstones, reminders) {
+  const aliases = new Map()
+  for (const [key, reminder] of Object.entries(reminders ?? {})) {
+    if (!reminder || typeof reminder !== "object") continue
+    const id = canonicalReminderId(reminder)
+    addReminderAlias(aliases, key, id)
+    addReminderAlias(aliases, reminder.id, id)
+    addReminderAlias(aliases, id, id)
+    addReminderAlias(aliases, semanticReminderId(reminder), id)
+  }
+  const canonical = {}
+  for (const [rawKey, tombstone] of Object.entries(tombstones ?? {})) {
+    if (!tombstone || typeof tombstone.deletedAt !== "string") continue
+    const separator = rawKey.indexOf(":")
+    if (separator < 1) continue
+    const collection = rawKey.slice(0, separator)
+    const rawId = rawKey.slice(separator + 1).trim()
+    if (!rawId) continue
+    const metadata = tombstone
+    const metadataAliases = Array.isArray(metadata.aliases)
+      ? metadata.aliases.filter((alias) => typeof alias === "string")
+      : []
+    const metadataId = typeof metadata.canonicalId === "string" ? metadata.canonicalId.trim() : ""
+    const metadataSemanticId = typeof metadata.semanticId === "string" ? metadata.semanticId.trim() : ""
+    const id = collection === "reminders"
+      ? metadataAliases.map((alias) => aliases.get(alias) ?? "").find(Boolean)
+        || aliases.get(rawId)
+        || (metadataSemanticId ? aliases.get(metadataSemanticId) ?? metadataSemanticId : "")
+        || (metadataId ? aliases.get(metadataId) ?? metadataId : rawId)
+      : rawId
+    const key = `${collection}:${id}`
+    const existing = canonical[key]
+    if (!existing || compareTombstoneAuthority(tombstone, existing) > 0) {
+      const normalized = structuredClone(tombstone)
+      if (collection === "reminders") {
+        normalized.canonicalId = id
+        normalized.semanticId = metadataSemanticId || id
+        normalized.aliases = uniqueReminderStrings([rawId, ...metadataAliases, metadataId, metadataSemanticId, id])
+      }
+      canonical[key] = normalized
+    }
+  }
+  return canonical
+}
+
+function canonicalReminderId(value) {
+  if (typeof value === "string") return value.trim()
+  const explicit = typeof value?.id === "string" ? value.id.trim() : ""
+  return explicit || `reminder-${hash(reminderSemanticKey(value))}`
+}
+
+function semanticReminderId(value) {
+  return `reminder-${hash(reminderSemanticKey(value))}`
+}
+
+function reminderSemanticKey(value) {
+  return stableSerialize({
+    title: typeof value?.title === "string" ? value.title.trim() : "",
+    details: typeof value?.details === "string" ? value.details.trim() : "",
+    eventAt: normalizeReminderDate(value?.eventAt),
+    target: normalizeReminderTarget(value?.target),
+    offsets: normalizeReminderOffsets(value?.offsets),
+  })
+}
+
+function normalizeReminderTarget(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null
+  return {
+    kind: value.kind ?? null,
+    projectId: value.projectId ?? null,
+    sectionId: value.sectionId ?? null,
+    orderLane: value.orderLane ?? null,
+  }
+}
+
+function normalizeReminderOffsets(value) {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((offset) => {
+      if (!offset || typeof offset !== "object" || Array.isArray(offset)) {
+        return { minutes: null, direction: null, sound: null }
+      }
+      return {
+        minutes: offset.minutes ?? null,
+        direction: offset.direction ?? null,
+        sound: offset.sound ?? null,
+      }
+    })
+    .sort((left, right) => compareBinaryStrings(stableSerialize(left), stableSerialize(right)))
+}
+
+function normalizeReminderDate(value) {
+  if (typeof value !== "string") return ""
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : value.trim()
+}
+
+function addReminderAlias(aliases, value, canonicalId) {
+  if (typeof value !== "string") return
+  const normalized = value.trim()
+  if (normalized) aliases.set(normalized, canonicalId)
+}
+
+function uniqueReminderStrings(values) {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)))
+}
+
+function compareBinaryStrings(left, right) {
+  const length = Math.min(left.length, right.length)
+  for (let index = 0; index < length; index += 1) {
+    const difference = left.charCodeAt(index) - right.charCodeAt(index)
+    if (difference !== 0) return difference
+  }
+  return left.length - right.length
+}
+
+function hash(value) {
+  let first = 0x811c9dc5
+  let second = 0x9e3779b1
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index)
+    first ^= code
+    first = Math.imul(first, 0x01000193)
+    second ^= code + index
+    second = Math.imul(second, 0x85ebca6b)
+  }
+  return `${(first >>> 0).toString(16).padStart(8, "0")}${(second >>> 0).toString(16).padStart(8, "0")}`
+}
+
+function stableSerialize(value) {
+  if (Array.isArray(value)) return `[${value.map(stableSerialize).join(",")}]`
+  if (value && typeof value === "object") {
+    return `{${Object.entries(value)
+      .sort(([left], [right]) => compareBinaryStrings(left, right))
+      .map(([key, entry]) => `${JSON.stringify(key)}:${stableSerialize(entry)}`)
+      .join(",")}}`
+  }
+  return JSON.stringify(value) ?? "null"
 }
 
 function json(value, status = 200) {
@@ -1689,6 +1900,16 @@ function sleep(milliseconds) {
 async function noStoreAssetResponse(response) {
   const headers = new Headers(response.headers)
   headers.set("Cache-Control", "no-store")
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
+}
+
+async function immutableAssetResponse(response) {
+  const headers = new Headers(response.headers)
+  headers.set("Cache-Control", "public, max-age=31536000, immutable")
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

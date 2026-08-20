@@ -9,6 +9,8 @@ test('Sites worker serves ASSETS and falls back to index.html for HTML routes', 
   assert.match(workerSource, /env\.ASSETS\.fetch\(request\)/)
   assert.match(workerSource, /isStaticAsset/)
   assert.match(workerSource, /\/index\.html/)
+  assert.match(workerSource, /HASHED_ASSET_PATTERN/)
+  assert.match(workerSource, /max-age=31536000, immutable/)
   assert.match(workerSource, /export default worker/)
 })
 
@@ -69,6 +71,37 @@ test('Sites worker behavior preserves assets, serves SPA routes, and keeps missi
     '/assets/missing.js',
     '/workspace/order',
   ])
+})
+
+test('Sites worker applies fresh HTML/API policy and immutable hashed-asset policy', async () => {
+  const env = {
+    ASSETS: {
+      async fetch(request) {
+        const path = new URL(request.url).pathname
+        if (path === '/index.html') return new Response('HTML', { status: 200 })
+        if (path === '/assets/index-AbCdEf12.js') return new Response('JS', { status: 200 })
+        return new Response('missing', { status: 404 })
+      },
+    },
+  }
+
+  const htmlResponse = await worker.fetch(new Request('https://daymark.test/index.html'), env)
+  assert.equal(htmlResponse.status, 200)
+  assert.equal(htmlResponse.headers.get('Cache-Control'), 'no-store')
+
+  const hashedAssetResponse = await worker.fetch(
+    new Request('https://daymark.test/assets/index-AbCdEf12.js'),
+    env,
+  )
+  assert.equal(hashedAssetResponse.status, 200)
+  assert.equal(
+    hashedAssetResponse.headers.get('Cache-Control'),
+    'public, max-age=31536000, immutable',
+  )
+
+  const unknownApiResponse = await worker.fetch(new Request('https://daymark.test/api/unknown'), env)
+  assert.equal(unknownApiResponse.status, 404)
+  assert.equal(unknownApiResponse.headers.get('Cache-Control'), 'no-store')
 })
 
 test('Sites worker serves AI discovery dynamically without stale static assets', async () => {

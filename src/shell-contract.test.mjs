@@ -24,6 +24,10 @@ const quickCaptureStyles = await readFile(
   new URL('./features/capture/quick-capture.css', import.meta.url),
   'utf8',
 )
+const reminderStyles = await readFile(
+  new URL('./features/reminders/reminder-planner.css', import.meta.url),
+  'utf8',
+)
 const quickCaptureModel = await readFile(
   new URL('./features/capture/quick-capture-model.ts', import.meta.url),
   'utf8',
@@ -452,6 +456,17 @@ test('shell styles include keyboard focus, mobile layout, and dark theme coverag
   assert.match(styles, /\.main-content,[\s\S]*?touch-action: pan-y;/)
   assert.match(styles, /orientation: landscape/)
   assert.match(styles, /\.journal-tabs/)
+})
+
+test('standalone Reminders avoids duplicate headings on older Android WebViews', () => {
+  assert.match(
+    reminderStyles,
+    /\.reminder-planner--standalone \.reminder-planner__toolbar h2\s*\{[\s\S]*?position:\s*absolute[\s\S]*?clip-path:\s*inset\(50%\)/,
+  )
+  assert.match(
+    reminderStyles,
+    /@supports selector\(:has\(\*\)\)\s*\{[\s\S]*?\.content-frame:has\(> \.reminder-planner--standalone\) > \.view-header\s*\{[\s\S]*?display:\s*none[\s\S]*?\.reminder-planner--standalone \.reminder-planner__toolbar h2\s*\{[\s\S]*?position:\s*static/,
+  )
 })
 
 test('coarse mouse wheels are smoothed without replacing precise or accessible scrolling', () => {

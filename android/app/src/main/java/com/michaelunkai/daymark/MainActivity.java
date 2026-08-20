@@ -41,7 +41,10 @@ public final class MainActivity extends Activity {
     private static final String PREFS_NAME = "daymark";
     private static final String SYNC_KEY_PREF = "sync_key";
     private static final int SURFACE_COLOR = Color.BLACK;
-    private static final String NATIVE_RELEASE = "1.4.43";
+    private static final String NATIVE_RELEASE = "1.4.44";
+    private static final String STARTUP_MARKER_PARAM = "startup";
+    private static final String STARTUP_CREATED_MARKER = "daymark:android-startup-created";
+    private static final String STARTUP_READY_MARKER = "daymark:android-startup-ready";
     private static final int CONTENT_READY_TIMEOUT_MS = 9000;
     private static final int RUNTIME_HEALTH_CHECK_MS = 500;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 7401;
@@ -59,6 +62,9 @@ public final class MainActivity extends Activity {
     private int timeoutGeneration = -1;
     private int rootBackPresses;
     private long lastRootBackAt;
+    private boolean reminderRescheduledForActivity;
+    private boolean startupCreatedEmitted;
+    private boolean startupReadyEmitted;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -101,6 +107,7 @@ public final class MainActivity extends Activity {
                 new FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         FrameLayout.LayoutParams.MATCH_PARENT));
+        emitAcceptanceEvent(STARTUP_CREATED_MARKER);
         if (savedInstanceState == null) {
             loadDaymarkUrl(urlForIntent(getIntent()));
         } else if (webView.restoreState(savedInstanceState) == null) {
@@ -117,6 +124,15 @@ public final class MainActivity extends Activity {
         String requestedUrl = urlForIntent(intent);
         if (hasVisibleDocument && sameLogicalUrl(requestedUrl, lastRequestedUrl)) return;
         loadDaymarkUrl(requestedUrl);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!reminderRescheduledForActivity) {
+            reminderRescheduledForActivity = true;
+            ReminderScheduler.reschedule(this);
+        }
     }
 
     @Override
@@ -229,6 +245,7 @@ public final class MainActivity extends Activity {
         return Uri.parse(url)
                 .buildUpon()
                 .appendQueryParameter("native", NATIVE_RELEASE)
+                .appendQueryParameter(STARTUP_MARKER_PARAM, STARTUP_CREATED_MARKER)
                 .build()
                 .toString();
     }
@@ -242,7 +259,7 @@ public final class MainActivity extends Activity {
         Uri uri = Uri.parse(value);
         Uri.Builder builder = uri.buildUpon().clearQuery();
         for (String name : uri.getQueryParameterNames()) {
-            if ("native".equals(name)) continue;
+            if ("native".equals(name) || STARTUP_MARKER_PARAM.equals(name)) continue;
             for (String parameterValue : uri.getQueryParameters(name)) {
                 builder.appendQueryParameter(name, parameterValue);
             }
@@ -304,7 +321,24 @@ public final class MainActivity extends Activity {
         }
         hasVisibleDocument = true;
         hideLoading();
+        emitAcceptanceEvent(STARTUP_READY_MARKER);
         monitorRenderedApp(webView, loadGeneration);
+    }
+
+    private void emitAcceptanceEvent(String event) {
+        if (STARTUP_CREATED_MARKER.equals(event)) {
+            if (startupCreatedEmitted) return;
+            startupCreatedEmitted = true;
+        } else if (STARTUP_READY_MARKER.equals(event)) {
+            if (startupReadyEmitted) return;
+            startupReadyEmitted = true;
+        }
+        Log.i("DaymarkAcceptance", event);
+        if (webView != null && hasVisibleDocument) {
+            webView.evaluateJavascript(
+                    "window.dispatchEvent(new Event('" + event + "'));",
+                    null);
+        }
     }
 
     private void monitorRenderedApp(WebView view, int generation) {
@@ -551,8 +585,8 @@ public final class MainActivity extends Activity {
         }
 
         @JavascriptInterface
-        public void syncReminders(String schedules) {
-            runOnUiThread(() -> ReminderScheduler.replace(MainActivity.this, schedules));
+        public String syncReminders(String schedules) {
+            return ReminderScheduler.replace(MainActivity.this, schedules);
         }
 
         @JavascriptInterface

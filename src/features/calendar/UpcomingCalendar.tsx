@@ -11,7 +11,7 @@ import {
   type LocalDate,
   type WeekStart,
 } from "../../core/dates"
-import { groupUpcomingTasks } from "./upcoming-model"
+import { groupUpcomingTasks, navigateUpcomingRange } from "./upcoming-model"
 import "./upcoming-calendar.css"
 
 export type UpcomingCalendarMode = "week" | "month" | "year"
@@ -100,11 +100,9 @@ export function UpcomingCalendar({
   }
 
   function shift(amount: number): void {
-    setCursor((date) => {
-      if (mode === "week") return addDays(date, amount * 7)
-      if (mode === "month") return addMonths(date, amount)
-      return addYears(date, amount)
-    })
+    const nextDate = navigateUpcomingRange(mode, cursor, amount) as LocalDate
+    setCursor(nextDate)
+    onDateSelect?.(nextDate)
   }
 
   function handleDayKeyDown(event: KeyboardEvent<HTMLButtonElement>, date: LocalDate): void {

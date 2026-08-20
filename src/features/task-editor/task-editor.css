@@ -26,6 +26,7 @@
   font-family: var(--font-sans, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
   font-size: 14px;
   line-height: 1.45;
+  min-width: 0;
 }
 
 .task-editor__backdrop--dialog {
@@ -37,6 +38,8 @@
 .task-editor__surface {
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  max-width: 100%;
   width: min(100%, 540px);
   height: 100%;
   background: var(--editor-surface);
@@ -72,6 +75,10 @@
   background: var(--editor-surface);
 }
 
+.task-editor__header > :first-child {
+  min-width: 0;
+}
+
 .task-editor__header h2,
 .task-editor__section-heading h3 {
   margin: 0;
@@ -80,6 +87,7 @@
 }
 
 .task-editor__header h2 {
+  overflow-wrap: anywhere;
   font-size: 22px;
   font-weight: 680;
   line-height: 1.15;
@@ -143,6 +151,7 @@
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
+  scroll-padding-bottom: calc(16px + env(safe-area-inset-bottom));
 }
 
 .task-editor__section {
@@ -167,6 +176,10 @@
   color: var(--editor-muted);
 }
 
+.task-editor__section-heading > :first-child {
+  min-width: 0;
+}
+
 .task-editor__section-heading .task-editor__icon {
   width: 19px;
   height: 19px;
@@ -174,6 +187,7 @@
 }
 
 .task-editor__section-heading h3 {
+  overflow-wrap: anywhere;
   font-size: 15px;
   font-weight: 680;
 }
@@ -221,6 +235,7 @@
   background: var(--editor-surface-raised);
   color: var(--editor-text);
   font: inherit;
+  line-height: 1.35;
   transition:
     border-color 140ms ease,
     box-shadow 140ms ease,
@@ -513,6 +528,7 @@
   background: var(--editor-surface-raised);
   color: var(--editor-muted);
   cursor: pointer;
+  min-width: 0;
   transition:
     border-color 140ms ease,
     background 140ms ease,
@@ -596,7 +612,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 18px;
-  padding: 17px 30px 20px;
+  padding: 17px 30px max(20px, env(safe-area-inset-bottom));
   border-top: 1px solid var(--editor-border);
   background: var(--editor-surface);
 }
@@ -681,6 +697,7 @@
   .task-editor__surface,
   .task-editor__surface--dialog {
     width: 100%;
+    height: min(100%, calc(var(--daymark-viewport-height, 100dvh) - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
     max-height: calc(var(--daymark-viewport-height, 100dvh) - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     border-right: 0;
     border-bottom: 0;
@@ -695,13 +712,13 @@
   .task-editor__header,
   .task-editor__section,
   .task-editor__footer {
-    padding-right: 20px;
-    padding-left: 20px;
+    padding-right: max(20px, env(safe-area-inset-right));
+    padding-left: max(20px, env(safe-area-inset-left));
   }
 
   .task-editor__form-error {
-    margin-right: 20px;
-    margin-left: 20px;
+    margin-right: max(20px, env(safe-area-inset-right));
+    margin-left: max(20px, env(safe-area-inset-left));
   }
 
   .task-editor__field-grid,
@@ -745,6 +762,30 @@
     scrollbar-gutter: stable;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
+  }
+}
+
+@media (pointer: coarse) {
+  .task-editor__icon-button,
+  .task-editor__date-shortcuts button,
+  .task-editor__label-option,
+  .task-editor__button {
+    min-height: 44px;
+  }
+
+  .task-editor__icon-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .task-editor__field input,
+  .task-editor__field select,
+  .task-editor__input-with-icon {
+    min-height: 44px;
+  }
+
+  .task-editor__input-with-icon input {
+    min-height: 42px;
   }
 }
 

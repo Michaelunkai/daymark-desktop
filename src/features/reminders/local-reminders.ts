@@ -1,3 +1,5 @@
+import { canonicalReminderId, nextStrictTimestamp } from "../../core/reminder-identity";
+
 export type LocalReminderSound = "soft" | "alert" | "alarm";
 export type LocalReminderDirection = "before" | "after";
 export type LocalReminderTargetKind = "diary" | "project" | "order";
@@ -28,6 +30,40 @@ export type LocalReminder = {
 };
 
 export const LOCAL_REMINDERS_KEY = "daymark.local-reminders.v1";
+export const MAX_NATIVE_OVERDUE_MS = 24 * 60 * 60_000;
+
+export type NativeReminderSyncResult = {
+  ok: boolean;
+  persisted: boolean;
+  notificationStatus?: string;
+  error?: string;
+};
+
+export function parseNativeReminderSyncResult(value: unknown): NativeReminderSyncResult | null {
+  let parsed = value;
+  if (typeof value === "string") {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  if (!isRecord(parsed)) return null;
+  return {
+    ok: parsed.ok === true,
+    persisted: parsed.persisted === true,
+    notificationStatus: typeof parsed.notificationStatus === "string"
+      ? parsed.notificationStatus
+      : undefined,
+    error: typeof parsed.error === "string" ? parsed.error : undefined,
+  };
+}
+
+export function nativeReminderSyncSucceeded(
+  results: readonly (NativeReminderSyncResult | null)[],
+): boolean {
+  return results.length > 0 && results.every((result) => result?.ok && result.persisted);
+}
 
 export function loadLocalReminders(storage = getStorage()): LocalReminder[] {
   try {
@@ -64,13 +100,14 @@ export function upsertLocalReminder(
   input: Omit<LocalReminder, "id" | "createdAt" | "updatedAt"> & { id?: string },
   now = new Date().toISOString(),
 ): { ok: true; reminders: LocalReminder[] } | { ok: false; message: string } {
-  const normalized = normalizeReminder({ ...input, id: input.id ?? createReminderId(), createdAt: now, updatedAt: now });
+  const normalized = normalizeReminder({ ...input, id: canonicalReminderId(input), createdAt: now, updatedAt: now }, now);
   if (!normalized) return { ok: false, message: "Add a title, valid date and time, and at least one alert." };
   const existing = reminders.find((reminder) => reminder.id === normalized.id);
+  const updatedAt = nextStrictTimestamp(now, ...reminders.map((reminder) => reminder.updatedAt));
   const next = {
     ...normalized,
     createdAt: existing?.createdAt ?? now,
-    updatedAt: now,
+    updatedAt,
   };
   return {
     ok: true,
@@ -90,9 +127,10 @@ export function toNativeReminderSchedules(reminders: readonly LocalReminder[], n
     if (!Number.isFinite(eventAt)) return [];
     return reminder.offsets.flatMap((offset, index) => {
       const alertAt = eventAt + (offset.direction === "before" ? -1 : 1) * offset.minutes * 60_000;
-      if (alertAt <= now) return [];
+      if (alertAt <= now - MAX_NATIVE_OVERDUE_MS) return [];
       return [{
-        id: `${reminder.id}:${offset.id}:${eventAt}`,
+        id: `${reminder.id}:v${reminder.updatedAt}:${offset.id}:${index}:${eventAt}`,
+        version: reminder.updatedAt,
         reminderId: reminder.id,
         title: reminder.title,
         details: reminder.details,
@@ -108,7 +146,7 @@ export function toNativeReminderSchedules(reminders: readonly LocalReminder[], n
   });
 }
 
-function normalizeReminder(value: unknown): LocalReminder | null {
+function normalizeReminder(value: unknown, fallbackNow = new Date().toISOString()): LocalReminder | null {
   if (!isRecord(value)) return null;
   const title = typeof value.title === "string" ? value.title.trim() : "";
   const eventAt = typeof value.eventAt === "string" ? value.eventAt : "";
@@ -122,14 +160,21 @@ function normalizeReminder(value: unknown): LocalReminder | null {
   if (target.kind === "order" && !target.orderLane) return null;
   const now = new Date().toISOString();
   return {
-    id: typeof value.id === "string" && value.id ? value.id : createReminderId(),
+    id: canonicalReminderId({
+      ...value,
+      id: typeof value.id === "string" ? value.id : undefined,
+      title,
+      eventAt: new Date(parsedEventAt).toISOString(),
+      offsets,
+      target,
+    }),
     title,
     details: typeof value.details === "string" ? value.details.trim() : "",
     eventAt: new Date(parsedEventAt).toISOString(),
     offsets,
     target,
-    createdAt: typeof value.createdAt === "string" ? value.createdAt : now,
-    updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : now,
+    createdAt: normalizeTimestamp(value.createdAt, fallbackNow),
+    updatedAt: normalizeTimestamp(value.updatedAt, now),
   };
 }
 
@@ -160,8 +205,9 @@ function normalizeTarget(value: unknown): LocalReminderTarget | null {
   };
 }
 
-function createReminderId(): string {
-  return `reminder-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+function normalizeTimestamp(value: unknown, fallback: string): string {
+  if (typeof value !== "string" || !Number.isFinite(Date.parse(value))) return fallback;
+  return new Date(value).toISOString();
 }
 
 function getStorage(): Pick<Storage, "getItem" | "setItem" | "removeItem"> | undefined {

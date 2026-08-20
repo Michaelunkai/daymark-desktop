@@ -38,13 +38,24 @@ try {
     return root?.getAttribute("data-daymark-ready") === "true"
       && /^[A-Za-z0-9_-]{22}$/.test(localStorage.getItem("daymark.sync-key") ?? "");
   }, null, { timeout: 60000 });
-  const syncKey = await page.evaluate(() => localStorage.getItem("daymark.sync-key"));
-  const remoteResponse = await fetch(
-    `${productionOrigin}/api/sync/${encodeURIComponent(syncKey)}`,
-    { headers: { Accept: "application/json" } },
-  );
-  if (!remoteResponse.ok) {
-    throw new Error(`The canonical Daymark workspace could not be read (${remoteResponse.status}).`);
+  let syncKey = null;
+  let remoteResponse = null;
+  const pairingDeadline = Date.now() + 60_000;
+  while (Date.now() < pairingDeadline) {
+    syncKey = await page.evaluate(() => localStorage.getItem("daymark.sync-key"));
+    if (/^[A-Za-z0-9_-]{22}$/.test(syncKey ?? "")) {
+      remoteResponse = await fetch(
+        `${productionOrigin}/api/sync/${encodeURIComponent(syncKey)}`,
+        { headers: { Accept: "application/json" } },
+      );
+      if (remoteResponse.ok) break;
+    }
+    await page.waitForTimeout(250);
+  }
+  if (!remoteResponse?.ok) {
+    throw new Error(
+      `The canonical Daymark workspace was not adopted within 60 seconds (${remoteResponse?.status ?? "no response"}).`,
+    );
   }
   const remotePayload = await remoteResponse.json();
   const expectedRemoteRevision = Number(remotePayload.revision ?? remotePayload.state?.revision ?? 0);

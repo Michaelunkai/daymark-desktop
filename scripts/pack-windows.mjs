@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { existsSync, renameSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -15,6 +16,11 @@ const env = {
   PATH: [powershellDirectory, systemDirectory, process.env.PATH ?? ""].join(path.delimiter),
 };
 const cli = path.join(root, "node_modules", "electron-builder", "out", "cli", "cli.js");
+const outputDirectory = path.join(root, "release", "windows");
+if (existsSync(outputDirectory)) {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  renameSync(outputDirectory, path.join(root, "release", `windows-previous-${stamp}`));
+}
 const result = spawnSync(process.execPath, [cli, "--win", "nsis", "portable"], {
   cwd: root,
   env,

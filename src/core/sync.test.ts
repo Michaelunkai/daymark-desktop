@@ -1,12 +1,27 @@
 import { createSampleState } from "./sample-data";
+import { saveState } from "./storage";
+import {
+  canonicalizeReminderTombstones,
+  canonicalizeReminders,
+  compareBinaryStrings,
+  compareTombstoneAuthority,
+  semanticReminderId,
+  stableSerialize,
+} from "./reminder-identity";
+import type { AppState } from "./types";
 import {
   consumeRemoteAdoption,
   createInteractionSyncGate,
+  createSyncPushSkipMarker,
   getSyncKey,
   mergeSyncStates,
+  pullSyncState,
+  pushSyncState,
   pairSyncKey,
   rebaseSyncConflict,
+  shouldSkipSyncPush,
   syncStatesMatch,
+  waitForSyncChange,
 } from "./sync";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -84,6 +99,164 @@ assert(
   "Deleting a reminder on either device must prevent an older copy from returning.",
 );
 
+const duplicateReminder = {
+  id: "android-reminder",
+  title: "Review project",
+  details: "Open this on every paired device.",
+  target: { kind: "project" as const, projectId: "project-personal", sectionId: "section-next", orderLane: null },
+  eventAt: "2026-08-20T11:00:00+02:00",
+  offsets: [
+    { id: "after-10", minutes: 10, direction: "after" as const, sound: "alert" as const },
+    { id: "before-20", minutes: 20, direction: "before" as const, sound: "soft" as const },
+  ],
+  createdAt: older,
+  updatedAt: newer,
+};
+const duplicateReminderAlias = {
+  ...duplicateReminder,
+  id: "desktop-reminder",
+  eventAt: "2026-08-20T09:00:00.000Z",
+  offsets: [...duplicateReminder.offsets].reverse(),
+};
+const duplicateCanonical = canonicalizeReminders({
+  [duplicateReminder.id]: duplicateReminder,
+  [duplicateReminderAlias.id]: duplicateReminderAlias,
+});
+assert(
+  Object.keys(duplicateCanonical).length === 1,
+  "Semantically identical reminders with different device IDs must converge to one record.",
+);
+const duplicateSemanticId = semanticReminderId(duplicateReminder);
+const aliasedTombstones = canonicalizeReminderTombstones(
+  {
+    "reminders:android-reminder": {
+      deletedAt: newer,
+      semanticId: duplicateSemanticId,
+      aliases: ["android-reminder"],
+    },
+  },
+  { [duplicateReminderAlias.id]: duplicateReminderAlias },
+);
+assert(
+  aliasedTombstones[`reminders:${duplicateReminderAlias.id}`],
+  "A reminder tombstone semantic alias must resolve to the surviving device ID.",
+);
+const deletedSemanticLocal = createSampleState(newer, "semantic-delete-client");
+deletedSemanticLocal.syncTombstones = {
+  "reminders:android-reminder": {
+    deletedAt: newer,
+    semanticId: duplicateSemanticId,
+    aliases: ["android-reminder"],
+  },
+};
+const duplicateRemote = createSampleState(older, "semantic-remote-client");
+duplicateRemote.reminders[duplicateReminderAlias.id] = duplicateReminderAlias;
+const deletedSemanticMerged = mergeSyncStates(deletedSemanticLocal, duplicateRemote);
+assert(
+  Object.keys(deletedSemanticMerged.reminders).length === 0,
+  "A tombstone semantic alias must prevent a duplicate reminder from resurrecting.",
+);
+assert(compareBinaryStrings("Z", "a") < 0, "Tie-breaking must use binary ordering, not locale ordering.");
+assert(
+  stableSerialize({ a: 1, Z: 2 }) === '{"Z":2,"a":1}',
+  "Stable serialization must use deterministic binary key ordering.",
+);
+const equalDeleteA = { deletedAt: newer, aliases: ["android-reminder"] };
+const equalDeleteB = { deletedAt: newer, aliases: ["desktop-reminder"] };
+assert(
+  compareTombstoneAuthority(equalDeleteA, equalDeleteB) !== 0,
+  "Equal deletion timestamps must still have a deterministic binary authority.",
+);
+
+const persistedReminderBeforeDelete = createSampleState(newer, "storage-delete-client");
+persistedReminderBeforeDelete.reminders[duplicateReminder.id] = duplicateReminder;
+const persistedReminderAfterDelete = structuredClone(persistedReminderBeforeDelete);
+delete persistedReminderAfterDelete.reminders[duplicateReminder.id];
+persistedReminderAfterDelete.revision += 1;
+persistedReminderAfterDelete.syncTombstones = {
+  "reminders:android-reminder": { deletedAt: newer },
+};
+let persistedRaw = JSON.stringify(persistedReminderBeforeDelete);
+const persistedDelete = saveState(
+  {
+    read: () => persistedRaw,
+    write: (value) => { persistedRaw = value; },
+  },
+  persistedReminderAfterDelete,
+  persistedReminderBeforeDelete.revision,
+);
+const persistedTombstone = JSON.parse(persistedRaw).syncTombstones["reminders:android-reminder"];
+assert(
+  persistedDelete.ok &&
+    persistedTombstone.semanticId === duplicateSemanticId &&
+    persistedTombstone.aliases.includes("android-reminder"),
+  "Durable reminder deletes must persist semantic tombstone aliases before sync.",
+);
+
+const priorFetch = globalThis.fetch;
+const malformedStateResponse = async (response: Response): Promise<Error> => {
+  Object.defineProperty(globalThis, "fetch", { configurable: true, value: async () => response });
+  try {
+    await pullSyncState("A1b2C3d4E5f6G7h8I9j0K_");
+  } catch (error) {
+    return error as Error;
+  }
+  throw new Error("Malformed sync response should be rejected.");
+};
+try {
+  const malformedPull = await malformedStateResponse(
+    new Response(JSON.stringify({ state: null, revision: 1 }), { status: 200 }),
+  );
+  assert(malformedPull.status === 200, "Malformed successful reads must expose the HTTP status.");
+
+  Object.defineProperty(globalThis, "fetch", {
+    configurable: true,
+    value: async () => new Response(JSON.stringify({ revision: 1 }), { status: 200 }),
+  });
+  let malformedPush: Error | null = null;
+  try {
+    await pushSyncState("A1b2C3d4E5f6G7h8I9j0K_", local, local.revision);
+  } catch (error) {
+    malformedPush = error as Error;
+  }
+  assert(malformedPush?.status === 200, "Malformed successful writes must be rejected.");
+
+  Object.defineProperty(globalThis, "fetch", {
+    configurable: true,
+    value: async () => new Response(
+      JSON.stringify({ error: "conflict", revision: 0, state: null }),
+      { status: 409 },
+    ),
+  });
+  let missingStateConflict: (Error & { missingState?: boolean; state?: AppState | null }) | null = null;
+  try {
+    await pushSyncState("A1b2C3d4E5f6G7h8I9j0K_", local, local.revision);
+  } catch (error) {
+    missingStateConflict = error as typeof missingStateConflict;
+  }
+  assert(
+    missingStateConflict?.code === "conflict" &&
+      missingStateConflict.missingState === true &&
+      missingStateConflict.state === null,
+    "Missing remote state conflicts must remain explicit and non-fabricated.",
+  );
+
+  Object.defineProperty(globalThis, "fetch", {
+    configurable: true,
+    value: async () => new Response(JSON.stringify({ state: null, revision: 1 }), { status: 200 }),
+  });
+  let malformedChange: Error | null = null;
+  try {
+    await waitForSyncChange("A1b2C3d4E5f6G7h8I9j0K_", 0);
+  } catch (error) {
+    malformedChange = error as Error;
+  }
+  assert(malformedChange?.status === 200, "Malformed successful change responses must be rejected.");
+} finally {
+  if (priorFetch) Object.defineProperty(globalThis, "fetch", { configurable: true, value: priorFetch });
+  else delete (globalThis as { fetch?: unknown }).fetch;
+}
+
 const merged = mergeSyncStates(local, remote);
 
 assert(merged.clientId === "local-client", "Merged state should retain the local client identity.");
@@ -146,6 +319,22 @@ assert(
 assert(
   interactionGate.setInteractionOpen(false) === null,
   "A deferred remote state must flush only once.",
+);
+
+const remoteAppliedState = createSampleState(newer, "remote-applied-client");
+remoteAppliedState.revision = 40;
+remoteAppliedState.updatedAt = newer;
+const remoteSkipMarker = createSyncPushSkipMarker(remoteAppliedState);
+assert(
+  shouldSkipSyncPush(remoteSkipMarker, structuredClone(remoteAppliedState)),
+  "The exact cloned state applied from remote sync must not be pushed back.",
+);
+const immediateLocalEdit = structuredClone(remoteAppliedState);
+immediateLocalEdit.revision += 1;
+immediateLocalEdit.updatedAt = "2026-08-04T10:00:02.000Z";
+assert(
+  !shouldSkipSyncPush(remoteSkipMarker, immediateLocalEdit),
+  "A local edit immediately after remote sync must never be swallowed by the remote-state skip marker.",
 );
 
 const pairingCode = "A1b2C3d4E5f6G7h8I9j0K_";

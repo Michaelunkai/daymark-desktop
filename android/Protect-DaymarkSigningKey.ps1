@@ -2,115 +2,98 @@
 param()
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'DaymarkSigningResolver.ps1')
+
+$resolvedSigningEnvironment = Resolve-DaymarkSigningEnvironment
+$store = $resolvedSigningEnvironment.Store
+$alias = $resolvedSigningEnvironment.Alias
 $expectedSigner = '890ddcf80b412cf3145b9ce0841e0d857226022bef20ae637ef0d0a8b5358676'
+$roots = Get-DaymarkSigningBackupRoots
 
-function Require-EnvironmentValue {
-    param([string]$Name)
-    $value = [Environment]::GetEnvironmentVariable($Name)
-    if ([string]::IsNullOrWhiteSpace($value)) {
-        throw "Missing $Name."
-    }
-    return $value
-}
-
-function Get-KeytoolPath {
-    $candidates = @(
-        (if ($env:JAVA_HOME) { Join-Path $env:JAVA_HOME 'bin\keytool.exe' }),
-        'C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe'
-    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
-    if (-not $candidates) {
-        throw 'keytool.exe was not found. Set JAVA_HOME before protecting the signing key.'
-    }
-    return $candidates[0]
-}
-
-$store = Require-EnvironmentValue 'DAYMARK_SIGNING_STORE'
-$storePassword = Require-EnvironmentValue 'DAYMARK_SIGNING_STORE_PASSWORD'
-$alias = Require-EnvironmentValue 'DAYMARK_SIGNING_KEY_ALIAS'
-
-if (-not (Test-Path -LiteralPath $store)) {
-    throw "DAYMARK_SIGNING_STORE does not exist: $store"
-}
-
-$keytool = Get-KeytoolPath
-$certificate = & $keytool -list -v -keystore $store -storepass:env DAYMARK_SIGNING_STORE_PASSWORD -alias $alias 2>&1
-if ($LASTEXITCODE -ne 0) {
-    throw 'The configured Daymark signing key could not be opened.'
-}
-
-$certificateText = $certificate -join "`n"
-if ($certificateText -notmatch 'Entry type:\s*PrivateKeyEntry') {
-    throw 'The configured Daymark signing alias is not a private signing key.'
-}
-
-$match = [regex]::Match($certificateText, 'SHA256:\s*([0-9A-F:]+)', 'IgnoreCase')
-if (-not $match.Success) {
-    throw 'The signing-key certificate SHA-256 digest could not be read.'
-}
-
-$signer = $match.Groups[1].Value.Replace(':', '').ToLowerInvariant()
-if ($signer -ne $expectedSigner) {
-    throw "Configured signer $signer does not match the installed Daymark signer $expectedSigner."
-}
-
-$sourceHash = (Get-FileHash -LiteralPath $store -Algorithm SHA256).Hash.ToLowerInvariant()
-$roots = @(
-    'F:\backup\windowsapps\Daymark\signing',
-    'C:\ProgramData\Codex\DaymarkSigning'
-)
-$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-$backupDriveRoots = $roots | ForEach-Object { [System.IO.Path]::GetPathRoot($_).ToUpperInvariant() }
-if (($backupDriveRoots | Select-Object -Unique).Count -ne $roots.Count) {
-    throw 'Daymark signing backups must be stored on separate drive roots.'
-}
-
-foreach ($root in $roots) {
-    New-Item -ItemType Directory -Force -Path $root | Out-Null
-    & icacls $root /inheritance:r /grant:r "${identity}:(OI)(CI)F" 'SYSTEM:(OI)(CI)F' | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Could not protect the signing backup directory: $root"
+try {
+    Assert-DaymarkSecureFile -Path $store | Out-Null
+    $sourceHash = (Get-FileHash -LiteralPath $store -Algorithm SHA256).Hash.ToLowerInvariant()
+    $sourceCertificate = Get-DaymarkKeytoolCertificate `
+        -StorePath $store `
+        -Alias $alias `
+        -StorePassword $resolvedSigningEnvironment.StorePassword
+    if ($sourceCertificate.LeafSigner -ne $expectedSigner) {
+        throw 'The configured Daymark leaf signing certificate is not the pinned original signer.'
     }
 
-    $target = Join-Path $root 'daymark-original-signing.keystore'
-    if (Test-Path -LiteralPath $target) {
-        $existingHash = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant()
-        if ($existingHash -ne $sourceHash) {
-            throw "Backup conflict at $target. Refusing to overwrite a different signing key."
+    $driveRoots = @(
+        $roots | ForEach-Object {
+            [System.IO.Path]::GetPathRoot($_).ToUpperInvariant()
         }
-    }
-    else {
-        Copy-Item -LiteralPath $store -Destination $target -ErrorAction Stop
-    }
-
-    $targetHash = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant()
-    if ($targetHash -ne $sourceHash) {
-        throw "Signing backup hash verification failed at $target."
+    )
+    if (($driveRoots | Select-Object -Unique).Count -ne $roots.Count) {
+        throw 'Daymark signing escrows must remain on separate F: and C: drive roots.'
     }
 
-    $backupCertificate = & $keytool -list -v -keystore $target -storepass:env DAYMARK_SIGNING_STORE_PASSWORD -alias $alias 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "Signing backup could not be reopened at $target."
-    }
-    $backupCertificateText = $backupCertificate -join "`n"
-    $backupSignerMatch = [regex]::Match($backupCertificateText, 'SHA256:\s*([0-9A-F:]+)', 'IgnoreCase')
-    if (
-        $backupCertificateText -notmatch 'Entry type:\s*PrivateKeyEntry' -or
-        -not $backupSignerMatch.Success -or
-        $backupSignerMatch.Groups[1].Value.Replace(':', '').ToLowerInvariant() -ne $expectedSigner
-    ) {
-        throw "Signing backup certificate verification failed at $target."
+    foreach ($root in $roots) {
+        Assert-DaymarkPathChain -Path $root | Out-Null
+        if (-not (Test-Path -LiteralPath $root)) {
+            New-Item -ItemType Directory -Path $root -Force | Out-Null
+        }
+        Set-DaymarkStrictAcl -Path $root -Kind Directory
+
+        $target = Join-Path $root 'daymark-original-signing.keystore'
+        if (Test-Path -LiteralPath $target) {
+            Assert-DaymarkStrictAcl -Path $target -Kind File
+            $existingHash = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($existingHash -ne $sourceHash) {
+                throw "Daymark signing escrow conflict; refusing to overwrite a different key: $target"
+            }
+        }
+        else {
+            $temporaryTarget = Join-Path $root (
+                '.daymark-original-signing.' + [Guid]::NewGuid().ToString('N') + '.tmp'
+            )
+            Copy-Item -LiteralPath $store -Destination $temporaryTarget -ErrorAction Stop
+            Assert-DaymarkSecureFile -Path $temporaryTarget | Out-Null
+            Set-DaymarkStrictAcl -Path $temporaryTarget -Kind File
+            Move-Item -LiteralPath $temporaryTarget -Destination $target -Force
+            Assert-DaymarkStrictAcl -Path $target -Kind File
+        }
+
+        $targetHash = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($targetHash -ne $sourceHash) {
+            throw "Daymark signing escrow hash verification failed: $target"
+        }
+        $backupCertificate = Get-DaymarkKeytoolCertificate `
+            -StorePath $target `
+            -Alias $alias `
+            -StorePassword $resolvedSigningEnvironment.StorePassword
+        if ($backupCertificate.LeafSigner -ne $expectedSigner) {
+            throw "Daymark signing escrow leaf certificate verification failed: $target"
+        }
+
+        $manifestPath = Join-Path $root 'daymark-signing-manifest.json'
+        if (Test-Path -LiteralPath $manifestPath) {
+            Assert-DaymarkStrictAcl -Path $manifestPath -Kind File
+        }
+        $manifest = [ordered]@{
+            schemaVersion = 3
+            createdAt = (Get-Date).ToUniversalTime().ToString('o')
+            certificateSha256 = $expectedSigner
+            keystoreSha256 = $sourceHash
+            alias = $alias
+            backupFile = (Get-Item -LiteralPath $target -Force).FullName
+            driveRoot = [System.IO.Path]::GetPathRoot($target).ToUpperInvariant()
+            credentialTarget = $script:DaymarkSigningCredentialRoot
+        } | ConvertTo-Json
+        $temporaryManifest = Join-Path $root (
+            '.daymark-signing-manifest.' + [Guid]::NewGuid().ToString('N') + '.tmp'
+        )
+        Set-Content -LiteralPath $temporaryManifest -Value $manifest -Encoding ASCII
+        Assert-DaymarkSecureFile -Path $temporaryManifest | Out-Null
+        Set-DaymarkStrictAcl -Path $temporaryManifest -Kind File
+        Move-Item -LiteralPath $temporaryManifest -Destination $manifestPath -Force
+        Assert-DaymarkStrictAcl -Path $manifestPath -Kind File
     }
 
-    $manifest = [ordered]@{
-        schemaVersion = 2
-        createdAt = (Get-Date).ToUniversalTime().ToString('o')
-        certificateSha256 = $signer
-        keystoreSha256 = $sourceHash
-        alias = $alias
-        backupFile = (Resolve-Path -LiteralPath $target).Path
-        driveRoot = [System.IO.Path]::GetPathRoot($target).ToUpperInvariant()
-    } | ConvertTo-Json
-    Set-Content -LiteralPath (Join-Path $root 'daymark-signing-manifest.json') -Value $manifest -Encoding ASCII
+    Write-Host "Daymark signing key dual escrow verified for the pinned original leaf signer."
 }
-
-Write-Host "Daymark signing key escrow verified for signer $signer."
+finally {
+    Clear-DaymarkSigningEnvironment
+}

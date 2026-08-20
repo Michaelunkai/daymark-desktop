@@ -1,8 +1,11 @@
 .upcoming-calendar {
   --calendar-cell-min-height: 7.5rem;
   min-width: 0;
+  overflow: clip;
+  padding-bottom: max(18px, env(safe-area-inset-bottom));
   color: var(--ink, #252321);
   font: 400 var(--font-size-sm) / var(--line-height-normal) var(--font-sans);
+  touch-action: pan-y;
 }
 
 .upcoming-calendar *,
@@ -122,6 +125,7 @@
 
 .upcoming-calendar__viewport {
   min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   scrollbar-gutter: stable;
@@ -130,6 +134,7 @@
 }
 
 .upcoming-calendar__surface {
+  width: 100%;
   min-width: 0;
 }
 
@@ -431,6 +436,12 @@
   text-align: left;
 }
 
+.upcoming-agenda__date strong,
+.upcoming-agenda__date span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .upcoming-agenda__date strong {
   font-size: var(--font-size-sm);
 }
@@ -568,13 +579,16 @@
 @media (max-width: 620px) {
   .upcoming-calendar {
     --calendar-cell-min-height: 4.5rem;
+    padding-inline: max(0px, env(safe-area-inset-left)) max(0px, env(safe-area-inset-right));
   }
 
   .upcoming-calendar__toolbar {
+    min-width: 0;
     gap: var(--space-2);
   }
 
   .upcoming-calendar__title {
+    min-width: 0;
     font-size: 1.15rem;
   }
 
@@ -584,16 +598,20 @@
 
   .upcoming-calendar__toolbar-actions {
     gap: var(--space-2);
+    min-width: 0;
   }
 
   .upcoming-calendar__view-button {
     flex: 1;
+    min-width: 0;
     min-height: 44px;
     padding: 0 var(--space-2);
+    overflow-wrap: anywhere;
   }
 
   .upcoming-calendar__view-switcher {
     flex: 1;
+    min-width: 0;
   }
 
   .upcoming-calendar__nav-button,
@@ -714,7 +732,8 @@
   }
 
   .upcoming-agenda__check,
-  .upcoming-agenda__edit {
+  .upcoming-agenda__edit,
+  .upcoming-agenda__date {
     min-width: 44px;
     min-height: 44px;
   }
@@ -733,14 +752,19 @@
 }
 
 @media (max-width: 360px) {
+  .upcoming-calendar__surface {
+    min-width: 0;
+  }
+
   .upcoming-calendar__day-number {
-    width: 40px;
+    width: min(40px, 100%);
+    min-width: 0;
     min-height: 40px;
     height: 40px;
   }
 
   .upcoming-calendar__day--has-tasks::before {
-    right: max(3px, calc((100% - 40px) / 2 - 3px));
+    right: max(2px, calc((100% - min(40px, 100%)) / 2 - 3px));
   }
 }
 

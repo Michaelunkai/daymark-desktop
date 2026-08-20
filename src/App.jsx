@@ -3,11 +3,13 @@ import { addDays, addMonths, addYears, fromLocalDate, startOfMonth, startOfWeek,
 import { createId } from './core/sample-data'
 import { createAppStore } from './core/store'
 import { createBrowserStorage, loadState } from './core/storage'
+import { compareMutationTimestamp } from './core/reminder-identity'
 import { listAgentKeys, provisionTaskAssistant, revokeAgentKey } from './core/agent-api'
 import {
   consumeRemoteAdoption,
   createSyncChannel,
   createInteractionSyncGate,
+  createSyncPushSkipMarker,
   getAndroidSyncLink,
   getSyncKey,
   getSyncLink,
@@ -16,6 +18,7 @@ import {
   pullSyncState,
   pushSyncState,
   rebaseSyncConflict,
+  shouldSkipSyncPush,
   syncStatesMatch,
   waitForSyncChange,
 } from './core/sync'
@@ -43,6 +46,8 @@ import { ReminderPlanner } from './features/reminders/ReminderPlanner'
 import {
   clearLocalReminders,
   loadLocalReminders,
+  nativeReminderSyncSucceeded,
+  parseNativeReminderSyncResult,
   toNativeReminderSchedules,
   upsertLocalReminder,
 } from './features/reminders/local-reminders'
@@ -2226,20 +2231,26 @@ function App() {
   const [adoptRemoteOnJoin, setAdoptRemoteOnJoin] = useState(() => consumeRemoteAdoption(syncKey, getBrowserStorage()))
   const [syncStatus, setSyncStatus] = useState('starting')
   const [syncReady, setSyncReady] = useState(false)
+  const [syncRetryToken, setSyncRetryToken] = useState(0)
   const [agentKeys, setAgentKeys] = useState([])
   const [agentKeyStatus, setAgentKeyStatus] = useState('loading')
   const [agentToken, setAgentToken] = useState('')
   const [confirmation, setConfirmation] = useState(null)
   const syncReadyRef = useRef(false)
   const syncRemoteRevisionRef = useRef(0)
-  const syncSkipNextPushRef = useRef(false)
+  const syncSkipPushMarkerRef = useRef(null)
   const syncPushTimerRef = useRef(null)
-  const syncPushInFlightRef = useRef(false)
-  const syncPushQueuedRef = useRef(false)
+  const syncPushRetryTimerRef = useRef(null)
+  const syncPushRetryCountRef = useRef(0)
+  const syncPushRequestedRef = useRef(false)
+  const syncPushRunnerRef = useRef(null)
+  const syncGenerationRef = useRef(0)
   const syncChannelRef = useRef(null)
   const syncSourceRef = useRef(null)
   const interactionSyncGateRef = useRef(createInteractionSyncGate())
   const taskEditorOpenRef = useRef(false)
+  const reminderSyncGenerationRef = useRef(0)
+  const pendingReminderNoticeRef = useRef(null)
   const reorderPointerTargetRef = useRef(null)
   const composerRef = useRef(null)
   const captureReturnFocusRef = useRef(null)
@@ -2277,14 +2288,58 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (!syncReady) return
+    const generation = reminderSyncGenerationRef.current + 1
+    reminderSyncGenerationRef.current = generation
+    const payload = JSON.stringify(toNativeReminderSchedules(reminders))
+    const acknowledgements = []
     try {
-      window.DaymarkAndroid?.syncReminders?.(JSON.stringify(toNativeReminderSchedules(reminders)))
-      window.DaymarkDesktop?.syncReminders?.(JSON.stringify(toNativeReminderSchedules(reminders)))
-      setNotificationStatus(getAndroidReminderStatus())
+      if (window.DaymarkAndroid?.syncReminders) {
+        acknowledgements.push(Promise.resolve(window.DaymarkAndroid.syncReminders(payload)))
+      }
+      if (window.DaymarkDesktop?.syncReminders) {
+        acknowledgements.push(Promise.resolve(window.DaymarkDesktop.syncReminders(payload)))
+      }
     } catch {
-      setNotificationStatus('browser')
+      acknowledgements.push(Promise.resolve(null))
     }
-  }, [reminders])
+
+    if (!acknowledgements.length) {
+      setNotificationStatus('browser')
+      return
+    }
+
+    void Promise.all(acknowledgements.map(async (acknowledgement) => (
+      parseNativeReminderSyncResult(await acknowledgement)
+    ))).then((results) => {
+      if (reminderSyncGenerationRef.current !== generation) return
+      const failed = results.find((result) => !result?.ok || !result.persisted)
+      if (failed || !nativeReminderSyncSucceeded(results)) {
+        setNotificationStatus(failed?.notificationStatus ?? 'schedule-failed')
+        if (pendingReminderNoticeRef.current) {
+          const action = pendingReminderNoticeRef.current === 'removed' ? 'removed' : 'saved'
+          setNotice(`Reminder ${action}, but native alert scheduling failed${failed?.error ? `: ${failed.error}` : '.'}`)
+          pendingReminderNoticeRef.current = null
+        }
+        return
+      }
+      setNotificationStatus(getAndroidReminderStatus())
+      if (pendingReminderNoticeRef.current === 'saved') {
+        setNotice('Reminder saved and synced. Alerts are scheduled on this device.')
+      } else if (pendingReminderNoticeRef.current === 'removed') {
+        setNotice('Reminder removed and synced.')
+      }
+      pendingReminderNoticeRef.current = null
+    }).catch(() => {
+      if (reminderSyncGenerationRef.current !== generation) return
+      setNotificationStatus('schedule-failed')
+      if (pendingReminderNoticeRef.current) {
+        const action = pendingReminderNoticeRef.current === 'removed' ? 'removed' : 'saved'
+        setNotice(`Reminder ${action}, but Daymark could not confirm native alert scheduling.`)
+        pendingReminderNoticeRef.current = null
+      }
+    })
+  }, [reminders, syncReady])
 
   useEffect(() => {
     const refreshNotificationStatus = () => setNotificationStatus(getAndroidReminderStatus())
@@ -2346,21 +2401,30 @@ function App() {
   }, [])
 
   const replaceFromSync = (nextState, shouldPush = false) => {
-    syncSkipNextPushRef.current = !shouldPush
+    syncSkipPushMarkerRef.current = shouldPush ? null : createSyncPushSkipMarker(nextState)
     appStore.replace(nextState)
   }
 
-  const pushSyncStateWithRebase = async (candidate, expectedRevision, maxAttempts = 4) => {
+  const pushSyncStateWithRebase = async (
+    candidate,
+    expectedRevision,
+    maxAttempts = 4,
+    key = syncKey,
+    signal,
+  ) => {
     let nextState = candidate
     let nextExpectedRevision = expectedRevision
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      signal?.throwIfAborted()
       try {
-        return await pushSyncState(syncKey, nextState, nextExpectedRevision)
+        return await pushSyncState(key, nextState, nextExpectedRevision, signal)
       } catch (error) {
+        signal?.throwIfAborted()
         if (error?.code !== 'conflict' || !error.state) throw error
         nextExpectedRevision = Number(error.revision ?? error.state.revision ?? 0)
         nextState = rebaseSyncConflict(nextState, error.state, nextExpectedRevision)
-        replaceFromSync(nextState)
+        signal?.throwIfAborted()
+        replaceFromSync(nextState, true)
       }
     }
     throw new Error('Sync remained busy after several safe merge retries.')
@@ -2380,7 +2444,9 @@ function App() {
     replaceFromSync({
       ...merged,
       revision: Math.max(local.revision, revision),
-      updatedAt: local.updatedAt >= remoteState.updatedAt ? local.updatedAt : remoteState.updatedAt,
+      updatedAt: compareMutationTimestamp(local.updatedAt, remoteState.updatedAt) >= 0
+        ? local.updatedAt
+        : remoteState.updatedAt,
     }, !syncStatesMatch(merged, remoteState))
     setSyncStatus('synced')
     return true
@@ -2394,22 +2460,31 @@ function App() {
 
   useEffect(() => {
     let cancelled = false
+    const generation = syncGenerationRef.current + 1
+    syncGenerationRef.current = generation
+    const controller = new AbortController()
+    const isCurrent = () => (
+      !cancelled &&
+      !controller.signal.aborted &&
+      syncGenerationRef.current === generation
+    )
     syncReadyRef.current = false
     setSyncReady(false)
     const source = `${appStore.getState().clientId}:${Math.random().toString(36).slice(2)}`
     syncSourceRef.current = source
     const applyRemoteState = (remoteState) => {
+      if (!isCurrent()) return
       applyIncomingRemoteState(remoteState)
     }
     syncChannelRef.current = createSyncChannel(syncKey, source, applyRemoteState)
     const initializeSync = async () => {
       try {
-        const remote = await pullSyncState(syncKey)
-        if (cancelled) return
+        const remote = await pullSyncState(syncKey, controller.signal)
+        if (!isCurrent()) return
         const local = appStore.getState()
         if (!remote.state) {
-          const pushed = await pushSyncStateWithRebase(local, remote.revision)
-          if (cancelled) return
+          const pushed = await pushSyncStateWithRebase(local, remote.revision, 4, syncKey, controller.signal)
+          if (!isCurrent()) return
           syncRemoteRevisionRef.current = pushed.revision
         } else if (adoptRemoteOnJoin) {
           try {
@@ -2431,8 +2506,8 @@ function App() {
               revision: Math.max(local.revision, remote.revision) + 1,
               updatedAt: new Date().toISOString(),
             }
-            const pushed = await pushSyncStateWithRebase(rebased, remote.revision)
-            if (cancelled) return
+            const pushed = await pushSyncStateWithRebase(rebased, remote.revision, 4, syncKey, controller.signal)
+            if (!isCurrent()) return
             syncRemoteRevisionRef.current = pushed.revision
             replaceFromSync(pushed.state)
           } else if (!syncStatesMatch(merged, local)) {
@@ -2446,17 +2521,24 @@ function App() {
         syncReadyRef.current = true
         setSyncReady(true)
         setSyncStatus('synced')
-      } catch {
-        if (cancelled) return
-        syncReadyRef.current = true
-        setSyncReady(true)
+      } catch (error) {
+        if (!isCurrent() || error?.name === 'AbortError') return
+        syncReadyRef.current = !adoptRemoteOnJoin
+        setSyncReady(!adoptRemoteOnJoin)
         setSyncStatus('offline')
       }
     }
     initializeSync()
     return () => {
       cancelled = true
+      controller.abort()
       if (syncPushTimerRef.current) window.clearTimeout(syncPushTimerRef.current)
+      syncPushTimerRef.current = null
+      if (syncPushRetryTimerRef.current) window.clearTimeout(syncPushRetryTimerRef.current)
+      syncPushRetryTimerRef.current = null
+      syncPushRequestedRef.current = false
+      syncPushRunnerRef.current?.controller.abort()
+      syncPushRunnerRef.current = null
       syncChannelRef.current?.close()
       syncChannelRef.current = null
     }
@@ -2464,73 +2546,146 @@ function App() {
 
   useEffect(() => {
     if (!syncReadyRef.current) return
-    if (syncSkipNextPushRef.current) {
-      syncSkipNextPushRef.current = false
-      return
+    const skipMarker = syncSkipPushMarkerRef.current
+    if (skipMarker) {
+      syncSkipPushMarkerRef.current = null
+      if (shouldSkipSyncPush(skipMarker, state)) return
     }
+    syncPushRequestedRef.current = true
+    const generation = syncGenerationRef.current
+    if (syncPushRetryTimerRef.current) {
+      window.clearTimeout(syncPushRetryTimerRef.current)
+      syncPushRetryTimerRef.current = null
+    }
+    if (syncPushRunnerRef.current) return
     if (syncPushTimerRef.current) window.clearTimeout(syncPushTimerRef.current)
     syncPushTimerRef.current = window.setTimeout(async () => {
-      if (syncPushInFlightRef.current) {
-        syncPushQueuedRef.current = true
-        return
+      syncPushTimerRef.current = null
+      if (generation !== syncGenerationRef.current || syncPushRunnerRef.current) return
+      const runner = {
+        controller: new AbortController(),
+        generation,
       }
-      syncPushInFlightRef.current = true
-      setSyncStatus('syncing')
+      syncPushRunnerRef.current = runner
       try {
-        do {
-          syncPushQueuedRef.current = false
+        while (
+          syncPushRequestedRef.current &&
+          !runner.controller.signal.aborted &&
+          generation === syncGenerationRef.current
+        ) {
+          syncPushRequestedRef.current = false
+          setSyncStatus('syncing')
           const pushed = await pushSyncStateWithRebase(
             appStore.getState(),
             syncRemoteRevisionRef.current,
+            8,
+            syncKey,
+            runner.controller.signal,
           )
+          if (
+            runner.controller.signal.aborted ||
+            generation !== syncGenerationRef.current
+          ) return
           syncRemoteRevisionRef.current = pushed.revision
           syncChannelRef.current?.publish(pushed.state)
-        } while (syncPushQueuedRef.current)
+          syncPushRetryCountRef.current = 0
+          if (!syncStatesMatch(appStore.getState(), pushed.state)) {
+            syncPushRequestedRef.current = true
+          }
+        }
         setSyncStatus('synced')
       } catch (error) {
+        if (
+          runner.controller.signal.aborted ||
+          error?.name === 'AbortError' ||
+          generation !== syncGenerationRef.current
+        ) return
+        syncPushRequestedRef.current = true
         setSyncStatus('offline')
+        syncPushRetryCountRef.current += 1
+        const retryDelay = Math.min(
+          10_000,
+          250 * (2 ** Math.min(syncPushRetryCountRef.current - 1, 5)),
+        )
+        syncPushRetryTimerRef.current = window.setTimeout(() => {
+          syncPushRetryTimerRef.current = null
+          if (generation === syncGenerationRef.current) {
+            setSyncRetryToken((value) => value + 1)
+          }
+        }, retryDelay)
       } finally {
-        syncPushInFlightRef.current = false
+        if (syncPushRunnerRef.current === runner) {
+          syncPushRunnerRef.current = null
+        }
       }
     }, 50)
     return () => {
-      if (syncPushTimerRef.current) window.clearTimeout(syncPushTimerRef.current)
+      if (syncPushTimerRef.current) {
+        window.clearTimeout(syncPushTimerRef.current)
+        syncPushTimerRef.current = null
+      }
     }
-  }, [state, state.revision, syncKey])
+  }, [state, state.revision, syncKey, syncRetryToken])
 
   useEffect(() => {
     if (!syncReady) return undefined
     let cancelled = false
-    let controller = new AbortController()
-    const streamChanges = async () => {
-      while (!cancelled) {
-        try {
-          const remote = await waitForSyncChange(
-            syncKey,
-            syncRemoteRevisionRef.current,
-            controller.signal,
-          )
-          if (cancelled) return
-          if (remote.state) applyIncomingRemoteState(remote.state, remote.revision)
-          setSyncStatus('synced')
-        } catch (error) {
-          if (cancelled || error?.name === 'AbortError') return
-          setSyncStatus('offline')
-          await new Promise((resolve) => window.setTimeout(resolve, 250))
+    const generation = syncGenerationRef.current
+    let streamGeneration = 0
+    let activeController = null
+    const startStream = () => {
+      const controller = new AbortController()
+      const stream = streamGeneration + 1
+      streamGeneration = stream
+      activeController = controller
+      const streamChanges = async () => {
+        while (
+          !cancelled &&
+          stream === streamGeneration &&
+          generation === syncGenerationRef.current
+        ) {
+          try {
+            const remote = await waitForSyncChange(
+              syncKey,
+              syncRemoteRevisionRef.current,
+              controller.signal,
+            )
+            if (
+              cancelled ||
+              stream !== streamGeneration ||
+              generation !== syncGenerationRef.current
+            ) return
+            if (remote.state) applyIncomingRemoteState(remote.state, remote.revision)
+            setSyncStatus('synced')
+          } catch (error) {
+            if (
+              cancelled ||
+              controller.signal.aborted ||
+              error?.name === 'AbortError' ||
+              stream !== streamGeneration ||
+              generation !== syncGenerationRef.current
+            ) return
+            setSyncStatus('offline')
+            await new Promise((resolve) => window.setTimeout(resolve, 250))
+          }
         }
       }
+      streamChanges()
     }
     const reconnectImmediately = () => {
-      controller.abort()
-      controller = new AbortController()
-      streamChanges()
+      if (document.visibilityState === 'hidden') return
+      activeController?.abort()
+      streamGeneration += 1
+      setSyncRetryToken((value) => value + 1)
+      startStream()
     }
     window.addEventListener('online', reconnectImmediately)
     document.addEventListener('visibilitychange', reconnectImmediately)
-    streamChanges()
+    startStream()
     return () => {
       cancelled = true
-      controller.abort()
+      streamGeneration += 1
+      activeController?.abort()
       window.removeEventListener('online', reconnectImmediately)
       document.removeEventListener('visibilitychange', reconnectImmediately)
     }
@@ -2574,7 +2729,23 @@ function App() {
       return true
     }
     syncRemoteRevisionRef.current = 0
-    syncSkipNextPushRef.current = true
+    syncSkipPushMarkerRef.current = null
+    if (syncPushTimerRef.current) window.clearTimeout(syncPushTimerRef.current)
+    syncPushTimerRef.current = null
+    if (syncPushRetryTimerRef.current) window.clearTimeout(syncPushRetryTimerRef.current)
+    syncPushRetryTimerRef.current = null
+    syncPushRequestedRef.current = false
+    syncPushRunnerRef.current?.controller.abort()
+    syncPushRunnerRef.current = null
+    syncGenerationRef.current += 1
+    syncReadyRef.current = false
+    try {
+      const emptySchedule = JSON.stringify([])
+      window.DaymarkAndroid?.syncReminders?.(emptySchedule)
+      window.DaymarkDesktop?.syncReminders?.(emptySchedule)
+    } catch {
+      // The new workspace remains blocked from projecting stale reminders until hydration succeeds.
+    }
     setSyncReady(false)
     setSyncStatus('starting')
     setAdoptRemoteOnJoin(consumeRemoteAdoption(nextSyncKey, getBrowserStorage()))
@@ -2582,6 +2753,18 @@ function App() {
     setNotice('Pairing this browser with the Android workspace.')
     return true
   }
+
+  useEffect(() => {
+    const acceptCanonicalPairing = (value) => {
+      if (typeof value !== 'string' || value === syncKey) return
+      pairWorkspace(value)
+    }
+    const unsubscribe = window.DaymarkDesktop?.onCanonicalPaired?.(acceptCanonicalPairing)
+    void Promise.resolve(window.DaymarkDesktop?.getCanonicalPairingKey?.())
+      .then(acceptCanonicalPairing)
+      .catch(() => {})
+    return typeof unsubscribe === 'function' ? unsubscribe : undefined
+  }, [syncKey])
 
   const createAgentKey = async () => {
     setAgentKeyStatus('loading')
@@ -3308,7 +3491,8 @@ function App() {
       setNotice(saved?.message ?? 'Daymark could not save that reminder.')
       return
     }
-    setNotice('Reminder saved and synced. Alerts are scheduled on this device.')
+    pendingReminderNoticeRef.current = 'saved'
+    setNotice('Reminder saved. Scheduling native alerts...')
   }
 
   const deleteReminder = (reminderId) => {
@@ -3317,7 +3501,8 @@ function App() {
       setNotice(result.message)
       return
     }
-    setNotice('Reminder removed and synced.')
+    pendingReminderNoticeRef.current = 'removed'
+    setNotice('Reminder removed. Updating native alerts...')
   }
 
   const requestReminderAccess = () => {

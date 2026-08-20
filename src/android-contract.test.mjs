@@ -5,7 +5,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 
 test("Android release exposes the shared responsive app with the premium launcher icon", async () => {
-  const [manifest, gradle, activity, icon, shellStyles, appSource, commandStyles, searchStyles, mainSource, releaseVerifier, escrow, readiness, buildScript, taskEditor, taskEditorStyles, orderWorkspace, orderStyles, calendarGrid, upcomingCalendar, upcomingCalendarStyles, datePickerStyles, datePicker] = await Promise.all([
+  const [manifest, gradle, activity, icon, shellStyles, appSource, commandStyles, searchStyles, mainSource, releaseVerifier, escrow, readiness, buildScript, taskEditor, taskEditorStyles, orderWorkspace, orderStyles, calendarGrid, upcomingCalendar, upcomingCalendarStyles, datePickerStyles, datePicker, quickCapture, signingResolver, installer] = await Promise.all([
     readFile(new URL("./android/app/src/main/AndroidManifest.xml", root), "utf8"),
     readFile(new URL("./android/app/build.gradle", root), "utf8"),
     readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/MainActivity.java", root), "utf8"),
@@ -28,41 +28,63 @@ test("Android release exposes the shared responsive app with the premium launche
     readFile(new URL("./src/features/calendar/upcoming-calendar.css", root), "utf8"),
     readFile(new URL("./src/features/calendar/date-picker.css", root), "utf8"),
     readFile(new URL("./src/features/calendar/DatePicker.tsx", root), "utf8"),
+    readFile(new URL("./src/features/capture/QuickCaptureSheet.jsx", root), "utf8"),
+    readFile(new URL("./android/DaymarkSigningResolver.ps1", root), "utf8"),
+    readFile(new URL("./android/Install-DaymarkRelease.ps1", root), "utf8"),
   ]);
 
   assert.match(manifest, /android:icon="@drawable\/ic_daymark_launcher"/);
   assert.match(manifest, /android:roundIcon="@drawable\/ic_daymark_launcher"/);
-  assert.match(gradle, /versionCode 33/);
-  assert.match(gradle, /versionName "1\.4\.43"/);
-  assert.match(gradle, /def isReleaseRequested = gradle\.startParameter\.taskNames\.any/);
-  assert.match(gradle, /if \(isReleaseRequested && !hasDaymarkSigning\)/);
+  assert.match(gradle, /versionCode 34/);
+  assert.match(gradle, /versionName "1\.4\.44"/);
+  assert.match(gradle, /androidComponents[\s\S]*?withBuildType\("release"\)/);
+  assert.match(gradle, /verifyDaymarkReleaseInputs/);
   assert.match(gradle, /A Daymark release requires DAYMARK_SIGNING_STORE/);
+  assert.doesNotMatch(gradle, /startParameter\.taskNames/);
   assert.match(gradle, /Debug signing is not valid for updates/);
   assert.match(gradle, /DAYMARK_GIT_COMMIT/);
+  assert.match(gradle, /daymarkWebProvenanceFile/);
+  assert.match(gradle, /sourceCommit/);
+  assert.match(gradle, /filesSha256/);
   assert.match(gradle, /manifestPlaceholders = \[daymarkGitCommit:/);
   assert.doesNotMatch(gradle, /signingConfigs\.debug/);
   assert.match(manifest, /com\.michaelunkai\.daymark\.GIT_COMMIT/);
   assert.match(manifest, /\$\{daymarkGitCommit\}/);
-  assert.match(releaseVerifier, /Missing \$name\. A release must use the original Daymark signing key/);
-  assert.match(releaseVerifier, /JAVA_HOME is required to verify the release signer/);
   assert.match(releaseVerifier, /890ddcf80b412cf3145b9ce0841e0d857226022bef20ae637ef0d0a8b5358676/);
   assert.match(releaseVerifier, /does not match the installed Daymark signer/);
-  assert.match(releaseVerifier, /exactly one signer/);
+  assert.match(releaseVerifier, /exactly one leaf signer/);
+  assert.match(releaseVerifier, /assets\/daymark\/\.daymark-web-provenance\.json/);
+  assert.match(releaseVerifier, /web asset manifest hash/);
   assert.match(releaseVerifier, /GIT_COMMIT/);
   assert.match(releaseVerifier, /APK is not bound to expected Git commit/);
-  assert.match(releaseVerifier, /\$expectedVersionCode = '33'/);
-  assert.match(releaseVerifier, /\$expectedVersionName = '1\.4\.43'/);
+  assert.match(releaseVerifier, /\$expectedVersionCode = '34'/);
+  assert.match(releaseVerifier, /\$expectedVersionName = '1\.4\.44'/);
   assert.match(escrow, /param\(\)/);
   assert.doesNotMatch(escrow, /\[string\]\$ExpectedSigner/);
-  assert.match(escrow, /Entry type:\\s\*PrivateKeyEntry/);
-  assert.match(escrow, /schemaVersion = 2/);
-  assert.match(escrow, /Signing backup could not be reopened/);
-  assert.match(readiness, /Repository has tracked changes/);
+  assert.match(signingResolver, /Entry type:\\s\*PrivateKeyEntry/);
+  assert.match(escrow, /schemaVersion = 3/);
+  assert.match(signingResolver, /leafSection/);
+  assert.match(escrow, /Clear-DaymarkSigningEnvironment/);
+  assert.match(signingResolver, /leafSection/);
+  assert.match(signingResolver, /leafFingerprint/);
+  assert.match(signingResolver, /Clear-DaymarkSigningEnvironment/);
+  assert.match(readiness, /Repository has changes/);
+  assert.match(readiness, /Resolve-DaymarkSigningEnvironment/);
+  assert.doesNotMatch(readiness, /Require-EnvironmentValue 'DAYMARK_SIGNING_STORE_PASSWORD'/);
   assert.match(readiness, /Daymark signing backups are not stored on separate drive roots/);
-  assert.match(readiness, /Verify-DaymarkRelease\.ps1'\) -ApkPath \$ApkPath -ExpectedCommit \$ExpectedCommit/);
+  assert.match(readiness, /Verify-DaymarkRelease\.ps1/);
+  assert.match(readiness, /-ApkPath \$ApkPath/);
+  assert.match(readiness, /-ExpectedCommit \$ExpectedCommit/);
   assert.match(buildScript, /Protect-DaymarkSigningKey\.ps1/);
+  assert.match(buildScript, /npm\.cmd'[\s\S]*?run build/);
+  assert.match(buildScript, /Write-DaymarkWebProvenance/);
   assert.match(buildScript, /\$env:DAYMARK_GIT_COMMIT = \$ExpectedCommit/);
+  assert.match(buildScript, /\$env:DAYMARK_WEB_CLIENT_PREBUILT = '1'/);
+  assert.match(buildScript, /Clear-DaymarkReleaseEnvironment/);
   assert.match(buildScript, /Test-DaymarkReleaseReadiness\.ps1/);
+  assert.match(installer, /Verify-DaymarkRelease\.ps1/);
+  assert.match(installer, /exactly one installed Daymark APK path/);
+  assert.match(installer, /application data identity changed/);
   assert.match(activity, /daymark-desktop\.michaelovsky55555\.chatgpt\.site/);
   assert.match(activity, /setDomStorageEnabled\(true\)/);
   assert.match(activity, /addJavascriptInterface/);
@@ -83,7 +105,10 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(activity, /retryCurrentPage/);
   assert.match(activity, /LOAD_CACHE_ELSE_NETWORK/);
   assert.match(activity, /setOffscreenPreRaster\(true\)/);
-  assert.match(activity, /NATIVE_RELEASE = "1\.4\.43"/);
+  assert.match(activity, /NATIVE_RELEASE = "1\.4\.44"/);
+  assert.match(activity, /STARTUP_CREATED_MARKER/);
+  assert.match(activity, /STARTUP_READY_MARKER/);
+  assert.match(activity, /appendQueryParameter\(STARTUP_MARKER_PARAM, STARTUP_CREATED_MARKER\)/);
   assert.match(activity, /withLaunchMarker/);
   assert.match(activity, /resumeRestoredDocument/);
   assert.match(activity, /sameLogicalUrl/);
@@ -139,7 +164,11 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(upcomingCalendarStyles, /@media \(max-width: 620px\)[\s\S]*?\.upcoming-calendar__view-button\s*\{[\s\S]*?min-height:\s*44px/);
   assert.match(upcomingCalendarStyles, /@media \(max-width: 620px\)[\s\S]*?\.upcoming-agenda__check,[\s\S]*?\.upcoming-agenda__edit\s*\{[\s\S]*?width:\s*44px[\s\S]*?min-height:\s*44px[\s\S]*?height:\s*44px/);
   assert.match(upcomingCalendarStyles, /@media \(pointer: coarse\)[\s\S]*?\.upcoming-calendar__today-button,[\s\S]*?\.upcoming-calendar__view-button,[\s\S]*?\.upcoming-calendar__add-button\s*\{[\s\S]*?min-height:\s*44px/);
-  assert.match(upcomingCalendarStyles, /@media \(max-width: 360px\)[\s\S]*?\.upcoming-calendar__day-number\s*\{[\s\S]*?width:\s*40px[\s\S]*?min-height:\s*40px[\s\S]*?height:\s*40px/);
+  assert.match(upcomingCalendarStyles, /@media \(max-width: 360px\)[\s\S]*?\.upcoming-calendar__surface\s*\{[\s\S]*?min-width:\s*0/);
+  assert.doesNotMatch(upcomingCalendarStyles, /@media \(max-width: 360px\)[\s\S]*?\.upcoming-calendar__surface\s*\{[\s\S]*?min-width:\s*308px/);
+  assert.match(upcomingCalendarStyles, /@media \(max-width: 360px\)[\s\S]*?\.upcoming-calendar__day-number\s*\{[\s\S]*?width:\s*min\(40px,\s*100%\)[\s\S]*?min-width:\s*0[\s\S]*?min-height:\s*40px[\s\S]*?height:\s*40px/);
+  assert.match(upcomingCalendar, /const nextDate = navigateUpcomingRange\(mode, cursor, amount\) as LocalDate[\s\S]*?setCursor\(nextDate\)[\s\S]*?onDateSelect\?\.\(nextDate\)/);
+  assert.match(quickCapture, /className="quick-capture"\s+onPointerDown=/);
   assert.match(datePickerStyles, /\.date-picker__quick-actions button\s*\{[\s\S]*?min-height:\s*44px/);
   assert.match(datePickerStyles, /\.date-picker__entry input\s*\{[\s\S]*?min-height:\s*44px/);
   assert.match(datePickerStyles, /\.date-picker__header button\s*\{[\s\S]*?height:\s*44px[\s\S]*?width:\s*44px/);
@@ -176,7 +205,7 @@ test("Android reuses an already restored offline-capable document before loading
   );
   assert.match(
     activity,
-    /private String logicalUrl\(String value\) \{[\s\S]*?if \("native"\.equals\(name\)\) continue;[\s\S]*?builder\.appendQueryParameter\(name, parameterValue\);/,
+    /private String logicalUrl\(String value\) \{[\s\S]*?if \("native"\.equals\(name\) \|\| STARTUP_MARKER_PARAM\.equals\(name\)\) continue;[\s\S]*?builder\.appendQueryParameter\(name, parameterValue\);/,
   );
 });
 
@@ -222,19 +251,51 @@ test("Android reminders sync their definitions and schedule native alerts across
   assert.match(manifest, /SCHEDULE_EXACT_ALARM/);
   assert.match(manifest, /RECEIVE_BOOT_COMPLETED/);
   assert.match(manifest, /ReminderAlarmReceiver/);
+  assert.match(manifest, /ReminderAlarmReceiver"[\s\S]*?android:directBootAware="true"/);
   assert.match(manifest, /ReminderBootReceiver/);
   assert.match(manifest, /BOOT_COMPLETED/);
+  assert.match(manifest, /LOCKED_BOOT_COMPLETED/);
+  assert.match(manifest, /SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED/);
+  assert.match(manifest, /ReminderBootReceiver"[\s\S]*?android:directBootAware="true"/);
   assert.match(activity, /syncReminders/);
   assert.match(activity, /getNotificationStatus/);
   assert.match(activity, /requestNotificationPermission/);
   assert.match(activity, /openExactAlarmSettings/);
   assert.match(activity, /openReminderNotificationSettings/);
   assert.match(activity, /testReminderSound/);
+  assert.match(activity, /public String syncReminders\(String schedules\)/);
+  assert.match(activity, /return ReminderScheduler\.replace\(MainActivity\.this, schedules\)/);
+  assert.match(activity, /private boolean reminderRescheduledForActivity/);
+  assert.match(activity, /protected void onResume\(\)[\s\S]*?if \(!reminderRescheduledForActivity\)[\s\S]*?ReminderScheduler\.reschedule\(this\)/);
+  assert.match(activity, /emitAcceptanceEvent\(STARTUP_CREATED_MARKER\)/);
+  assert.match(activity, /emitAcceptanceEvent\(STARTUP_READY_MARKER\)/);
   assert.match(activity, /hasVisibleDocument && sameLogicalUrl\(requestedUrl, lastRequestedUrl\)/);
   assert.match(scheduler, /setExactAndAllowWhileIdle/);
   assert.match(scheduler, /setAndAllowWhileIdle/);
-  assert.match(scheduler, /JSONArray next = parse\(rawSchedules\);\s*if \(next == null \|\| !validSchedules\(next\)\) return;/);
+  assert.match(scheduler, /JSONArray next = parse\(rawSchedules\);\s*if \(next == null \|\| !validSchedules\(next\)\) \{/);
   assert.match(scheduler, /private static boolean validSchedules\(JSONArray schedules\)/);
+  assert.match(scheduler, /createDeviceProtectedStorageContext/);
+  assert.match(scheduler, /\.commit\(\)/);
+  assert.match(scheduler, /DELIVERED_IDS/);
+  assert.match(scheduler, /REQUEST_CODES/);
+  assert.match(scheduler, /private static int requestCode\(Context context, String scheduleId\)/);
+  assert.match(scheduler, /setData\(reminderUri/);
+  assert.match(scheduler, /fingerprint/);
+  assert.match(scheduler, /SHA-256/);
+  assert.match(scheduler, /pruneDeliveredLedger/);
+  assert.match(scheduler, /HashSet<String>/);
+  assert.match(scheduler, /MISSED_ALERT_SPACING_MS/);
+  assert.match(scheduler, /MAX_OVERDUE_CATCH_UP/);
+  assert.match(scheduler, /NOTIFICATION_RETRY_DELAY_MS/);
+  assert.match(scheduler, /MAX_NOTIFICATION_RETRIES/);
+  assert.match(scheduler, /retryCount/);
+  assert.match(scheduler, /SecurityException/);
+  assert.match(scheduler, /exactAlarmStatus/);
+  assert.match(scheduler, /ACTION_RECONCILE/);
+  assert.match(scheduler, /scheduleReconcile/);
+  assert.match(scheduler, /catchUpPending/);
+  assert.match(scheduler, /alarms\.cancel\(pending\)/);
+  assert.match(scheduler, /if \(canScheduleExactAlarms\(context\)\)[\s\S]*?setExactAndAllowWhileIdle[\s\S]*?setAndAllowWhileIdle/);
   assert.match(scheduler, /CHANNEL_VERSION = "v3"/);
   assert.match(scheduler, /daymark\.reminder\./);
   assert.match(scheduler, /daymark_reminder_soft/);
@@ -243,15 +304,41 @@ test("Android reminders sync their definitions and schedule native alerts across
   assert.match(scheduler, /AudioAttributes\.USAGE_ALARM/);
   assert.match(scheduler, /areNotificationsEnabled/);
   assert.match(scheduler, /hasAudibleChannels/);
+  assert.match(scheduler, /notificationReady/);
+  assert.match(scheduler, /defer/);
+  assert.match(scheduler, /ACTION_REMINDER_ACCEPTED/);
+  assert.match(scheduler, /sendBroadcast/);
   assert.match(receiver, /Alert /);
   assert.match(receiver, /postTest/);
+  assert.match(receiver, /ReminderScheduler\.isScheduled/);
+  assert.match(receiver, /ReminderScheduler\.notificationReady/);
+  assert.match(receiver, /ReminderScheduler\.defer/);
+  assert.match(receiver, /if \(!post\(context, sound, content/);
+  assert.match(receiver, /ReminderScheduler\.markDelivered/);
+  assert.match(receiver, /ReminderScheduler\.emitAcceptance/);
   assert.match(receiver, /ReminderScheduler\.soundUri/);
   assert.match(scheduler, /static String id\(Intent intent\)/);
-  assert.match(receiver, /post\(context, sound, content, ReminderScheduler\.details\(intent\), ReminderScheduler\.id\(intent\)\)/);
+  assert.match(scheduler, /static String fingerprint\(Intent intent\)/);
+  assert.match(receiver, /post\(context, sound, content, ReminderScheduler\.details\(intent\), scheduleId\)/);
+  const readinessIndex = receiver.indexOf("notificationReady");
+  const postIndex = receiver.indexOf("if (!post(", readinessIndex);
+  const normalDeliveryLedgerIndex = receiver.indexOf("markDelivered", postIndex);
+  assert.ok(
+    readinessIndex >= 0
+      && postIndex > readinessIndex
+      && normalDeliveryLedgerIndex > postIndex,
+    "normal delivery must verify readiness, post, then consume the durable ledger",
+  );
+  assert.match(receiver, /isAlreadyPosted\(context,\s*scheduleId\)[\s\S]*?markDelivered/);
   assert.match(bootReceiver, /ReminderScheduler\.reschedule/);
   assert.match(reminderStore, /daymark\.local-reminders\.v1/);
   assert.match(reminderStore, /toNativeReminderSchedules/);
   assert.match(reminderPlanner, /Test \$\{offset\.sound\} sound/);
+  assert.match(reminderPlanner, /notificationStatus === 'desktop-ready'/);
+  assert.match(
+    reminderPlanner,
+    /!\['ready', 'desktop-ready', 'browser', 'schedule-failed', 'storage-error'\]\.includes\(notificationStatus\)/,
+  );
   assert.match(appSource, /id: 'reminders', label: 'Reminders', icon: 'clock'/);
   assert.match(appSource, /route === 'reminders' \? \(\s*<ReminderPlanner/);
   assert.match(appSource, /state\.reminders/);

@@ -313,7 +313,7 @@ export function QuickCaptureSheet({
   }
 
   return (
-    <div className="quick-capture" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div className="quick-capture" onPointerDown={(event) => event.target === event.currentTarget && onClose()}>
       <form aria-labelledby="quick-capture-title" aria-modal="true" className="quick-capture__sheet" onKeyDown={handleKeyDown} onSubmit={save} ref={sheetRef} role="dialog">
         <header className="quick-capture__header"><div><span className="section-kicker">QUICK</span><h2 id="quick-capture-title">Capture or edit</h2></div><button aria-label="Close Quick" className="icon-button" onClick={onClose} type="button">x</button></header>
         <div aria-label="Quick item type" className="quick-capture__mode" role="group"><button aria-pressed={isTask} disabled={Boolean(conversion)} onClick={() => selectKind('task')} type="button">Task</button><button aria-pressed={!isTask} disabled={Boolean(conversion)} onClick={() => selectKind('order')} type="button">Order</button></div>

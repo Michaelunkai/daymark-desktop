@@ -132,14 +132,14 @@ export function ReminderPlanner({
   }
 
   return (
-    <section className="reminder-planner" aria-label="Reminders">
+    <section aria-labelledby="reminder-planner-title" className="reminder-planner reminder-planner--standalone">
       <div className="reminder-planner__toolbar">
         <div>
-          <h2>Reminders</h2>
-          <p>{notificationStatus === 'ready' ? 'Every alert has an audible Android channel.' : notificationStatus === 'desktop' ? 'Every alert is scheduled natively while Daymark stays available in the Windows tray.' : notificationStatus === 'exact-alarm-required' ? 'Allow precise alarms for exact alert timing.' : notificationStatus === 'sound-required' ? 'Turn on sound for Daymark reminders.' : notificationStatus === 'notifications-disabled' ? 'Turn on Daymark notifications to hear alerts.' : notificationStatus === 'browser' ? 'Alerts are scheduled when you use Daymark on Android.' : 'Allow notifications to hear every alert.'}</p>
+          <h2 id="reminder-planner-title">Reminders</h2>
+          <p>{notificationStatus === 'ready' ? 'Every alert has an audible Android channel.' : notificationStatus === 'desktop-ready' ? 'Every alert is scheduled natively while Daymark stays available in the Windows tray.' : notificationStatus === 'schedule-failed' || notificationStatus === 'storage-error' ? 'Daymark could not safely persist every native alert. Your reminder is saved and scheduling will retry.' : notificationStatus === 'exact-alarm-required' ? 'Allow precise alarms for exact alert timing.' : notificationStatus === 'sound-required' ? 'Turn on sound for Daymark reminders.' : notificationStatus === 'notifications-disabled' ? 'Turn on Daymark notifications to hear alerts.' : notificationStatus === 'browser' ? 'Alerts are scheduled when you use Daymark on Android.' : 'Allow notifications to hear every alert.'}</p>
         </div>
         <div className="reminder-planner__toolbar-actions">
-          {notificationStatus !== 'ready' && notificationStatus !== 'browser' ? <button className="secondary-button" onClick={onRequestNotificationAccess} type="button">{notificationStatus === 'exact-alarm-required' ? 'Allow precise alarms' : notificationStatus === 'sound-required' || notificationStatus === 'notifications-disabled' ? 'Open notification settings' : 'Allow alerts'}</button> : null}
+          {!['ready', 'desktop-ready', 'browser', 'schedule-failed', 'storage-error'].includes(notificationStatus) ? <button className="secondary-button" onClick={onRequestNotificationAccess} type="button">{notificationStatus === 'exact-alarm-required' ? 'Allow precise alarms' : notificationStatus === 'sound-required' || notificationStatus === 'notifications-disabled' ? 'Open notification settings' : 'Allow alerts'}</button> : null}
           <button className="reminder-planner__create" onClick={() => setEditor(newDraft())} type="button">New reminder</button>
         </div>
       </div>

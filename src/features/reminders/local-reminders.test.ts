@@ -5,6 +5,8 @@ import {
   clearLocalReminders,
   deleteLocalReminder,
   loadLocalReminders,
+  nativeReminderSyncSucceeded,
+  parseNativeReminderSyncResult,
   saveLocalReminders,
   toNativeReminderSchedules,
   upsertLocalReminder,
@@ -29,6 +31,23 @@ test("local reminders validate and preserve their device-only schedule", () => {
   assert.equal(created.reminders[0].createdAt, "2026-08-19T08:00:00.000Z");
   assert.equal(toNativeReminderSchedules(created.reminders, Date.parse("2026-08-19T08:00:00.000Z")).length, 2);
   assert.equal(deleteLocalReminder(created.reminders, created.reminders[0].id).length, 0);
+});
+
+test("native schedule ids stay unique when persisted offset ids collide", () => {
+  const created = upsertLocalReminder([], {
+    ...input,
+    offsets: [
+      { ...input.offsets[0], id: "duplicate" },
+      { ...input.offsets[1], id: "duplicate" },
+    ],
+  }, "2026-08-19T08:00:00.000Z");
+  assert.equal(created.ok, true);
+  if (!created.ok) return;
+  const schedules = toNativeReminderSchedules(
+    created.reminders,
+    Date.parse("2026-08-19T08:00:00.000Z"),
+  );
+  assert.equal(new Set(schedules.map((schedule) => schedule.id)).size, schedules.length);
 });
 
 test("local reminders fail closed for malformed persisted values", () => {
@@ -61,4 +80,26 @@ test("clears the legacy device-only copy only after shared-state migration", () 
   assert.equal(loadLocalReminders(storage).length, 1);
   clearLocalReminders(storage);
   assert.deepEqual(loadLocalReminders(storage), []);
+});
+
+test("native reminder acknowledgement fails closed for malformed or partial results", () => {
+  const android = parseNativeReminderSyncResult(
+    '{"ok":true,"persisted":true,"notificationStatus":"ready"}',
+  );
+  const desktop = parseNativeReminderSyncResult({ ok: true, persisted: true });
+  assert.equal(nativeReminderSyncSucceeded([android, desktop]), true);
+  assert.equal(nativeReminderSyncSucceeded([]), false);
+  assert.equal(nativeReminderSyncSucceeded([parseNativeReminderSyncResult("{broken")]), false);
+  assert.equal(
+    nativeReminderSyncSucceeded([
+      parseNativeReminderSyncResult({ ok: false, persisted: true, error: "alarm-failed" }),
+    ]),
+    false,
+  );
+  assert.equal(
+    nativeReminderSyncSucceeded([
+      parseNativeReminderSyncResult({ ok: true, persisted: false }),
+    ]),
+    false,
+  );
 });
