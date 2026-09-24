@@ -1,4 +1,4 @@
-import { mkdir, rm } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { _electron as electron } from "playwright-core";
@@ -7,13 +7,12 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const executablePath = process.env.DAYMARK_RUNTIME_EXECUTABLE_PATH
   ?? path.join(root, "release", "windows", "win-unpacked", "Daymark Runtime.exe");
 const evidenceDirectory = path.join(root, "release", "windows", "evidence");
-const userDataDirectory = path.join(evidenceDirectory, "runtime-profile");
-const screenshotPath = path.join(evidenceDirectory, "daymark-windows-runtime.png");
+const userDataDirectory = path.join(evidenceDirectory, `runtime-profile-${process.pid}-${Date.now()}`);
+const screenshotPath = path.join(evidenceDirectory, `daymark-windows-runtime-${process.pid}-${Date.now()}.png`);
 const launchArgs = ["--daymark-detached-child"];
 const productionOrigin = "https://daymark-desktop.michaelovsky55555.chatgpt.site";
 
 await mkdir(evidenceDirectory, { recursive: true });
-await rm(userDataDirectory, { recursive: true, force: true });
 
 const desktop = await electron.launch({
   executablePath,

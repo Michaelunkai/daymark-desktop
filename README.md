@@ -37,11 +37,11 @@ dedicated, persistent desktop session. It uses the existing pairing code,
 optimistic revision checks, timestamp merges, and deletion tombstones rather
 than introducing a separate desktop data store.
 
-Download Daymark for Windows `1.4.43`:
+Download Daymark for Windows `1.4.45`:
 
-- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.43/Daymark-Windows-Setup-1.4.43-x64.exe)
-- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.43/Daymark-Windows-Portable-1.4.43-x64.exe)
-- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.43)
+- [Windows installer](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.45/Daymark-Windows-Setup-1.4.45-x64.exe)
+- [Portable executable](https://github.com/Michaelunkai/daymark-desktop/releases/download/v1.4.45/Daymark-Windows-Portable-1.4.45-x64.exe)
+- [Release details](https://github.com/Michaelunkai/daymark-desktop/releases/tag/v1.4.45)
 
 SHA-256 values for every downloadable artifact are published in
 `Daymark-SHA256SUMS.txt` on the release.
@@ -59,7 +59,7 @@ npm run desktop:verify
 The generated artifacts are written to `release/windows`. The installer keeps
 Daymark's local Windows session data when uninstalling so an accidental
 uninstall does not silently erase the desktop pairing and cached workspace.
-Windows `1.4.43` uses a native detached launcher, so Command Prompt and
+Windows `1.4.45` uses a native detached launcher, so Command Prompt and
 PowerShell return immediately with no Electron diagnostics while the Daymark
 window keeps running. It provides smooth mouse-wheel scrolling and visible
 draggable scrollbars across the projects sidebar and main workspace. Task and
@@ -73,7 +73,7 @@ while Order moves remove it only after the dated Inbox task is created.
 Responsive checks cover narrow windows and 150% Windows display scaling so
 controls remain reachable instead of being cropped.
 
-Windows `1.4.43` opens the same current workspace experience as Android:
+Windows `1.4.45` opens the same current workspace experience as Android:
 Order is the default route; Quick can create, edit, move, copy, and convert
 tasks and Order items; Reminders is a standalone workspace; and long task or
 Order details stay compact until their full text is explicitly revealed and
@@ -202,6 +202,44 @@ Generate a new Daymark AI key when a client needs the expanded capability set.
 
 The legacy `DaymarkAI` browser object is retained only for local compatibility.
 It is not an authenticated remote API and is never required for new clients.
+
+## Daymark command line
+
+The Windows installer includes a first-party CLI for the live Daymark AI API.
+Its installed `daymark.cmd` sits beside `Daymark.exe` and runs on the bundled
+runtime, so it does not require a separate Node.js installation. The single-file
+portable executable launches the app, but does not expose `daymark.cmd` directly.
+From this project directory, `npm link` also makes a global `daymark` command
+available when Node.js is installed; alternatively run `node cli/daymark.mjs`.
+The CLI does not copy or replace the workspace database. See the
+[Windows CLI and new-PC setup guide](docs/windows-cli.md) for installation,
+authentication, options, examples, and troubleshooting.
+
+In Daymark Settings, create a Daymark AI key with the scopes you need. Run
+`daymark auth login` to enter it in a hidden PowerShell prompt; on Windows the
+key is saved with user-scoped DPAPI encryption under
+`%APPDATA%\Daymark\cli\credential.dpapi`. Alternatively, supply
+`DAYMARK_AI_TOKEN` in the environment for one-off automation. The environment
+variable takes precedence over the saved key. Never pass a token as a command
+argument or include it in a script checked into source control.
+
+Useful commands include `daymark doctor`, `daymark projects`,
+`daymark project "Project name" --section "Section name"`,
+`daymark tasks --project "Project name" --status all`, `daymark order`,
+`daymark calendar`, `daymark diary`, `daymark prefs`, `daymark search phrase`, and
+`daymark schema`. Use `daymark task add "Title" --project "Project name"`,
+`daymark order add "Title" --lane "Do now"`, and generic `create`, `update`,
+`complete`, `reopen`, `archive`, `delete`, and `undo` commands for writes.
+Diary entries support `daymark diary set DATE --data @file.json`; safe user
+preferences support `daymark prefs set --data @file.json`.
+`daymark help` shows the full syntax. `--json` emits structured results.
+
+Writes use idempotency keys, printed to stderr for safe retries. A delete
+requires `--confirm` and returns an undo token. The CLI operates on the
+documented AI API surface, not device-local reminders or excluded account,
+backup, pairing, and raw synchronization controls. It requires network access
+to the Daymark service and a valid AI key. To test the CLI without authenticating,
+run `npm run test:cli`; the broader verification suite is `npm run verify`.
 
 ## Release verification
 

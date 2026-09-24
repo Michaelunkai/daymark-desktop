@@ -1,11 +1,14 @@
 {
   "name": "daymark-desktop",
   "private": true,
-  "version": "1.4.44",
+  "version": "1.4.45",
   "description": "The official Daymark desktop application for Windows.",
   "author": "Michael Fedorovsky",
   "main": "desktop/main.mjs",
   "type": "module",
+  "bin": {
+    "daymark": "cli/daymark.mjs"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -24,10 +27,11 @@
     "test:core": "tsx --test src/core/store.test.ts src/core/sync.test.ts src/core/smooth-wheel.test.ts src/core/agent-api.test.ts src/core/dates/dates.test.ts",
     "test:features": "tsx --test src/features/calendar/upcoming-model.test.ts src/features/calendar/task-movement.test.ts src/features/capture/model.test.ts src/features/task-editor/task-editor.test.ts src/features/task-editor/form-state.test.ts src/features/reminders/scheduler.test.ts src/features/reminders/local-reminders.test.ts src/features/reorder/long-press.test.ts src/features/tasks/completed-history.test.ts && node --test src/features/companion/companion-context.test.mjs",
     "test:shell": "node --test src/shell-contract.test.mjs",
+    "test:cli": "node --test cli/*.test.mjs",
     "test:sites": "node --test src/sites-build-contract.test.mjs src/sync-contract.test.mjs src/android-contract.test.mjs src/agent-contract.test.mjs src/agent-api.test.mjs src/database-export-contract.test.mjs",
     "test:sites-artifact": "node --test src/sites-build-artifact.test.mjs",
     "test:acceptance": "node --test scripts/acceptance-receipt.test.mjs scripts/startup-timing.test.mjs scripts/reminder-harness.test.mjs scripts/verify-reminder-delivery.mjs scripts/verify-reminder-sync.mjs",
-    "test": "npm run test:core && npm run test:features && npm run test:shell && npm run test:sites && npm run test:acceptance",
+    "test": "npm run test:core && npm run test:features && npm run test:shell && npm run test:sites && npm run test:acceptance && npm run test:cli",
     "verify": "npm test && npm run build && npm run test:sites-artifact"
   },
   "dependencies": {
@@ -55,6 +59,7 @@
     "files": [
       "desktop/**/*",
       "dist/client/**/*",
+      "cli/**/*",
       "package.json"
     ],
     "asar": true,
@@ -66,6 +71,12 @@
         "filter": [
           "daymark_reminder_*.wav"
         ]
+      }
+    ],
+    "extraFiles": [
+      {
+        "from": "desktop/daymark.cmd",
+        "to": "daymark.cmd"
       }
     ],
     "afterPack": "scripts/after-pack-windows.mjs",

@@ -19,14 +19,7 @@ const isolatedRoot = process.env.DAYMARK_REMINDER_VERIFY_ROOT
 const profilePath = path.join(isolatedRoot, "profile");
 const schedulePath = path.join(profilePath, "reminder-schedules.json");
 const deliveredPath = path.join(profilePath, "reminder-delivered.json");
-const resourcesDirectory = path.join(
-  root,
-  "release",
-  "windows",
-  "win-unpacked",
-  "resources",
-  "assets",
-);
+const resourcesDirectory = path.join(path.dirname(executablePath), "resources", "assets");
 const now = Date.now();
 const exerciseDelivery = process.env.DAYMARK_VERIFY_FIRE === "1";
 const schedule = {
@@ -101,7 +94,7 @@ try {
   );
   await page.waitForTimeout(2_000);
   const version = await page.evaluate(() => window.DaymarkDesktop.getDesktopVersion?.());
-  if (version !== "1.4.44") {
+  if (version !== "1.4.45") {
     throw new Error(`Unexpected desktop version: ${version}`);
   }
 
@@ -161,7 +154,7 @@ try {
   const diagnostics = await page.evaluate(
     () => window.DaymarkDesktop.getDesktopDiagnostics?.(),
   );
-  if (!diagnostics || diagnostics.version !== "1.4.44") {
+  if (!diagnostics || diagnostics.version !== "1.4.45") {
     throw new Error(`Desktop diagnostics were unavailable: ${JSON.stringify(diagnostics)}`);
   }
 

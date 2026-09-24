@@ -8,7 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("acceptance receipt records static contracts but cannot pass without packaged startup proof", async () => {
   const receipt = await createAcceptanceReceipt({ runStartup: false });
-  assert.equal(receipt.release, "1.4.44");
+  assert.equal(receipt.release, "1.4.45");
   assert.equal(receipt.passed, false);
   assert.equal(receipt.startup.status, "not-run");
   assert.deepEqual(receipt.checks, {

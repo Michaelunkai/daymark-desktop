@@ -16,12 +16,19 @@ const env = {
   PATH: [powershellDirectory, systemDirectory, process.env.PATH ?? ""].join(path.delimiter),
 };
 const cli = path.join(root, "node_modules", "electron-builder", "out", "cli", "cli.js");
-const outputDirectory = path.join(root, "release", "windows");
+const outputName = process.env.DAYMARK_WINDOWS_OUTPUT_NAME;
+if (outputName && !/^windows-[a-z0-9-]+$/.test(outputName)) {
+  throw new Error("DAYMARK_WINDOWS_OUTPUT_NAME must be a simple windows-* directory name.");
+}
+const outputDirectory = path.join(root, "release", outputName ?? "windows");
 if (existsSync(outputDirectory)) {
+  if (outputName) throw new Error(`The selected Windows output already exists: ${outputDirectory}`);
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   renameSync(outputDirectory, path.join(root, "release", `windows-previous-${stamp}`));
 }
-const result = spawnSync(process.execPath, [cli, "--win", "nsis", "portable"], {
+const args = [cli, "--win", "nsis", "portable"];
+if (outputName) args.push(`--config.directories.output=${path.join("release", outputName)}`);
+const result = spawnSync(process.execPath, args, {
   cwd: root,
   env,
   stdio: "inherit",

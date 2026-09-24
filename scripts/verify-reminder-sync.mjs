@@ -49,12 +49,12 @@ export function collectReminderSyncProof() {
 test('Android marker parser proves the source first frame and readiness contract', () => {
   const proof = collectReminderSyncProof()
   assert.deepEqual(proof.sourceMarkers, {
-    release: '1.4.44',
+    release: '1.4.45',
     firstFrame: 'interactive',
     rootReady: 'false',
     rootFirstFrame: 'interactive',
     rootInteractive: 'false',
-    rootVersion: '1.4.44',
+    rootVersion: '1.4.45',
   })
   assert.equal(proof.mainHasReadyBridge, true)
   assert.equal(proof.mainHasInteractiveMarker, true)
@@ -66,11 +66,11 @@ test('built client keeps Android markers when a production artifact exists', () 
   const proof = collectReminderSyncProof()
   if (!proof.builtMarkers) return
   assert.deepEqual(proof.builtMarkers, {
-    release: '1.4.44',
+    release: '1.4.45',
     firstFrame: 'interactive',
     rootReady: 'false',
     rootFirstFrame: 'interactive',
     rootInteractive: 'false',
-    rootVersion: '1.4.44',
+    rootVersion: '1.4.45',
   })
 })

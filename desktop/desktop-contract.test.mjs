@@ -12,6 +12,10 @@ const windowsLauncher = await readFile(
   new URL("./windows-launcher.cs", import.meta.url),
   "utf8",
 ).catch(() => "");
+const windowsCli = await readFile(
+  new URL("./daymark.cmd", import.meta.url),
+  "utf8",
+);
 const afterPack = await readFile(
   new URL("../scripts/after-pack-windows.mjs", import.meta.url),
   "utf8",
@@ -108,7 +112,7 @@ test("desktop shell persists native Windows reminder schedules and keeps them al
   assert.match(main, /persisted:\s*true/);
   assert.match(main, /DAYMARK_ACCEPTANCE_EVENT/);
   assert.match(main, /DAYMARK_STARTUP_TRACE/);
-  assert.match(main, /1\.4\.44/);
+  assert.match(main, /1\.4\.45/);
   assert.match(main, /new Notification/);
   assert.match(main, /new Tray/);
   assert.match(main, /setLoginItemSettings/);
@@ -126,7 +130,7 @@ test("desktop shell persists native Windows reminder schedules and keeps them al
   assert.match(reminderVerifier, /DAYMARK_LOCAL_CLIENT_PATH/);
   assert.match(reminderVerifier, /pathname\.startsWith\("\/api\/"\)/);
   assert.match(reminderVerifier, /DAYMARK_REMINDER_VERIFY_ROOT/);
-  assert.match(reminderVerifier, /1\.4\.44/);
+  assert.match(reminderVerifier, /1\.4\.45/);
   assert.match(reminderVerifier, /daymark_reminder_\$\{sound\}\.wav/);
   assert.equal(packageJson.build.extraResources[0].to, "assets");
 });
@@ -167,9 +171,18 @@ test("packaged Windows starts through a native detached launcher before Electron
   assert.match(windowsLauncher, /NODE_OPTIONS/);
   assert.match(windowsLauncher, /ELECTRON_RUN_AS_NODE/);
   assert.match(windowsLauncher, /--daymark-detached-child/);
-  assert.match(windowsLauncher, /AssemblyFileVersion\("1\.4\.44\.0"\)/);
+  assert.match(windowsLauncher, /AssemblyFileVersion\("1\.4\.45\.0"\)/);
   assert.match(main, /Daymark Runtime\.exe/);
   assert.match(main, /Daymark\.exe/);
+});
+
+test("packaged Windows includes a standalone Daymark CLI entrypoint", () => {
+  assert.ok(packageJson.build.files.includes("cli/**/*"));
+  assert.ok(packageJson.build.extraFiles.some((entry) => entry.from === "desktop/daymark.cmd" && entry.to === "daymark.cmd"));
+  assert.match(windowsCli, /set "ELECTRON_RUN_AS_NODE=1"/);
+  assert.match(windowsCli, /Daymark Runtime\.exe/);
+  assert.match(windowsCli, /resources\\app\.asar\\cli\\daymark\.mjs/);
+  assert.match(windowsCli, /%\*/);
 });
 
 test("packaged runtime keeps the Daymark identity used by the pinned taskbar window", () => {

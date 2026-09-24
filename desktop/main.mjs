@@ -30,7 +30,7 @@ import {
 } from "./reminder-scheduler.mjs";
 
 const PRODUCT_NAME = "Daymark";
-const DESKTOP_RELEASE_VERSION = "1.4.44";
+const DESKTOP_RELEASE_VERSION = "1.4.45";
 const PRODUCTION_ORIGIN = "https://daymark-desktop.michaelovsky55555.chatgpt.site";
 const START_URL = `${PRODUCTION_ORIGIN}/`;
 const SESSION_PARTITION = "persist:daymark";
