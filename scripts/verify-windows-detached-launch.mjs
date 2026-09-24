@@ -123,6 +123,32 @@ async function closeDaymark() {
   throw new Error("The detached Daymark window did not close cleanly.");
 }
 
+function testProfileProcesses(profilePath) {
+  const exe = escapePowerShell(runtimeExecutablePath);
+  const profile = escapePowerShell(profilePath);
+  const result = runPowerShell(`
+    $ids = @(Get-CimInstance Win32_Process -ErrorAction Stop |
+      Where-Object { $_.ExecutablePath -eq '${exe}' -and $_.CommandLine.Contains('${profile}') } |
+      ForEach-Object { $_.ProcessId })
+    ConvertTo-Json -InputObject $ids -Compress
+  `);
+  if (result.status !== 0) throw new Error(`Could not inspect detached test processes: ${result.stderr}`);
+  return JSON.parse(result.stdout.trim() || "[]");
+}
+
+async function stopTestProfile(profilePath) {
+  for (const id of testProfileProcesses(profilePath)) {
+    try { process.kill(id); }
+    catch (error) { if (error.code !== "ESRCH") throw error; }
+  }
+  const deadline = Date.now() + 15000;
+  while (Date.now() < deadline) {
+    if (testProfileProcesses(profilePath).length === 0) return;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(`Detached test profile remained running: ${profilePath}`);
+}
+
 async function verifyShell(name, file, args, command) {
   const marker = `__DAYMARK_${name.toUpperCase().replaceAll(" ", "_")}_RETURNED__`;
   const profilePath = path.join(
@@ -146,6 +172,7 @@ async function verifyShell(name, file, args, command) {
     throw new Error(`${name} left an invalid Daymark window: ${JSON.stringify(window)}`);
   }
   await closeDaymark();
+  await stopTestProfile(profilePath);
   return {
     shell: name,
     shellExitMs: result.durationMs,

@@ -211,6 +211,36 @@ function request(path, init = {}) {
   return new Request(`https://daymark.test${path}`, init)
 }
 
+test("task pagination exposes every record without changing the default page", async () => {
+  const db = new MemoryD1()
+  const state = createState()
+  for (let index = 0; index < 260; index++) {
+    const id = `task-page-${index}`
+    state.tasks[id] = { ...state.tasks["task-existing"], id, content: `Task ${index}`, order: index }
+  }
+  db.syncStates.get(syncKey).state_json = JSON.stringify(state)
+  db.keys.push({ id: "agent-key-pagination", sync_key: syncKey, token_hash: sha256(agentToken), name: "Pagination", scopes: JSON.stringify(["tasks:read"]), created_at: state.updatedAt, last_used_at: null, revoked_at: null })
+  const env = { DB: db, ASSETS: { fetch: () => new Response("missing", { status: 404 }) } }
+  const headers = { Authorization: `Bearer ${agentToken}` }
+
+  const first = await worker.fetch(request("/api/agent/v1/tasks?status=all&limit=250", { headers }), env)
+  assert.equal(first.status, 200)
+  const firstPage = await first.json()
+  assert.equal(firstPage.tasks.length, 250)
+  assert.equal(firstPage.total, 261)
+  assert.equal(firstPage.nextOffset, 250)
+
+  const second = await worker.fetch(request("/api/agent/v1/tasks?status=all&limit=250&offset=250", { headers }), env)
+  const secondPage = await second.json()
+  assert.equal(secondPage.tasks.length, 11)
+  assert.equal(secondPage.total, 261)
+  assert.equal(secondPage.nextOffset, null)
+  assert.equal(new Set([...firstPage.tasks, ...secondPage.tasks].map((task) => task.id)).size, 261)
+
+  const invalid = await worker.fetch(request("/api/agent/v1/tasks?offset=-1", { headers }), env)
+  assert.equal(invalid.status, 422)
+})
+
 test("provisions a scoped key and applies idempotent task actions without exposing workspace state", async () => {
   const db = new MemoryD1()
   const taskEnv = { DB: db, ASSETS: { fetch: () => new Response("missing", { status: 404 }) } }

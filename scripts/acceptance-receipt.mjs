@@ -60,9 +60,8 @@ export async function createAcceptanceReceipt({
   }
 
   const checks = {
-    release: packageJson.version === "1.4.44"
-      && markers.release === "1.4.44"
-      && markers.rootVersion === "1.4.44",
+    release: markers.release === packageJson.version
+      && markers.rootVersion === packageJson.version,
     firstFrame: markers.firstFrame === "interactive"
       && markers.rootFirstFrame === "interactive"
       && main.includes("setAttribute('data-daymark-interactive', 'true')"),

@@ -2,7 +2,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("DaymarkDesktop", {
   getReminderStatus: () => "desktop-ready",
-  getDesktopVersion: () => "1.4.44",
+  getDesktopVersion: () => "1.4.45",
   getDesktopDiagnostics: () => ipcRenderer.invoke("daymark:desktop:diagnostics"),
   getCanonicalPairingKey: () => ipcRenderer.invoke("daymark:canonical-pairing-key"),
   onCanonicalPaired: (callback) => {

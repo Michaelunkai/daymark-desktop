@@ -1142,16 +1142,22 @@ async function listAgentTasks(request, db, key) {
   const projectId = url.searchParams.get("projectId")
   const requestedLimit = Number(url.searchParams.get("limit") ?? 100)
   const limit = Number.isInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 250) : 100
+  const requestedOffset = Number(url.searchParams.get("offset") ?? 0)
+  if (!Number.isSafeInteger(requestedOffset) || requestedOffset < 0) {
+    return json({ error: "invalid_offset" }, 422)
+  }
   if (!["open", "completed", "all"].includes(status)) {
     return json({ error: "invalid_status" }, 422)
   }
-  const tasks = Object.values(state.tasks ?? {})
+  const matching = Object.values(state.tasks ?? {})
     .filter((task) => !projectId || task.projectId === projectId)
     .filter((task) => status === "all" || (status === "open" ? !task.completedAt : Boolean(task.completedAt)))
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-    .slice(0, limit)
+  const tasks = matching
+    .slice(requestedOffset, requestedOffset + limit)
     .map(publicTask)
-  return json({ tasks, revision: current.revision })
+  const nextOffset = requestedOffset + tasks.length < matching.length ? requestedOffset + tasks.length : null
+  return json({ tasks, revision: current.revision, total: matching.length, nextOffset })
 }
 
 async function createAgentTask(request, db, key) {
@@ -1593,7 +1599,12 @@ function agentOpenApi(origin) {
       "/api/agent/v1/labels/{id}": item("Label", "labels:read", { type: "object", properties: { name: { type: "string" }, color: { type: "string" }, isFavorite: { type: "boolean" } } }),
       "/api/agent/v1/filters": resource("Filters", "filters:read", { type: "object", required: ["name", "query"], properties: { name: { type: "string" }, query: { type: "string" }, color: { type: "string" } } }),
       "/api/agent/v1/filters/{id}": item("Filter", "filters:read", { type: "object", properties: { name: { type: "string" }, query: { type: "string" }, color: { type: "string" } } }),
-      "/api/agent/v1/tasks": { get: operation("listTasks", "List tasks by status or project", "tasks:read"), post: operation("createTask", "Create one task", "tasks:write", { $ref: "#/components/schemas/TaskInput" }, 201, idempotency) },
+      "/api/agent/v1/tasks": { get: operation("listTasks", "List tasks by status or project with complete pagination", "tasks:read", null, 200, [
+        { name: "status", in: "query", schema: { type: "string", enum: ["open", "completed", "all"], default: "open" } },
+        { name: "projectId", in: "query", schema: { type: "string" } },
+        { name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 250, default: 100 } },
+        { name: "offset", in: "query", schema: { type: "integer", minimum: 0, default: 0 } },
+      ]), post: operation("createTask", "Create one task", "tasks:write", { $ref: "#/components/schemas/TaskInput" }, 201, idempotency) },
       "/api/agent/v1/tasks/{id}": item("Task", "tasks:read", { $ref: "#/components/schemas/TaskInput" }),
       "/api/agent/v1/tasks/{id}/complete": { post: operation("completeTask", "Complete one task", "tasks:write", null, 200, idempotency) },
       "/api/agent/v1/tasks/{id}/reopen": { post: operation("reopenTask", "Reopen one task", "tasks:write", null, 200, idempotency) },

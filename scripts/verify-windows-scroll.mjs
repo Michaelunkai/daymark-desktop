@@ -1,4 +1,4 @@
-import { mkdir, rm } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { _electron as electron } from "playwright-core";
@@ -6,15 +6,14 @@ import { _electron as electron } from "playwright-core";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const executablePath = process.env.DAYMARK_RUNTIME_EXECUTABLE_PATH
   ?? path.join(root, "release", "windows", "win-unpacked", "Daymark Runtime.exe");
-const evidenceDirectory = path.join(root, "release", "windows", "evidence");
-const profilePath = path.join(evidenceDirectory, "scroll-profile");
+const evidenceDirectory = path.join(root, "release", "windows", "evidence", `scroll-${process.pid}-${Date.now()}`);
+const profilePath = path.join(evidenceDirectory, "profile");
 const productionOrigin = "https://daymark-desktop.michaelovsky55555.chatgpt.site";
 const wheelDelta = 420;
 const sampleDelays = [0, 16, 32, 64, 120, 240, 500];
 const fixedRoutes = ["today", "inbox", "upcoming", "completed", "order", "notes", "diary"];
 
 await mkdir(evidenceDirectory, { recursive: true });
-await rm(profilePath, { recursive: true, force: true });
 
 const desktop = await electron.launch({
   executablePath,
@@ -382,6 +381,21 @@ async function verifyOrderLaneNavigation(page) {
   if (!result.ok) {
     throw new Error(`The After selector did not reveal the After lane: ${JSON.stringify(result)}`);
   }
+
+  // scrollIntoView is animated; resetting the wheel target before it settles
+  // leaves its remaining movement to skew the subsequent wheel assertion.
+  await page.locator(".main-content").evaluate(async (main) => {
+    let previous = main.scrollTop;
+    let stableFrames = 0;
+    for (let frame = 0; frame < 120; frame += 1) {
+      await new Promise(requestAnimationFrame);
+      const current = main.scrollTop;
+      stableFrames = Math.abs(current - previous) < 0.1 ? stableFrames + 1 : 0;
+      if (stableFrames >= 5) return;
+      previous = current;
+    }
+    throw new Error("Order lane navigation did not finish scrolling.");
+  });
 
   await page.screenshot({
     path: path.join(evidenceDirectory, "order-workspace-after.png"),
