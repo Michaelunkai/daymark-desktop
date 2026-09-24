@@ -245,6 +245,20 @@ run `npm run test:cli`; the broader verification suite is `npm run verify`.
 
 For each release, record the exact Git commit, Sites saved version/deployment,
 Android version, APK SHA-256, and the browser/Android acceptance results here.
+Windows `1.4.45` release evidence from September 24, 2026:
+
+- Public GitHub `main` and `v1.4.45` tag: `1c50a313aa7ba5e736cd1ed8d6c68b6b46c67320`.
+- Sites source containing the matching task-pagination worker:
+  `a49cbd30df33cf2ec2a280648f2e83f948cd47df`.
+- Production Sites version `120`, deployment
+  `appgdep_6ab573501b108191b05e17012b67de13`, succeeded at the live URL.
+- `npm run desktop:verify` and the packaged CLI mock-server proof passed on
+  Windows; production CLI enumeration was verified across multiple task pages.
+- Installer and portable SHA-256 values are in
+  [the release checksum file](docs/releases/v1.4.45/Daymark-SHA256SUMS.txt).
+- No new Android APK was published; the original-signer Android release
+  remains `v1.4.36`.
+
 Release `1.4.9` evidence from August 10, 2026:
 
 - Android release source commit: `60e1273c4e2a1e1f9a6d1b338b065cecbecbdcd9`.

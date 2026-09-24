@@ -13,9 +13,10 @@ new key in Daymark Settings instead of copying the encrypted key from the old
 machine. See the [Windows CLI setup and options guide](../../windows-cli.md).
 
 The source update includes task-list pagination in the Sites worker and a
-CLI that refuses to silently truncate a large workspace. The live Daymark
-service must deploy that worker update for complete task enumeration. Until
-then, a CLI read of more than 250 tasks reports `pagination_unavailable` rather
+CLI that refuses to silently truncate a large workspace. Sites version 120
+was deployed to the public production URL on 2026-09-24; a packaged CLI read
+then verified complete multi-page task enumeration. When pointed at an older
+server without pagination, the CLI reports `pagination_unavailable` rather
 than presenting an incomplete list as complete. The Windows desktop itself
 continues to use the live Daymark workspace.
 
