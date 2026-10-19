@@ -93,10 +93,20 @@ class MemoryStatement {
       const undo = this.database.undos.get(this.values[0])
       return undo && undo.key_id === this.values[1] ? undo : null
     }
+    if (this.query.includes("FROM task_attachments WHERE id")) {
+      return this.database.attachments.find((row) => row.id === this.values[0] && row.sync_key === this.values[1]) ?? null
+    }
     return null
   }
 
   async all() {
+    if (this.query.includes("FROM task_attachments WHERE sync_key")) {
+      return {
+        results: this.database.attachments
+          .filter((row) => row.sync_key === this.values[0] && row.task_id === this.values[1])
+          .map((row) => ({ ...row })),
+      }
+    }
     if (this.query.includes("FROM daymark_agent_keys WHERE sync_key")) {
       return {
         results: this.database.keys
@@ -108,6 +118,16 @@ class MemoryStatement {
   }
 
   async run() {
+    if (this.query.startsWith("INSERT INTO task_attachments")) {
+      const [id, syncKey, taskId, name, mimeType, size, dataBase64, createdAt] = this.values
+      this.database.attachments.push({ id, sync_key: syncKey, task_id: taskId, name, mime_type: mimeType, size, data_base64: dataBase64, created_at: createdAt })
+      return { meta: { changes: 1 } }
+    }
+    if (this.query.startsWith("DELETE FROM task_attachments WHERE id")) {
+      const before = this.database.attachments.length
+      this.database.attachments = this.database.attachments.filter((row) => !(row.id === this.values[0] && row.sync_key === this.values[1]))
+      return { meta: { changes: before - this.database.attachments.length } }
+    }
     if (this.query.startsWith("INSERT INTO daymark_agent_keys")) {
       const [id, keySyncKey, tokenHash, name, scopes, createdAt] = this.values
       this.database.keys.push({
@@ -200,6 +220,7 @@ class MemoryD1 {
     this.receipts = new Map()
     this.audit = []
     this.undos = new Map()
+    this.attachments = []
   }
 
   prepare(query) {
@@ -497,4 +518,188 @@ test("publishes restart-safe discovery, diagnostics, and a full versioned OpenAP
   }
   assert.ok(document.components.schemas.Task)
   assert.ok(document.components.schemas.Error)
+})
+
+function attachmentKey(db) {
+  db.keys.push({
+    id: "agent-key-attachments",
+    sync_key: syncKey,
+    token_hash: sha256(agentToken),
+    name: "Attachments",
+    scopes: JSON.stringify(["tasks:read", "tasks:write"]),
+    created_at: "2026-08-09T00:00:00.000Z",
+    last_used_at: null,
+    revoked_at: null,
+  })
+}
+
+test("task attachment round-trip over the agent API", async () => {
+  const db = new MemoryD1()
+  attachmentKey(db)
+  const env = { DB: db, ASSETS: { fetch: () => new Response("missing", { status: 404 }) } }
+  const headers = { Authorization: `Bearer ${agentToken}` }
+  const bytes = new TextEncoder().encode("daymark-attachment-payload")
+  const dataBase64 = Buffer.from(bytes).toString("base64")
+
+  const upload = await worker.fetch(request("/api/agent/v1/tasks/task-existing/attachments", {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "notes.txt", mimeType: "text/plain", dataBase64 }),
+  }), env)
+  assert.equal(upload.status, 201)
+  const uploadBody = await upload.json()
+  assert.equal(uploadBody.ok, true)
+  assert.equal(uploadBody.attachment.name, "notes.txt")
+  assert.equal(uploadBody.attachment.size, bytes.byteLength)
+  const attachmentId = uploadBody.attachment.id
+
+  const list = await worker.fetch(request("/api/agent/v1/tasks/task-existing/attachments", { headers }), env)
+  assert.equal(list.status, 200)
+  const listBody = await list.json()
+  assert.equal(listBody.ok, true)
+  assert.equal(listBody.attachments.length, 1)
+  assert.equal(listBody.attachments[0].id, attachmentId)
+
+  const taskRead = await worker.fetch(request("/api/agent/v1/tasks/task-existing", { headers }), env)
+  assert.equal(taskRead.status, 200)
+  const taskBody = await taskRead.json()
+  assert.deepEqual(taskBody.task.attachments, [uploadBody.attachment])
+
+  const download = await worker.fetch(request(`/api/agent/v1/attachments/${attachmentId}`, { headers }), env)
+  assert.equal(download.status, 200)
+  assert.equal(download.headers.get("content-type"), "text/plain")
+  assert.match(download.headers.get("content-disposition") ?? "", /notes\.txt/)
+  const downloaded = new Uint8Array(await download.arrayBuffer())
+  assert.equal(Buffer.compare(Buffer.from(downloaded), Buffer.from(bytes)), 0)
+
+  const del = await worker.fetch(request(`/api/agent/v1/attachments/${attachmentId}`, { method: "DELETE", headers }), env)
+  assert.equal(del.status, 204)
+  const afterDelete = await worker.fetch(request("/api/agent/v1/tasks/task-existing/attachments", { headers }), env)
+  assert.equal((await afterDelete.json()).attachments.length, 0)
+
+  const missing = await worker.fetch(request("/api/agent/v1/tasks/task-missing/attachments", { headers }), env)
+  assert.equal(missing.status, 404)
+})
+
+test("task attachment round-trip over the canonical sync key route", async () => {
+  const db = new MemoryD1()
+  const env = { DB: db, ASSETS: { fetch: () => new Response("missing", { status: 404 }) } }
+  const bytes = new TextEncoder().encode("sync-route-bytes")
+  const dataBase64 = Buffer.from(bytes).toString("base64")
+
+  const upload = await worker.fetch(request(`/api/sync/${syncKey}/tasks/task-existing/attachments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "sync.bin", mimeType: "application/octet-stream", dataBase64 }),
+  }), env)
+  assert.equal(upload.status, 201)
+  const { attachment } = await upload.json()
+
+  const state = JSON.parse(db.syncStates.get(syncKey).state_json)
+  assert.deepEqual(state.tasks["task-existing"].attachments, [attachment])
+
+  const fullState = await worker.fetch(request(`/api/sync/${syncKey}`, {}), env)
+  assert.equal(fullState.status, 200)
+  const fullStateBody = await fullState.json()
+  assert.deepEqual(fullStateBody.state.tasks["task-existing"].attachments, [attachment])
+
+  const download = await worker.fetch(request(`/api/sync/${syncKey}/attachments/${attachment.id}`, {}), env)
+  assert.equal(download.status, 200)
+  const downloaded = new Uint8Array(await download.arrayBuffer())
+  assert.equal(Buffer.compare(Buffer.from(downloaded), Buffer.from(bytes)), 0)
+
+  const oversize = "A".repeat(6_000_001)
+  const tooLarge = await worker.fetch(request(`/api/sync/${syncKey}/tasks/task-existing/attachments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "big.bin", dataBase64: oversize }),
+  }), env)
+  assert.equal(tooLarge.status, 413)
+
+  const del = await worker.fetch(request(`/api/sync/${syncKey}/attachments/${attachment.id}`, { method: "DELETE" }), env)
+  assert.equal(del.status, 204)
+})
+
+test("session assignment pins the task and new tasks default to the To do section", async () => {
+  const db = new MemoryD1()
+  const state = createState()
+  state.projects["project-inbox"].description = "workspace control panel"
+  state.sections["section-todo"] = { id: "section-todo", projectId: "project-inbox", name: "To do", order: 0, isCollapsed: false, createdAt: state.updatedAt, updatedAt: state.updatedAt }
+  state.sections["section-inprogress"] = { id: "section-inprogress", projectId: "project-inbox", name: "In Progress", order: 1, isCollapsed: false, createdAt: state.updatedAt, updatedAt: state.updatedAt }
+  db.syncStates.get(syncKey).state_json = JSON.stringify(state)
+  db.keys.push({ id: "agent-key-sessions", sync_key: syncKey, token_hash: sha256(agentToken), name: "Sessions", scopes: JSON.stringify(["tasks:read", "tasks:write"]), created_at: state.updatedAt, last_used_at: null, revoked_at: null })
+  const env = { DB: db, ASSETS: { fetch: () => new Response("missing", { status: 404 }) } }
+  const headers = { Authorization: `Bearer ${agentToken}`, "Content-Type": "application/json", "Idempotency-Key": `session-test-0001` }
+
+  const created = await worker.fetch(request("/api/agent/v1/tasks", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ title: "Pinned session task", assignedSession: { id: "session-abc", label: "coder: refactor board" } }),
+  }), env)
+  assert.equal(created.status, 201)
+  const { task } = await created.json()
+  assert.deepEqual(task.assignedSession, { id: "session-abc", label: "coder: refactor board" })
+  assert.equal(task.sectionId, "section-inprogress")
+  assert.equal(task.description.split(/\r?\n/)[0], "— pinned —")
+
+  const stored = JSON.parse(db.syncStates.get(syncKey).state_json)
+  assert.equal(stored.tasks[task.id].sectionId, "section-inprogress")
+
+  const plain = await worker.fetch(request("/api/agent/v1/tasks", {
+    method: "POST",
+    headers: { ...headers, "Idempotency-Key": "session-test-0002" },
+    body: JSON.stringify({ title: "Defaults to todo" }),
+  }), env)
+  assert.equal(plain.status, 201)
+  const plainBody = await plain.json()
+  assert.equal(plainBody.task.sectionId, "section-todo")
+  assert.equal(plainBody.task.assignedSession, null)
+
+  const unassign = await worker.fetch(request(`/api/agent/v1/tasks/${task.id}`, {
+    method: "PATCH",
+    headers: { ...headers, "Idempotency-Key": "session-test-0003" },
+    body: JSON.stringify({ assignedSession: null }),
+  }), env)
+  if (unassign.status !== 200) console.error("UNASSIGN_BODY", await unassign.text())
+  assert.equal(unassign.status, 200)
+  assert.equal((await unassign.json()).task.assignedSession, null)
+
+  const list = await worker.fetch(request("/api/agent/v1/tasks?status=all&limit=250", { headers: { Authorization: `Bearer ${agentToken}` } }), env)
+  const listed = (await list.json()).tasks.find((entry) => entry.id === task.id)
+  assert.equal(listed.assignedSession, null)
+})
+
+test("sync attachment JSON route returns the full base64 record", async () => {
+  const db = new MemoryD1()
+  const env = { DB: db, ASSETS: { fetch: () => new Response("missing", { status: 404 }) } }
+  const bytes = new TextEncoder().encode("json-variant-body")
+  const dataBase64 = Buffer.from(bytes).toString("base64")
+
+  const upload = await worker.fetch(request(`/api/sync/${syncKey}/tasks/task-existing/attachments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "shot.png", mimeType: "image/png", dataBase64 }),
+  }), env)
+  assert.equal(upload.status, 201)
+  const { attachment } = await upload.json()
+
+  const variant = await worker.fetch(request(`/api/sync/${syncKey}/attachment/${attachment.id}`, {}), env)
+  assert.equal(variant.status, 200)
+  const body = await variant.json()
+  assert.equal(body.ok, true)
+  assert.equal(body.attachment.name, "shot.png")
+  assert.equal(body.attachment.mimeType, "image/png")
+  assert.equal(body.attachment.dataBase64, dataBase64)
+
+  const agentJson = await worker.fetch(request(`/api/agent/v1/attachments/${attachment.id}?format=json`, {
+    headers: { Authorization: `Bearer ${agentToken}` },
+  }), env)
+  assert.equal(agentJson.status, 401)
+
+  db.keys.push({ id: "agent-key-json", sync_key: syncKey, token_hash: sha256(agentToken), name: "Json", scopes: JSON.stringify(["tasks:read"]), created_at: "2026-08-09T00:00:00.000Z", last_used_at: null, revoked_at: null })
+  const agentJsonAuthed = await worker.fetch(request(`/api/agent/v1/attachments/${attachment.id}?format=json`, {
+    headers: { Authorization: `Bearer ${agentToken}` },
+  }), env)
+  assert.equal(agentJsonAuthed.status, 200)
+  assert.equal((await agentJsonAuthed.json()).attachment.dataBase64, dataBase64)
 })

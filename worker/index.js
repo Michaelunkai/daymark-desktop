@@ -29,6 +29,9 @@ const worker = {
     }
     const syncMatch = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})$/)
     const syncChangesMatch = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})\/changes$/)
+    const syncTaskAttachmentsMatch = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})\/tasks\/([A-Za-z0-9_-]{3,160})\/attachments$/)
+    const syncAttachmentItemMatch = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})\/attachments\/([A-Za-z0-9_-]{3,160})$/)
+    const syncAttachmentJsonMatch = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})\/attachment\/([A-Za-z0-9_.-]{3,200})$/)
     if (pathname === "/.well-known/daymark-ai.json" && request.method === "GET") {
       return json(agentDiscovery(url.origin))
     }
@@ -63,6 +66,21 @@ const worker = {
     if (syncMatch) {
       return env.DB
         ? handleSync(request, env.DB, syncMatch[1])
+        : json({ error: "sync_unavailable" }, 503)
+    }
+    if (syncTaskAttachmentsMatch) {
+      return env.DB
+        ? handleSyncTaskAttachments(request, env.DB, syncTaskAttachmentsMatch[1], syncTaskAttachmentsMatch[2])
+        : json({ error: "sync_unavailable" }, 503)
+    }
+    if (syncAttachmentItemMatch) {
+      return env.DB
+        ? handleSyncAttachmentItem(request, env.DB, syncAttachmentItemMatch[1], syncAttachmentItemMatch[2])
+        : json({ error: "sync_unavailable" }, 503)
+    }
+    if (syncAttachmentJsonMatch) {
+      return env.DB
+        ? handleSyncAttachmentJson(request, env.DB, syncAttachmentJsonMatch[1], syncAttachmentJsonMatch[2])
         : json({ error: "sync_unavailable" }, 503)
     }
 
@@ -249,6 +267,218 @@ async function handleSync(request, db, syncKey) {
   return json({ revision: nextRevision, state: mergedState, updatedAt })
 }
 
+const ATTACHMENT_MAX_BASE64 = 6_000_000
+const ATTACHMENT_BODY_MAX_BYTES = 6_400_000
+const ATTACHMENT_MAX_NAME = 255
+const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/
+
+async function ensureAttachmentTables(db) {
+  await db.prepare(
+    "CREATE TABLE IF NOT EXISTS task_attachments (id TEXT PRIMARY KEY, sync_key TEXT NOT NULL, task_id TEXT NOT NULL, name TEXT, mime_type TEXT, size INTEGER, data_base64 TEXT, created_at TEXT)",
+  ).run()
+  await db.prepare(
+    "CREATE INDEX IF NOT EXISTS idx_task_attachments_task ON task_attachments (sync_key, task_id, created_at)",
+  ).run()
+}
+
+function attachmentJson(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    mimeType: row.mime_type,
+    size: Number(row.size ?? 0),
+    createdAt: row.created_at,
+  }
+}
+
+async function listTaskAttachments(db, syncKey, taskId) {
+  const result = await db
+    .prepare("SELECT id, task_id, name, mime_type, size, created_at FROM task_attachments WHERE sync_key = ?1 AND task_id = ?2 ORDER BY created_at ASC, id ASC")
+    .bind(syncKey, taskId)
+    .all()
+  return result.results ?? []
+}
+
+function decodeBase64ToBytes(value) {
+  const normalized = value.replace(/\s+/g, "")
+  const binary = atob(normalized)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index)
+  return bytes
+}
+
+function sanitizeFilename(name) {
+  return name.replace(/[\r\n"\\]/g, "_").replace(/[^\x20-\x7E]/g, "_").slice(0, 200) || "attachment"
+}
+
+async function taskAttachmentResponse(db, syncKey, taskId, request) {
+  const current = await getSyncState(db, syncKey)
+  if (!current) return json({ error: "workspace_not_initialized" }, 409)
+  const state = parseStoredState(current)
+  if (!state) return json({ error: "invalid_workspace_state" }, 500)
+  if (!state.tasks?.[taskId]) return json({ error: "not_found" }, 404)
+  await ensureAttachmentTables(db)
+
+  if (request.method === "GET") {
+    const rows = await listTaskAttachments(db, syncKey, taskId)
+    return json({ ok: true, attachments: rows.map(attachmentJson) })
+  }
+
+  const payload = await readJson(request, ATTACHMENT_BODY_MAX_BYTES)
+  if (!payload.ok) return payload.response
+  const name = typeof payload.value.name === "string" ? payload.value.name.trim() : ""
+  const dataBase64 = typeof payload.value.dataBase64 === "string" ? payload.value.dataBase64 : ""
+  const mimeType = typeof payload.value.mimeType === "string" && payload.value.mimeType.trim()
+    ? payload.value.mimeType.trim().slice(0, 200)
+    : "application/octet-stream"
+  const cleanBase64 = dataBase64.replace(/\s+/g, "")
+  if (!name || name.length > ATTACHMENT_MAX_NAME) {
+    return json({ error: "invalid_payload", message: "An attachment name of 1-255 characters is required." }, 422)
+  }
+  if (!cleanBase64 || cleanBase64.length > ATTACHMENT_MAX_BASE64 || !BASE64_PATTERN.test(cleanBase64) || cleanBase64.length % 4 !== 0) {
+    return json({ error: "invalid_payload", message: "dataBase64 must be valid base64 no longer than 6MB." }, payload.value.dataBase64 && cleanBase64.length > ATTACHMENT_MAX_BASE64 ? 413 : 422)
+  }
+  let byteLength
+  try {
+    byteLength = atob(cleanBase64).length
+  } catch {
+    return json({ error: "invalid_payload", message: "dataBase64 must be valid base64." }, 422)
+  }
+
+  const id = createRecordId("att")
+  const createdAt = new Date().toISOString()
+  const meta = { id, name, mimeType, size: byteLength, createdAt }
+  try {
+    await db
+      .prepare("INSERT INTO task_attachments (id, sync_key, task_id, name, mime_type, size, data_base64, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)")
+      .bind(id, syncKey, taskId, name, mimeType, byteLength, cleanBase64, createdAt)
+      .run()
+  } catch {
+    return json({ error: "attachment_too_large", message: "The attachment could not be persisted." }, 413)
+  }
+
+  let revision = Number(current.revision)
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const outcome = await mutateAgentState(db, syncKey, (state, now) => {
+      const task = state.tasks?.[taskId]
+      if (!task) return notFoundAgentMutation()
+      task.attachments = Array.isArray(task.attachments) ? task.attachments : []
+      if (!task.attachments.some((entry) => entry.id === id)) task.attachments.push(meta)
+      task.updatedAt = now
+      return successAgentMutation(200, { attachment: meta }, id)
+    })
+    if (outcome.ok) {
+      revision = outcome.revision
+      break
+    }
+    if (outcome.status === 404) {
+      await db.prepare("DELETE FROM task_attachments WHERE id = ?1 AND sync_key = ?2").bind(id, syncKey).run()
+      return json({ error: "not_found" }, 404)
+    }
+    if (attempt === 2) {
+      return json({ error: "conflict", retryable: true }, 409)
+    }
+  }
+  return json({ ok: true, attachment: meta, revision }, 201)
+}
+
+async function handleTaskAttachments(request, db, syncKey, taskId) {
+  return taskAttachmentResponse(db, syncKey, taskId, request)
+}
+
+async function handleSyncTaskAttachments(request, db, syncKey, taskId) {
+  if (request.method !== "GET" && request.method !== "POST") return json({ error: "method_not_allowed" }, 405)
+  return taskAttachmentResponse(db, syncKey, taskId, request)
+}
+
+async function attachmentBytesResponse(db, syncKey, attachmentId) {
+  await ensureAttachmentTables(db)
+  const row = await db
+    .prepare("SELECT id, task_id, name, mime_type, size, data_base64, created_at FROM task_attachments WHERE id = ?1 AND sync_key = ?2")
+    .bind(attachmentId, syncKey)
+    .first()
+  if (!row) return json({ error: "not_found" }, 404)
+  let bytes
+  try {
+    bytes = decodeBase64ToBytes(row.data_base64 ?? "")
+  } catch {
+    return json({ error: "attachment_corrupt" }, 500)
+  }
+  return new Response(bytes, {
+    status: 200,
+    headers: {
+      "Cache-Control": "no-store",
+      "Content-Type": row.mime_type || "application/octet-stream",
+      "Content-Length": String(bytes.byteLength),
+      "Content-Disposition": `attachment; filename="${sanitizeFilename(row.name || "attachment")}"`,
+    },
+  })
+}
+
+async function deleteAttachmentById(db, syncKey, attachmentId) {
+  const row = await db
+    .prepare("SELECT id, task_id FROM task_attachments WHERE id = ?1 AND sync_key = ?2")
+    .bind(attachmentId, syncKey)
+    .first()
+  if (!row) return json({ error: "not_found" }, 404)
+  await db.prepare("DELETE FROM task_attachments WHERE id = ?1 AND sync_key = ?2").bind(attachmentId, syncKey).run()
+  await mutateAgentState(db, syncKey, (state, now) => {
+    const task = state.tasks?.[row.task_id]
+    if (!task || !Array.isArray(task.attachments)) return { ok: true, status: 200, body: {}, changed: false }
+    if (!task.attachments.some((entry) => entry.id === attachmentId)) return { ok: true, status: 200, body: {}, changed: false }
+    task.attachments = task.attachments.filter((entry) => entry.id !== attachmentId)
+    task.updatedAt = now
+    return successAgentMutation(200, { id: attachmentId }, row.task_id)
+  })
+  return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } })
+}
+
+async function handleAttachmentItem(request, db, syncKey, attachmentId) {
+  if (request.method === "GET") {
+    const format = new URL(request.url).searchParams.get("format")
+    if (format === "json") return attachmentJsonResponse(db, syncKey, attachmentId)
+    return attachmentBytesResponse(db, syncKey, attachmentId)
+  }
+  if (request.method === "DELETE") {
+    return deleteAttachmentById(db, syncKey, attachmentId)
+  }
+  return json({ error: "method_not_allowed" }, 405)
+}
+
+async function handleSyncAttachmentItem(request, db, syncKey, attachmentId) {
+  if (request.method === "GET") return attachmentBytesResponse(db, syncKey, attachmentId)
+  if (request.method === "DELETE") return deleteAttachmentById(db, syncKey, attachmentId)
+  return json({ error: "method_not_allowed" }, 405)
+}
+
+// JSON variant: {name, mimeType, dataBase64} so mobile clients can render
+// without binary handling. Authenticated by the sync key in the path.
+async function attachmentJsonResponse(db, syncKey, attachmentId) {
+  await ensureAttachmentTables(db)
+  const row = await db
+    .prepare("SELECT id, task_id, name, mime_type, size, data_base64, created_at FROM task_attachments WHERE id = ?1 AND sync_key = ?2")
+    .bind(attachmentId, syncKey)
+    .first()
+  if (!row) return json({ error: "not_found" }, 404)
+  return json({
+    ok: true,
+    attachment: {
+      id: row.id,
+      taskId: row.task_id,
+      name: row.name,
+      mimeType: row.mime_type || "application/octet-stream",
+      size: Number(row.size ?? 0),
+      dataBase64: String(row.data_base64 ?? "").replace(/\s+/g, ""),
+      createdAt: row.created_at,
+    },
+  })
+}
+
+async function handleSyncAttachmentJson(request, db, syncKey, attachmentId) {
+  if (request.method !== "GET") return json({ error: "method_not_allowed" }, 405)
+  return attachmentJsonResponse(db, syncKey, attachmentId)
+}
+
 const AGENT_API_PREFIX = "/api/agent/v1"
 const AGENT_SCOPES = [
   "projects:read", "projects:write",
@@ -318,6 +548,21 @@ async function handleAgentApi(request, db, pathname) {
   if (completeMatch && request.method === "POST") {
     if (!hasScope(principal.key, "tasks:write")) return forbidden("tasks:write")
     return completeAgentTask(request, db, principal.key, completeMatch[1])
+  }
+
+  const taskAttachmentsMatch = relativePath.match(/^\/tasks\/([A-Za-z0-9_-]{3,160})\/attachments$/)
+  if (taskAttachmentsMatch && (request.method === "GET" || request.method === "POST")) {
+    if (!hasScope(principal.key, request.method === "GET" ? "tasks:read" : "tasks:write")) {
+      return forbidden(request.method === "GET" ? "tasks:read" : "tasks:write")
+    }
+    return handleTaskAttachments(request, db, principal.key.sync_key, taskAttachmentsMatch[1])
+  }
+
+  const attachmentItemMatch = relativePath.match(/^\/attachments\/([A-Za-z0-9_.-]{3,200})$/)
+  if (attachmentItemMatch && (request.method === "GET" || request.method === "DELETE")) {
+    const requiredScope = request.method === "GET" ? "tasks:read" : "tasks:write"
+    if (!hasScope(principal.key, requiredScope)) return forbidden(requiredScope)
+    return handleAttachmentItem(request, db, principal.key.sync_key, attachmentItemMatch[1])
   }
 
   return json({ error: "not_found" }, 404)
@@ -585,6 +830,7 @@ async function patchAgentResource(request, db, key, resource, id, payload) {
     const patch = normalizeAgentResourcePatch(resource, payload, state, record)
     if (!patch.ok) return patch
     Object.assign(record, patch.value, { updatedAt: now })
+    if (resource === "tasks" && record.assignedSession) applySessionAssignment(state, record, now)
     return successAgentMutation(200, { [definition.singular]: publicAgentRecord(resource, record) }, id)
   })
 }
@@ -704,15 +950,21 @@ function buildAgentResource(resource, payload, state, id, now) {
   }
   if (resource === "tasks") {
     const projectId = optionalId(payload.projectId) ?? state.preferences?.inboxProjectId
-    const sectionId = optionalNullableId(payload.sectionId)
+    // New tasks default to the project's "To do" section when none is given.
+    const sectionId = payload.sectionId === undefined
+      ? findProjectSectionByStage(state, projectId, "todo")
+      : optionalNullableId(payload.sectionId)
+    const assignedSession = normalizeAssignedSession(payload.assignedSession)
     const parentId = optionalNullableId(payload.parentId)
     const labelIds = normalizeKnownIds(payload.labelIds, state.labels)
     const priority = normalizePriority(payload.priority)
     const due = normalizeAgentDue(payload.due)
-    if (!title || !projectId || !state.projects?.[projectId] || state.projects[projectId].isArchived || !validTaskLocation(state, projectId, sectionId) || labelIds === null || priority === null || due === undefined || (parentId && !state.tasks?.[parentId])) {
+    if (!title || !projectId || !state.projects?.[projectId] || state.projects[projectId].isArchived || sectionId === undefined || !validTaskLocation(state, projectId, sectionId) || assignedSession === false || labelIds === null || priority === null || due === undefined || (parentId && !state.tasks?.[parentId])) {
       return invalidAgentPayload("The task fields are invalid.")
     }
-    return { ok: true, value: { id, content: title, description, projectId, sectionId, parentId, labelIds, priority, due, completedAt: null, completionContext: null, order: order ?? nextTaskOrder(state.tasks, projectId), createdAt: now, updatedAt: now } }
+    const record = { id, content: title, description, projectId, sectionId, parentId, labelIds, priority, due, completedAt: null, completionContext: null, assignedSession, order: order ?? nextTaskOrder(state.tasks, projectId), createdAt: now, updatedAt: now }
+    if (assignedSession) applySessionAssignment(state, record, now)
+    return { ok: true, value: record }
   }
   if (resource === "notes") {
     const body = boundedText(payload.body, 60_000, true)
@@ -840,6 +1092,11 @@ function normalizeAgentResourcePatch(resource, payload, state, record) {
       if (due === undefined) return invalidAgentPayload()
       patch.due = due
     }
+    if (payload.assignedSession !== undefined) {
+      const assignedSession = normalizeAssignedSession(payload.assignedSession)
+      if (assignedSession === false) return invalidAgentPayload("assignedSession must be { id, label } or null.")
+      patch.assignedSession = assignedSession
+    }
   } else if (resource === "notes") {
     const title = payload.title === undefined ? record.title : boundedText(payload.title, 500, true)
     const body = payload.body === undefined ? record.body : boundedText(payload.body, 60_000, true)
@@ -932,11 +1189,13 @@ async function consumeAgentUndo(request, db, key, undoId) {
     operation: "undo.apply",
     payload: { undoId },
     mutate: async () => {
-      const outcome = await mutateAgentState(db, key.sync_key, (state) => {
+      const outcome = await mutateAgentState(db, key.sync_key, (state, now) => {
         if (Number(state.revision) !== Number(row.expected_revision)) {
           return { ok: false, status: 409, body: { error: "undo_conflict", retryable: false } }
         }
-        const restored = applyAgentInverse(state, inverse)
+        // `now` stamps restored records so tombstones still held by other
+        // devices lose to them at the next merge instead of re-deleting them.
+        const restored = applyAgentInverse(state, inverse, now)
         return restored ? successAgentMutation(200, { restored: true, undoId }, undoId) : { ok: false, status: 409, body: { error: "undo_unavailable" } }
       })
       if (!outcome.ok) return outcome
@@ -950,31 +1209,31 @@ async function consumeAgentUndo(request, db, key, undoId) {
   })
 }
 
-function applyAgentInverse(state, inverse) {
+function applyAgentInverse(state, inverse, now = new Date().toISOString()) {
   if (inverse.kind === "projects.restore") {
-    state.projects[inverse.record.id] = inverse.record
+    state.projects[inverse.record.id] = { ...structuredClone(inverse.record), updatedAt: now }
     clearAgentTombstone(state, "projects", inverse.record.id)
   } else if (inverse.kind === "project.restoreBundle") {
-    state.projects[inverse.project.id] = inverse.project
+    state.projects[inverse.project.id] = { ...structuredClone(inverse.project), updatedAt: now }
     clearAgentTombstone(state, "projects", inverse.project.id)
     for (const section of inverse.sections) {
-      state.sections[section.id] = section
+      state.sections[section.id] = { ...structuredClone(section), updatedAt: now }
       clearAgentTombstone(state, "sections", section.id)
     }
-    for (const task of inverse.tasks) state.tasks[task.id] = task
+    for (const task of inverse.tasks) state.tasks[task.id] = structuredClone(task)
     state.preferences.activeProjectId = inverse.activeProjectId
   } else if (inverse.kind === "tasks.restore") {
-    state.tasks[inverse.record.id] = inverse.record
+    state.tasks[inverse.record.id] = { ...structuredClone(inverse.record), updatedAt: now }
     clearAgentTombstone(state, "tasks", inverse.record.id)
   } else if (inverse.kind === "notes.restore") {
-    state.notes[inverse.record.id] = inverse.record
+    state.notes[inverse.record.id] = { ...structuredClone(inverse.record), updatedAt: now }
     clearAgentTombstone(state, "notes", inverse.record.id)
   } else if (inverse.kind === "order.restore") {
-    state.orderItems[inverse.item.id] = inverse.item
+    state.orderItems[inverse.item.id] = { ...structuredClone(inverse.item), updatedAt: now }
     clearAgentTombstone(state, "orderItems", inverse.item.id)
     for (const item of inverse.related) state.orderItems[item.id] = item
   } else if (inverse.kind === "diary.restore") {
-    state.diaryEntries[inverse.entry.date] = inverse.entry
+    state.diaryEntries[inverse.entry.date] = { ...structuredClone(inverse.entry), updatedAt: now }
     clearAgentTombstone(state, "diaryEntries", inverse.entry.date)
   } else {
     return false
@@ -1336,6 +1595,18 @@ function publicTask(task) {
     due: task.due ?? null,
     completedAt: task.completedAt ?? null,
     completionContext: task.completionContext ?? null,
+    assignedSession: task.assignedSession ?? null,
+    attachments: Array.isArray(task.attachments)
+      ? task.attachments
+          .filter((entry) => entry && typeof entry.id === "string")
+          .map((entry) => ({
+            id: entry.id,
+            name: entry.name ?? "",
+            mimeType: entry.mimeType ?? "application/octet-stream",
+            size: Number(entry.size ?? 0),
+            createdAt: entry.createdAt ?? null,
+          }))
+      : [],
     order: task.order,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
@@ -1387,6 +1658,53 @@ function normalizeKnownIds(value, collection) {
 
 function validTaskLocation(state, projectId, sectionId) {
   return Boolean(state.projects?.[projectId]) && (!sectionId || state.sections?.[sectionId]?.projectId === projectId)
+}
+
+// Board stage detection mirrors the apps: section name normalized to letters only.
+function normalizedSectionStage(name) {
+  const normalized = String(name ?? "").toLowerCase().replace(/[^a-z]/g, "")
+  if (normalized === "todo") return "todo"
+  if (normalized === "inprogress") return "inprogress"
+  if (normalized === "finished" || normalized === "done") return "finished"
+  return null
+}
+
+function findProjectSectionByStage(state, projectId, stage) {
+  return Object.values(state.sections ?? {}).find(
+    (section) => section.projectId === projectId && normalizedSectionStage(section.name) === stage,
+  )?.id ?? null
+}
+
+// assignedSession shape: { id: string, label: string } or null.
+// Returns undefined when absent, false when invalid, otherwise {id,label} or null (clear).
+function normalizeAssignedSession(value) {
+  if (value === undefined) return undefined
+  if (value === null) return null
+  if (typeof value !== "object" || Array.isArray(value)) return false
+  const id = optionalId(value.id)
+  const label = typeof value.label === "string" ? value.label.trim().slice(0, 200) : ""
+  if (!id || !label) return false
+  return { id, label }
+}
+
+const SESSION_PIN_MARKER = "— pinned —"
+
+// Pin loop: assigning a session to a To-do task moves it to the project's
+// "In Progress" section (when one exists) and prepends the pin marker so both
+// apps render it pinned at the top of the In Progress column. Idempotent:
+// re-assigning the same session is a no-op on description/section.
+function applySessionAssignment(state, task, now) {
+  const session = task.assignedSession
+  if (!session) return
+  const description = typeof task.description === "string" ? task.description : ""
+  if (description.split(/\r?\n/)[0]?.trim() !== SESSION_PIN_MARKER) {
+    task.description = `${SESSION_PIN_MARKER}\n${description}`
+  }
+  const currentStage = normalizedSectionStage(state.sections?.[task.sectionId]?.name)
+  if (currentStage !== "inprogress") {
+    const inProgressSectionId = findProjectSectionByStage(state, task.projectId, "inprogress")
+    if (inProgressSectionId) task.sectionId = inProgressSectionId
+  }
 }
 
 function nextAgentOrder(collection) {
@@ -1576,7 +1894,7 @@ function agentOpenApi(origin) {
       securitySchemes: { agentKey: { type: "http", scheme: "bearer", bearerFormat: "Daymark API key" } },
       schemas: {
         Error: { type: "object", required: ["error"], properties: { error: { type: "string" }, message: { type: "string" }, retryable: { type: "boolean" } } },
-        Task: { type: "object", required: ["id", "content", "projectId", "priority", "createdAt", "updatedAt"], properties: { id: { type: "string" }, content: { type: "string" }, description: { type: "string" }, projectId: { type: "string" }, sectionId: { type: ["string", "null"] }, parentId: { type: ["string", "null"] }, labelIds: { type: "array", items: { type: "string" } }, priority: { type: "integer", enum: [1, 2, 3, 4] }, due: { $ref: "#/components/schemas/TaskDue" }, completedAt: { type: ["string", "null"], format: "date-time" }, completionContext: { type: ["object", "null"] }, order: { type: "integer" }, createdAt: { type: "string", format: "date-time" }, updatedAt: { type: "string", format: "date-time" } } },
+        Task: { type: "object", required: ["id", "content", "projectId", "priority", "createdAt", "updatedAt"], properties: { id: { type: "string" }, content: { type: "string" }, description: { type: "string" }, projectId: { type: "string" }, sectionId: { type: ["string", "null"] }, parentId: { type: ["string", "null"] }, labelIds: { type: "array", items: { type: "string" } }, priority: { type: "integer", enum: [1, 2, 3, 4] }, due: { $ref: "#/components/schemas/TaskDue" }, completedAt: { type: ["string", "null"], format: "date-time" }, completionContext: { type: ["object", "null"] }, assignedSession: { type: ["object", "null"], properties: { id: { type: "string" }, label: { type: "string" } } }, order: { type: "integer" }, createdAt: { type: "string", format: "date-time" }, updatedAt: { type: "string", format: "date-time" } } },
         TaskDue: { type: ["object", "null"], properties: { date: { type: "string", format: "date" }, time: { type: ["string", "null"], pattern: "^(?:[01]\\d|2[0-3]):[0-5]\\d$" } } },
         ProjectInput: { type: "object", required: ["name"], properties: { name: { type: "string", maxLength: 200 }, description: { type: "string", maxLength: 20000 }, color: { type: "string" }, parentId: { type: ["string", "null"] }, layout: { type: "string", enum: ["list", "board"] }, isFavorite: { type: "boolean" } } },
         TaskInput: { type: "object", required: ["title"], properties: { title: { type: "string", maxLength: 500 }, description: { type: "string", maxLength: 20000 }, projectId: { type: "string" }, sectionId: { type: ["string", "null"] }, labelIds: { type: "array", items: { type: "string" } }, priority: { type: "integer", enum: [1, 2, 3, 4] }, due: { $ref: "#/components/schemas/TaskDue" } } },
@@ -1609,6 +1927,22 @@ function agentOpenApi(origin) {
       "/api/agent/v1/tasks/{id}/complete": { post: operation("completeTask", "Complete one task", "tasks:write", null, 200, idempotency) },
       "/api/agent/v1/tasks/{id}/reopen": { post: operation("reopenTask", "Reopen one task", "tasks:write", null, 200, idempotency) },
       "/api/agent/v1/tasks/{id}/delete": { post: operation("deleteTask", "Delete one task with reversible confirmation", "tasks:write", { $ref: "#/components/schemas/DeleteConfirmation" }, 200, idempotency) },
+      "/api/agent/v1/tasks/{id}/attachments": {
+        get: operation("listTaskAttachments", "List attachment metadata for one task", "tasks:read"),
+        post: operation("uploadTaskAttachment", "Upload one attachment (base64) onto a task", "tasks:write", {
+          type: "object",
+          required: ["name", "dataBase64"],
+          properties: {
+            name: { type: "string", maxLength: 255 },
+            mimeType: { type: "string" },
+            dataBase64: { type: "string", maxLength: 6_000_000 },
+          },
+        }, 201),
+      },
+      "/api/agent/v1/attachments/{id}": {
+        get: { ...operation("downloadAttachment", "Download one attachment's raw bytes", "tasks:read"), responses: { "200": { description: "Raw attachment bytes", content: { "*/*": { schema: { type: "string", format: "binary" } } } } } },
+        delete: operation("deleteAttachment", "Delete one attachment", "tasks:write"),
+      },
       "/api/agent/v1/calendar": { get: operation("listCalendar", "List scheduled tasks in a date range", "calendar:read") },
       "/api/agent/v1/notes": resource("Notes", "notes:read", { $ref: "#/components/schemas/NoteInput" }),
       "/api/agent/v1/notes/{id}": item("Note", "notes:read", { $ref: "#/components/schemas/NoteInput" }),
