@@ -29,7 +29,6 @@ const worker = {
     }
     const syncMatch = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})$/)
     const syncChangesMatch = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})\/changes$/)
-    const syncTaskAttachmentsMatch = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})\/tasks\/([A-Za-z0-9_-]{3,160})\/attachments$/)
     const syncAttachmentItemMatch = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})\/attachments\/([A-Za-z0-9_-]{3,160})$/)
     const syncAttachmentJsonMatch = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})\/attachment\/([A-Za-z0-9_.-]{3,200})$/)
     if (pathname === "/.well-known/daymark-ai.json" && request.method === "GET") {
@@ -66,11 +65,6 @@ const worker = {
     if (syncMatch) {
       return env.DB
         ? handleSync(request, env.DB, syncMatch[1])
-        : json({ error: "sync_unavailable" }, 503)
-    }
-    if (syncTaskAttachmentsMatch) {
-      return env.DB
-        ? handleSyncTaskAttachments(request, env.DB, syncTaskAttachmentsMatch[1], syncTaskAttachmentsMatch[2])
         : json({ error: "sync_unavailable" }, 503)
     }
     if (syncAttachmentItemMatch) {
@@ -386,11 +380,6 @@ async function handleTaskAttachments(request, db, syncKey, taskId) {
   return taskAttachmentResponse(db, syncKey, taskId, request)
 }
 
-async function handleSyncTaskAttachments(request, db, syncKey, taskId) {
-  if (request.method !== "GET" && request.method !== "POST") return json({ error: "method_not_allowed" }, 405)
-  return taskAttachmentResponse(db, syncKey, taskId, request)
-}
-
 async function attachmentBytesResponse(db, syncKey, attachmentId) {
   await ensureAttachmentTables(db)
   const row = await db
@@ -447,7 +436,6 @@ async function handleAttachmentItem(request, db, syncKey, attachmentId) {
 
 async function handleSyncAttachmentItem(request, db, syncKey, attachmentId) {
   if (request.method === "GET") return attachmentBytesResponse(db, syncKey, attachmentId)
-  if (request.method === "DELETE") return deleteAttachmentById(db, syncKey, attachmentId)
   return json({ error: "method_not_allowed" }, 405)
 }
 
@@ -2043,7 +2031,14 @@ function applyTombstones(state) {
     const id = key.slice(separator + 1)
     const collection = collections[collectionName]
     const record = collection?.[id]
-    if (record && compareMutationTimestamp(tombstone.deletedAt, record.updatedAt) >= 0) delete collection[id]
+    if (!record) continue
+    // A stale copy of the deleted record (identical updatedAt) that is merged
+    // back from another device must stay deleted even when a skewed clock
+    // makes its updatedAt look newer than the deletion. A legitimate restore
+    // receives a fresh updatedAt plus a cleared tombstone, so it survives.
+    const deletedRecordUpdatedAt = tombstone.deletedRecordUpdatedAt
+    const isStaleDeletedRecord = deletedRecordUpdatedAt !== undefined && deletedRecordUpdatedAt === record.updatedAt
+    if (isStaleDeletedRecord || compareMutationTimestamp(tombstone.deletedAt, record.updatedAt) >= 0) delete collection[id]
   }
 }
 

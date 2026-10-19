@@ -583,13 +583,14 @@ test("task attachment round-trip over the agent API", async () => {
 
 test("task attachment round-trip over the canonical sync key route", async () => {
   const db = new MemoryD1()
+  attachmentKey(db)
   const env = { DB: db, ASSETS: { fetch: () => new Response("missing", { status: 404 }) } }
   const bytes = new TextEncoder().encode("sync-route-bytes")
   const dataBase64 = Buffer.from(bytes).toString("base64")
 
-  const upload = await worker.fetch(request(`/api/sync/${syncKey}/tasks/task-existing/attachments`, {
+  const upload = await worker.fetch(request("/api/agent/v1/tasks/task-existing/attachments", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${agentToken}`, "Content-Type": "application/json", "Idempotency-Key": "sync-route-upload-0001" },
     body: JSON.stringify({ name: "sync.bin", mimeType: "application/octet-stream", dataBase64 }),
   }), env)
   assert.equal(upload.status, 201)
@@ -609,15 +610,25 @@ test("task attachment round-trip over the canonical sync key route", async () =>
   assert.equal(Buffer.compare(Buffer.from(downloaded), Buffer.from(bytes)), 0)
 
   const oversize = "A".repeat(6_000_001)
-  const tooLarge = await worker.fetch(request(`/api/sync/${syncKey}/tasks/task-existing/attachments`, {
+  const tooLarge = await worker.fetch(request("/api/agent/v1/tasks/task-existing/attachments", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${agentToken}`, "Content-Type": "application/json", "Idempotency-Key": "sync-route-upload-0002" },
     body: JSON.stringify({ name: "big.bin", dataBase64: oversize }),
   }), env)
   assert.equal(tooLarge.status, 413)
 
-  const del = await worker.fetch(request(`/api/sync/${syncKey}/attachments/${attachment.id}`, { method: "DELETE" }), env)
+  const divergentPost = await worker.fetch(request(`/api/sync/${syncKey}/tasks/task-existing/attachments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "old.bin", dataBase64 }),
+  }), env)
+  assert.equal(divergentPost.status, 404)
+
+  const del = await worker.fetch(request(`/api/agent/v1/attachments/${attachment.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${agentToken}` } }), env)
   assert.equal(del.status, 204)
+
+  const divergentDelete = await worker.fetch(request(`/api/sync/${syncKey}/attachments/${attachment.id}`, { method: "DELETE" }), env)
+  assert.equal(divergentDelete.status, 405)
 })
 
 test("session assignment pins the task and new tasks default to the To do section", async () => {
@@ -671,13 +682,14 @@ test("session assignment pins the task and new tasks default to the To do sectio
 
 test("sync attachment JSON route returns the full base64 record", async () => {
   const db = new MemoryD1()
+  attachmentKey(db)
   const env = { DB: db, ASSETS: { fetch: () => new Response("missing", { status: 404 }) } }
   const bytes = new TextEncoder().encode("json-variant-body")
   const dataBase64 = Buffer.from(bytes).toString("base64")
 
-  const upload = await worker.fetch(request(`/api/sync/${syncKey}/tasks/task-existing/attachments`, {
+  const upload = await worker.fetch(request("/api/agent/v1/tasks/task-existing/attachments", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${agentToken}`, "Content-Type": "application/json", "Idempotency-Key": "json-variant-upload-0001" },
     body: JSON.stringify({ name: "shot.png", mimeType: "image/png", dataBase64 }),
   }), env)
   assert.equal(upload.status, 201)
@@ -694,7 +706,8 @@ test("sync attachment JSON route returns the full base64 record", async () => {
   const agentJson = await worker.fetch(request(`/api/agent/v1/attachments/${attachment.id}?format=json`, {
     headers: { Authorization: `Bearer ${agentToken}` },
   }), env)
-  assert.equal(agentJson.status, 401)
+  assert.equal(agentJson.status, 200)
+  assert.equal((await agentJson.json()).attachment.dataBase64, dataBase64)
 
   db.keys.push({ id: "agent-key-json", sync_key: syncKey, token_hash: sha256(agentToken), name: "Json", scopes: JSON.stringify(["tasks:read"]), created_at: "2026-08-09T00:00:00.000Z", last_used_at: null, revoked_at: null })
   const agentJsonAuthed = await worker.fetch(request(`/api/agent/v1/attachments/${attachment.id}?format=json`, {
