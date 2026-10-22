@@ -121,7 +121,10 @@ async function getCanonicalSyncKey(db) {
   const configured = await db
     .prepare("SELECT config_value FROM daymark_sync_config WHERE config_key = 'canonical_sync_key'")
     .first()
-  if (SYNC_KEY_PATTERN.test(configured?.config_value ?? "")) return configured.config_value
+  if (SYNC_KEY_PATTERN.test(configured?.config_value ?? "")) {
+    await pruneSyncHistory(db, configured.config_value)
+    return configured.config_value
+  }
 
   const latest = await db
     .prepare("SELECT sync_key FROM daymark_sync_states ORDER BY revision DESC, updated_at DESC LIMIT 1")
@@ -157,6 +160,60 @@ async function handleSyncChanges(request, db, syncKey) {
     await sleep(250)
   }
   return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } })
+}
+
+// Keeps the daymark_sync_history table bounded: the platform D1 database has a
+// hard 10 GB storage cap, and archiving the full state on every push grows the
+// table without limit. Keep only the newest revisions per sync key.
+const SYNC_HISTORY_KEEP = 5
+const SYNC_HISTORY_ARCHIVE_MAX_BYTES = 200_000
+
+async function pruneSyncHistory(db, syncKey) {
+  try {
+    await db
+      .prepare(
+        `DELETE FROM daymark_sync_history WHERE sync_key = ?1 AND revision NOT IN (
+           SELECT revision FROM daymark_sync_history WHERE sync_key = ?1 ORDER BY revision DESC LIMIT ${SYNC_HISTORY_KEEP}
+         )`,
+      )
+      .bind(syncKey)
+      .run()
+  } catch {
+    // Pruning is best-effort; never fail a sync write because of it.
+  }
+}
+
+// Server-side state hygiene: journal lines accumulate in task descriptions and
+// tombstones accumulate forever, which grows the sync document without bound
+// until it exceeds D1 write limits. Trim defensively on every persisted write.
+const SANITIZE_DESCRIPTION_MAX_LINES = 60
+const SANITIZE_TOMBSTONE_KEEP = 400
+const SANITIZE_UNDO_KEEP = 10
+
+function sanitizeSyncState(state) {
+  if (!state || typeof state !== "object") return state
+  for (const task of Object.values(state.tasks ?? {})) {
+    const description = task?.description
+    if (typeof description !== "string") continue
+    const lines = description.split("\n")
+    if (lines.length <= SANITIZE_DESCRIPTION_MAX_LINES) continue
+    const rest = lines[0].trim() === "— pinned —" ? lines.slice(1) : lines
+    task.description = (lines[0].trim() === "— pinned —" ? [lines[0]] : [])
+      .concat(rest.slice(-SANITIZE_DESCRIPTION_MAX_LINES))
+      .join("\n")
+  }
+  const tombstones = state.syncTombstones
+  if (tombstones && typeof tombstones === "object") {
+    const entries = Object.entries(tombstones)
+    if (entries.length > SANITIZE_TOMBSTONE_KEEP) {
+      entries.sort((a, b) => String(b[1]?.deletedAt ?? "").localeCompare(String(a[1]?.deletedAt ?? "")))
+      state.syncTombstones = Object.fromEntries(entries.slice(0, SANITIZE_TOMBSTONE_KEEP))
+    }
+  }
+  if (Array.isArray(state.undoStack) && state.undoStack.length > SANITIZE_UNDO_KEEP) {
+    state.undoStack = state.undoStack.slice(-SANITIZE_UNDO_KEEP)
+  }
+  return state
 }
 
 async function handleSync(request, db, syncKey) {
@@ -220,12 +277,19 @@ async function handleSync(request, db, syncKey) {
   const nextRevision = Math.max(Number(current?.revision ?? 0) + 1, Number(state.revision), 1)
   mergedState.revision = nextRevision
   mergedState.updatedAt = updatedAt
+  sanitizeSyncState(mergedState)
   const stateJson = JSON.stringify(mergedState)
   if (current) {
-    await db
-      .prepare("INSERT OR IGNORE INTO daymark_sync_history (sync_key, revision, state_json, archived_at) VALUES (?1, ?2, ?3, ?4)")
-      .bind(syncKey, current.revision, current.state_json, updatedAt)
-      .run()
+    // Prune BEFORE archiving: once the D1 storage quota is exhausted every
+    // large INSERT throws, so freeing old history first is what keeps writes
+    // alive. Skip archiving entirely for oversized documents.
+    await pruneSyncHistory(db, syncKey)
+    if (current.state_json.length <= SYNC_HISTORY_ARCHIVE_MAX_BYTES) {
+      await db
+        .prepare("INSERT OR IGNORE INTO daymark_sync_history (sync_key, revision, state_json, archived_at) VALUES (?1, ?2, ?3, ?4)")
+        .bind(syncKey, current.revision, current.state_json, updatedAt)
+        .run()
+    }
     const result = await db
       .prepare("UPDATE daymark_sync_states SET revision = ?1, state_json = ?2, updated_at = ?3 WHERE sync_key = ?4 AND revision = ?5")
       .bind(nextRevision, stateJson, updatedAt, syncKey, expectedRevision)
@@ -1532,8 +1596,10 @@ async function mutateAgentState(db, syncKey, mutate) {
   const nextRevision = Number(current.revision) + 1
   state.revision = nextRevision
   state.updatedAt = now
+  sanitizeSyncState(state)
   const stateJson = JSON.stringify(state)
   if (stateJson.length > 2_500_000) return { ok: false, status: 413, body: { error: "payload_too_large" } }
+  await pruneSyncHistory(db, syncKey)
   const write = await db
     .prepare("UPDATE daymark_sync_states SET revision = ?1, state_json = ?2, updated_at = ?3 WHERE sync_key = ?4 AND revision = ?5")
     .bind(nextRevision, stateJson, now, syncKey, current.revision)
@@ -1988,6 +2054,9 @@ function mergeSyncStates(local, remote) {
     reminders: canonicalizeReminders(mergedReminders),
     diaryEntries: newerRecord(local?.diaryEntries, remote?.diaryEntries),
     preferences: structuredClone(authoritativeState?.preferences ?? {}),
+    usage: compareMutationTimestamp(local?.usage?.updatedAt, remote?.usage?.updatedAt) >= 0
+      ? structuredClone(local?.usage ?? null)
+      : structuredClone(remote?.usage ?? null),
     undoStack: structuredClone(authoritativeState?.undoStack ?? []),
     syncTombstones: canonicalizeReminderTombstones(
       mergeTombstones(
