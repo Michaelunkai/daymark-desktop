@@ -54,6 +54,7 @@ export type TaskEditorProps = {
   saveError?: string;
   validationErrors?: TaskEditorErrors;
   presentation?: 'dialog' | 'panel';
+  projectLabel?: string;
   onDraftChange: (
     nextDraft: TaskEditorDraft,
     change: TaskEditorChange,

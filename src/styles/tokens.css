@@ -28,4 +28,25 @@
   --duration-fast: 120ms;
   --duration-normal: 180ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Workspace live board — vanta-black control room */
+  --radius: 10px;
+  --workspace-accent: #2de2c5;
+  --workspace-surface: #0b0d10;
+  --workspace-surface-raised: #11141a;
+  --workspace-border-hairline: rgba(255, 255, 255, 0.07);
+  --workspace-text-primary: #e8ecef;
+  --workspace-text-secondary: #98a2ad;
+  --workspace-age-fresh: #4ade80;
+  --workspace-age-due: #fbbf24;
+  --workspace-age-late: #f87171;
+  --workspace-radius-card: 10px;
+  --workspace-radius-pill: 999px;
+  --workspace-motion-fast: 120ms;
+  --workspace-motion: 160ms;
+  --workspace-top-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --workspace-shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --workspace-shadow-2: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --workspace-danger: #f87171;
+  --workspace-focus-ring: 0 0 0 2px rgba(45, 226, 197, 0.55);
 }

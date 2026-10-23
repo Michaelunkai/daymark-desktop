@@ -326,6 +326,7 @@ function migrateDiaryEntries(value: Record<string, unknown>): Record<string, unk
           highlights: typeof entry.highlights === "string" ? entry.highlights : "",
           reflection: typeof entry.reflection === "string" ? entry.reflection : "",
           tomorrow: typeof entry.tomorrow === "string" ? entry.tomorrow : "",
+          mood: typeof entry.mood === "string" ? entry.mood : "",
         },
       ];
     }),

@@ -145,3 +145,35 @@ client. The pairing code is persisted natively and reused on every later
 launcher start, so a paired device cannot silently create a second workspace.
 Pairing opens the same remote workspace on Android and Windows while keeping
 local-first storage available when offline.
+
+## Signing recovery facts (2026-10-19)
+
+The original release keystore (leaf signer
+`890ddcf80b412cf3145b9ce0841e0d857226022bef20ae637ef0d0a8b5358676`,
+the certificate of the app installed on the reference phone) is NOT present
+on this machine. Verified exhausted: both `Get-DaymarkSigningBackupRoots`
+escrow directories, `Daymark/AndroidSigning/*` Windows Credential Manager
+entries (CredRead error 1168), `DAYMARK_SIGNING_*` variables in every
+environment scope, all keystore/jks/p12 files on C:, E:, and F: including
+all user profiles, both recycle bins, every archive in
+`F:\backup\AI\zcode`, the P2V clone `C:\HyperV\P2V\P2V-Win11-clone.vhdx`
+(the pre-migration system image), and the 2026-10-19 `.orf` disk backup
+(disk 0 / C: only — it cannot contain F: data). A main-app
+`assembleRelease` therefore fails closed at `verifyDaymarkReleaseInputs`
+until the user restores the original keystore to either escrow root and
+recreates the three `Daymark/AndroidSigning` credential entries; at that
+point `Protect-DaymarkSigningKey.ps1`, the resolver, and
+`Verify-DaymarkRelease.ps1` work unchanged.
+
+Until then, ship new native Android work through the `companion` product
+flavor: `gradle.bat assembleCompanionDebug` builds the same shell plus the
+native AI workspace panel as `com.michaelunkai.daymark.companion`, which
+installs alongside the release-signed app without touching it or its data
+(different application id, so signature compatibility never applies). The
+companion APK is debug-signed by `C:\Users\Admin\.android\debug.keystore`;
+a hash-verified copy is kept at
+`F:\backup\windowsapps\Daymark\companion-signing\debug.keystore`. Restore
+that file to `%USERPROFILE%\.android\debug.keystore` before building
+companion updates if `.android` is ever cleared, otherwise the debug key
+regenerates and companion installs would need a manual uninstall. The
+`main` flavor and all release gates remain exactly as contracted.

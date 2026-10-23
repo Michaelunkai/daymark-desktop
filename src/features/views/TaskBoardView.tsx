@@ -1,4 +1,4 @@
-import type { DragEvent } from "react";
+import { useState, type DragEvent } from "react";
 
 import { ProjectSectionHeader } from "../projects/ProjectSectionHeader";
 import type { ProjectSection, ProjectTask } from "../projects/types";
@@ -19,6 +19,110 @@ function getDueLabel(task: ProjectTask) {
 
 function readDraggedTask(event: DragEvent<HTMLElement>) {
   return event.dataTransfer.getData("text/plain").trim();
+}
+
+const DESCRIPTION_COLLAPSED_LIMIT = 180;
+
+function isLongDescription(description: string) {
+  return (
+    description.length > DESCRIPTION_COLLAPSED_LIMIT || description.split("\n").length > 4
+  );
+}
+
+interface TaskCardProps {
+  task: ProjectTask;
+  labels?: TaskBoardViewProps["labels"];
+  onTaskOpen?: (taskId: string) => void;
+  onTaskComplete?: (taskId: string, nextValue: boolean) => void;
+  onTaskMove?: (taskId: string, sectionId: string | null, order: number) => void;
+  onTaskMenu?: (taskId: string) => void;
+}
+
+function TaskCard({ task, labels = [], onTaskOpen, onTaskComplete, onTaskMove, onTaskMenu }: TaskCardProps) {
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const description = task.description.trim();
+  const showDescriptionToggle = isLongDescription(description);
+
+  return (
+    <article
+      className={`task-card${task.completedAt !== null ? " task-card--completed" : ""}`}
+      draggable={Boolean(onTaskMove)}
+      onDragStart={(event) => {
+        if (!onTaskMove) {
+          return;
+        }
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", task.id);
+      }}
+    >
+      <div className="task-card-topline">
+        <span className="task-card-grip" aria-hidden="true">
+          <GripIcon />
+        </span>
+        {task.priority && task.priority < 4 ? (
+          <span className={`task-priority task-priority--p${task.priority}`}>P{task.priority}</span>
+        ) : null}
+        {onTaskMenu ? (
+          <button
+            aria-label={`Open actions for ${task.content}`}
+            className="task-action-button task-card-action"
+            title="Task actions"
+            type="button"
+            onClick={() => onTaskMenu(task.id)}
+          >
+            <MoreIcon />
+          </button>
+        ) : null}
+      </div>
+      {onTaskOpen ? (
+        <button className="task-card-title" type="button" onClick={() => onTaskOpen(task.id)}>
+          {task.content}
+        </button>
+      ) : (
+        <div className="task-card-title">{task.content}</div>
+      )}
+      {description ? (
+        <div className="task-card-description-block">
+          <p
+            className={`task-card-description${descriptionExpanded ? " task-card-description--open" : ""}`}
+          >
+            {description}
+          </p>
+          {showDescriptionToggle ? (
+            <button
+              aria-expanded={descriptionExpanded}
+              className="task-card-description-toggle"
+              type="button"
+              onClick={() => setDescriptionExpanded((value) => !value)}
+            >
+              {descriptionExpanded ? "Less" : "More"}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      <div className="task-card-bottomline">
+        <button
+          aria-label={`${task.completedAt !== null ? "Mark incomplete" : "Complete"} ${task.content}`}
+          className={`task-complete-button${task.completedAt !== null ? " task-complete-button--checked" : ""}`}
+          disabled={!onTaskComplete}
+          type="button"
+          onClick={() => onTaskComplete?.(task.id, task.completedAt === null)}
+        >
+          <span aria-hidden="true" className="task-complete-ring">
+            {task.completedAt !== null ? "\u2713" : null}
+          </span>
+        </button>
+        {getDueLabel(task) ? (
+          <span className={`task-due task-due--${task.dueTone ?? "neutral"}`}>{getDueLabel(task)}</span>
+        ) : null}
+        {task.labelIds.length ? (
+          <span className="task-card-label-count">
+            {task.labelIds.filter((labelId) => labels.some((label) => label.id === labelId)).length} labels
+          </span>
+        ) : null}
+      </div>
+    </article>
+  );
 }
 
 interface BoardColumnProps {
@@ -81,66 +185,15 @@ function BoardColumn({
       <div className="task-board-column-body">
         {tasks.length > 0 ? (
           tasks.map((task) => (
-            <article
-              className={`task-card${task.completedAt !== null ? " task-card--completed" : ""}`}
-              draggable={Boolean(onTaskMove)}
+            <TaskCard
               key={task.id}
-              onDragStart={(event) => {
-                if (!onTaskMove) {
-                  return;
-                }
-                event.dataTransfer.effectAllowed = "move";
-                event.dataTransfer.setData("text/plain", task.id);
-              }}
-            >
-              <div className="task-card-topline">
-                <span className="task-card-grip" aria-hidden="true">
-                  <GripIcon />
-                </span>
-                {task.priority && task.priority < 4 ? (
-                  <span className={`task-priority task-priority--p${task.priority}`}>P{task.priority}</span>
-                ) : null}
-                {onTaskMenu ? (
-                  <button
-                    aria-label={`Open actions for ${task.content}`}
-                    className="task-action-button task-card-action"
-                    title="Task actions"
-                    type="button"
-                    onClick={() => onTaskMenu(task.id)}
-                  >
-                    <MoreIcon />
-                  </button>
-                ) : null}
-              </div>
-              {onTaskOpen ? (
-                <button className="task-card-title" type="button" onClick={() => onTaskOpen(task.id)}>
-                  {task.content}
-                </button>
-              ) : (
-                <div className="task-card-title">{task.content}</div>
-              )}
-              <div className="task-card-bottomline">
-                <button
-                  aria-label={`${task.completedAt !== null ? "Mark incomplete" : "Complete"} ${task.content}`}
-                  className={`task-complete-button${task.completedAt !== null ? " task-complete-button--checked" : ""}`}
-                  disabled={!onTaskComplete}
-                  type="button"
-                  onClick={() => onTaskComplete?.(task.id, task.completedAt === null)}
-                >
-                  <span aria-hidden="true" className="task-complete-ring">
-                    {task.completedAt !== null ? "\u2713" : null}
-                  </span>
-                </button>
-                {getDueLabel(task) ? (
-                  <span className={`task-due task-due--${task.dueTone ?? "neutral"}`}>{getDueLabel(task)}</span>
-                ) : null}
-                {task.labelIds.length ? (
-                  <span className="task-card-label-count">
-                    {task.labelIds.filter((labelId) => labels.some((label) => label.id === labelId)).length} labels
-                  </span>
-                ) : null}
-              </div>
-            </article>
+              labels={labels}
+              onTaskComplete={onTaskComplete}
+              onTaskMenu={onTaskMenu}
+              onTaskMove={onTaskMove}
+              onTaskOpen={onTaskOpen}
+              task={task}
+            />
           ))
         ) : (
           <div className="task-board-drop-hint">Drop a task here</div>

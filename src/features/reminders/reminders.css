@@ -31,6 +31,7 @@
   display: block;
   font-size: 0.875rem;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .toast__content p {
@@ -38,6 +39,7 @@
   font-size: 0.8125rem;
   line-height: 1.4;
   margin: 0.2rem 0 0;
+  overflow-wrap: anywhere;
 }
 
 .toast__dismiss {
@@ -49,7 +51,15 @@
   font-size: 0.8125rem;
   font-weight: 600;
   min-height: 2rem;
+  min-width: 2rem;
   padding: 0.25rem;
+}
+
+@media (pointer: coarse) {
+  .toast__dismiss {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
 }
 
 .toast__dismiss:focus-visible {

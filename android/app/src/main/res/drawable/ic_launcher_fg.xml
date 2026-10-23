@@ -1,0 +1,40 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Daymark AI Control Panel: deep gradient background -->
+    <path android:pathData="M0,0h108v108H0z">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0" android:startY="0"
+                android:endX="108" android:endY="108"
+                android:startColor="#1A1A2E"
+                android:centerColor="#16213E"
+                android:endColor="#0F3460" />
+        </aapt:attr>
+    </path>
+    <!-- Subtle grid pattern for "control panel" -->
+    <group android:translateX="0" android:translateY="0">
+        <path android:fillColor="#FFFFFF10" android:pathData="M0,0h108v108H0z" />
+        <!-- Vertical grid lines -->
+        <path android:strokeColor="#FFFFFF08" android:strokeWidth="0.5" android:pathData="M12,0v108M24,0v108M36,0v108M48,0v108M60,0v108M72,0v108M84,0v108M96,0v108" />
+        <!-- Horizontal grid lines -->
+        <path android:strokeColor="#FFFFFF08" android:strokeWidth="0.5" android:pathData="M0,12h108M0,24h108M0,36h108M0,48h108M0,60h108M0,72h108M0,84h108M0,96h108" />
+    </group>
+    <!-- White command prompt symbol ">" with cursor -->
+    <group android:translateX="30" android:translateY="28">
+        <!-- Command prompt ">" -->
+        <path android:fillColor="#FFFFFF" android:pathData="M0,0 L18,12 L0,24 Z" />
+        <!-- Pulsing cursor (vertical bar) -->
+        <path android:fillColor="#FFFFFF" android:pathData="M22,0 h3 v24 h-3 Z" />
+        <!-- Second prompt line -->
+        <path android:fillColor="#FFFFFF80" android:pathData="M0,28 L18,40 L0,52 Z" />
+    </group>
+    <!-- Accent corner indicators -->
+    <path android:fillColor="#2DD4BF" android:pathData="M4,4h8v2H4zM4,4v8h2V4z" />
+    <path android:fillColor="#818CF8" android:pathData="M96,4h-8v2h8zM96,4v8h-2V4z" />
+    <path android:fillColor="#2DD4BF" android:pathData="M4,100h8v2H4zM4,100v-8h2v8z" />
+    <path android:fillColor="#818CF8" android:pathData="M96,100h-8v2h8zM96,100v-8h-2v8z" />
+</vector>

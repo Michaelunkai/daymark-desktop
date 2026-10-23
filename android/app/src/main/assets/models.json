@@ -1,0 +1,290 @@
+[
+  {
+    "id": "nvidia-nim/nvidia/nemotron-3-ultra-550b-a55b",
+    "label": "NVIDIA NIM · Nemotron 3 Ultra 550B (default)"
+  },
+  {
+    "id": "nvidia-nim/nvidia/nemotron-3.5-lightning-30b-a3b",
+    "label": "NVIDIA NIM · Nemotron 3.5 Lightning 30B"
+  },
+  {
+    "id": "nvidia-nim/nvidia/nemotron-3.5-super-vl-120b-a12b",
+    "label": "NVIDIA NIM · Nemotron 3.5 Super VL 120B"
+  },
+  {
+    "id": "nvidia-nim/stepfun-ai/step-5-preview",
+    "label": "NVIDIA NIM · Step 5 Preview"
+  },
+  {
+    "id": "nvidia-nim/meta/muse-glimmer-30b",
+    "label": "NVIDIA NIM · Muse Glimmer 30B"
+  },
+  {
+    "id": "GLM-5.3-Flash",
+    "label": "Subscription · GLM-5.3-Flash (default)"
+  },
+  {
+    "id": "zai-metered-api/GLM-5.3-Flash",
+    "label": "Metered API · GLM-5.3-Flash (PAYG $)"
+  },
+  {
+    "id": "zai-headless/GLM-5.3",
+    "label": "Z.ai Coding Plan · GLM-5.3 (subscription)"
+  },
+  {
+    "id": "zai-headless/GLM-5.3-Flash",
+    "label": "Z.ai Coding Plan · GLM-5.3-Flash (subscription)"
+  },
+  {
+    "id": "opencode/beam-free",
+    "label": "OpenCode · Beam (free)"
+  },
+  {
+    "id": "opencode/big-pickle",
+    "label": "OpenCode · Big Pickle (free)"
+  },
+  {
+    "id": "opencode/deepseek-v4.1-flash-free",
+    "label": "OpenCode · DeepSeek V4.1 Flash (free)"
+  },
+  {
+    "id": "opencode/glm-5.3-flash-free",
+    "label": "OpenCode · GLM 5.3 Flash (free)"
+  },
+  {
+    "id": "opencode/mimo-v2.6-flash-free",
+    "label": "OpenCode · Mimo V2.6 Flash (free)"
+  },
+  {
+    "id": "opencode/minimax-m3.1-flash-free",
+    "label": "OpenCode · Minimax M3.1 Flash (free)"
+  },
+  {
+    "id": "opencode/nemotron-3-ultra-free",
+    "label": "OpenCode · Nemotron 3 Ultra (free)"
+  },
+  {
+    "id": "opencode/nemotron-3.5-lightning-free",
+    "label": "OpenCode · Nemotron 3.5 Lightning (free)"
+  },
+  {
+    "id": "opencode/nemotron-3.5-super-vl-free",
+    "label": "OpenCode · Nemotron 3.5 Super VL (free)"
+  },
+  {
+    "id": "openrouter/cohere/north-mini-code:free",
+    "label": "OpenRouter · North Mini Code Free (free)"
+  },
+  {
+    "id": "openrouter/liquid/lfm-2.5-2.6b:free",
+    "label": "OpenRouter · Lfm 2.5 2.6b Free (free)"
+  },
+  {
+    "id": "openrouter/minimax/minimax-m3.1-flash:free",
+    "label": "OpenRouter · Minimax M3.1 Flash Free (free)"
+  },
+  {
+    "id": "openrouter/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+    "label": "OpenRouter · Nemotron 3 Nano Omni 30B (free)"
+  },
+  {
+    "id": "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free",
+    "label": "OpenRouter · Nemotron 3 Ultra 550B Free (free)"
+  },
+  {
+    "id": "openrouter/nvidia/nemotron-3.5-lightning:free",
+    "label": "OpenRouter · Nemotron 3.5 Lightning Free (free)"
+  },
+  {
+    "id": "openrouter/nvidia/nemotron-3.5-super-vl:free",
+    "label": "OpenRouter · Nemotron 3.5 Super VL Free (free)"
+  },
+  {
+    "id": "openrouter/recursive/flint-v1.0:free",
+    "label": "OpenRouter · Flint V1.0 Free (free)"
+  },
+  {
+    "id": "openrouter/thinkingmachines/inkling-small:free",
+    "label": "OpenRouter · Inkling Small Free (free)"
+  },
+  {
+    "id": "openrouter/thinkingmachines/inkling:free",
+    "label": "OpenRouter · Inkling Free (free)"
+  },
+  {
+    "id": "github-models/gpt-4o",
+    "label": "GitHub Models · GPT-4o (free)"
+  },
+  {
+    "id": "github-models/gpt-4o-mini",
+    "label": "GitHub Models · GPT-4o-mini (free)"
+  },
+  {
+    "id": "github-models/gpt-4.1",
+    "label": "GitHub Models · GPT-4.1 (free)"
+  },
+  {
+    "id": "github-models/gpt-4.1-mini",
+    "label": "GitHub Models · GPT-4.1-mini (free)"
+  },
+  {
+    "id": "github-models/o3-mini",
+    "label": "GitHub Models · o3-mini (free)"
+  },
+  {
+    "id": "github-models/o4-mini",
+    "label": "GitHub Models · o4-mini (free)"
+  },
+  {
+    "id": "github-models/Meta-Llama-3.3-70B-Instruct",
+    "label": "GitHub Models · Llama 3.3 70B (free)"
+  },
+  {
+    "id": "github-models/Llama-4-Scout-17B-16E-Instruct",
+    "label": "GitHub Models · Llama 4 Scout (free, vision)"
+  },
+  {
+    "id": "github-models/Llama-4-Maverick-17B-128E-Instruct-FP8",
+    "label": "GitHub Models · Llama 4 Maverick (free, vision)"
+  },
+  {
+    "id": "github-models/DeepSeek-R1",
+    "label": "GitHub Models · DeepSeek-R1 (free)"
+  },
+  {
+    "id": "github-models/Mistral-Small-3.1",
+    "label": "GitHub Models · Mistral Small 3.1 (free)"
+  },
+  {
+    "id": "github-models/Phi-4",
+    "label": "GitHub Models · Phi-4 (free)"
+  },
+  {
+    "id": "mistral-ai/mistral-small-latest",
+    "label": "Mistral AI · Mistral Small (free)"
+  },
+  {
+    "id": "mistral-ai/mistral-medium-latest",
+    "label": "Mistral AI · Mistral Medium (free)"
+  },
+  {
+    "id": "mistral-ai/mistral-large-latest",
+    "label": "Mistral AI · Mistral Large (free)"
+  },
+  {
+    "id": "mistral-ai/codestral-latest",
+    "label": "Mistral AI · Codestral (free)"
+  },
+  {
+    "id": "mistral-ai/ministral-3b-latest",
+    "label": "Mistral AI · Ministral 3B (free)"
+  },
+  {
+    "id": "mistral-ai/open-mixtral-8x7b",
+    "label": "Mistral AI · Mixtral 8x7B (free)"
+  },
+  {
+    "id": "mistral-ai/open-mistral-7b",
+    "label": "Mistral AI · Mistral 7B (free)"
+  },
+  {
+    "id": "cerebras/llama3.1-70b",
+    "label": "Cerebras · Llama 3.1 70B (free)"
+  },
+  {
+    "id": "cerebras/llama-3.3-70b",
+    "label": "Cerebras · Llama 3.3 70B (free)"
+  },
+  {
+    "id": "cerebras/gpt-oss-120b",
+    "label": "Cerebras · GPT-OSS 120B (free)"
+  },
+  {
+    "id": "cerebras/qwen-3-235b-a22b-instruct-2507",
+    "label": "Cerebras · Qwen 3 235B (free)"
+  },
+  {
+    "id": "cerebras/qwen-3-32b",
+    "label": "Cerebras · Qwen 3 32B (free)"
+  },
+  {
+    "id": "cerebras/gemma-4-31b",
+    "label": "Cerebras · Gemma 4 31B (free)"
+  },
+  {
+    "id": "cerebras/zai-glm-4.7",
+    "label": "Cerebras · GLM 4.7 (free)"
+  },
+  {
+    "id": "sambanova/Meta-Llama-3.3-70B-Instruct",
+    "label": "SambaNova · Llama 3.3 70B (free)"
+  },
+  {
+    "id": "sambanova/DeepSeek-V3.1",
+    "label": "SambaNova · DeepSeek V3.1 (free)"
+  },
+  {
+    "id": "sambanova/gpt-oss-120b",
+    "label": "SambaNova · GPT-OSS 120B (free)"
+  },
+  {
+    "id": "sambanova/Llama-4-Maverick-17B-128E-Instruct",
+    "label": "SambaNova · Llama 4 Maverick (free, vision)"
+  },
+  {
+    "id": "sambanova/Qwen3-32B",
+    "label": "SambaNova · Qwen3 32B (free)"
+  },
+  {
+    "id": "sambanova/DeepSeek-R1-Distill-Llama-70B",
+    "label": "SambaNova · DeepSeek R1 Distill Llama 70B (free)"
+  },
+  {
+    "id": "siliconflow/deepseek-ai/DeepSeek-V3",
+    "label": "SiliconFlow · DeepSeek V3 (free)"
+  },
+  {
+    "id": "siliconflow/deepseek-ai/DeepSeek-V4-Flash",
+    "label": "SiliconFlow · DeepSeek V4 Flash (free)"
+  },
+  {
+    "id": "siliconflow/deepseek-ai/DeepSeek-R1",
+    "label": "SiliconFlow · DeepSeek R1 (free)"
+  },
+  {
+    "id": "siliconflow/Qwen/Qwen3-32B",
+    "label": "SiliconFlow · Qwen3 32B (free)"
+  },
+  {
+    "id": "siliconflow/Qwen/Qwen3-235B-A22B",
+    "label": "SiliconFlow · Qwen3 235B (free)"
+  },
+  {
+    "id": "siliconflow/Qwen/Qwen3-8B",
+    "label": "SiliconFlow · Qwen3 8B (free)"
+  },
+  {
+    "id": "siliconflow/zai-org/GLM-4.5",
+    "label": "SiliconFlow · GLM 4.5 (free)"
+  },
+  {
+    "id": "siliconflow/zai-org/GLM-4.5-Air",
+    "label": "SiliconFlow · GLM 4.5 Air (free)"
+  },
+  {
+    "id": "siliconflow/zai-org/GLM-5",
+    "label": "SiliconFlow · GLM 5 (free)"
+  },
+  {
+    "id": "siliconflow/meta-llama/Meta-Llama-3.1-70B-Instruct",
+    "label": "SiliconFlow · Llama 3.1 70B (free)"
+  },
+  {
+    "id": "siliconflow/THUDM/GLM-4-32B-0414",
+    "label": "SiliconFlow · GLM 4 32B (free)"
+  },
+  {
+    "id": "siliconflow/MiniMaxAI/MiniMax-M2.5",
+    "label": "SiliconFlow · MiniMax M2.5 (free)"
+  }
+]

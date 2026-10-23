@@ -61,11 +61,12 @@ export function UpcomingCalendar({
   const tasksByDate = useMemo(() => {
     const grouped = new Map<LocalDate, UpcomingCalendarTask[]>()
     tasks.forEach((task) => {
+      if (task.completed) return
       const items = grouped.get(task.dueDate) ?? []
       items.push(task)
       grouped.set(task.dueDate, items)
     })
-    grouped.forEach((items) => items.sort((left, right) => Number(left.completed) - Number(right.completed) || left.title.localeCompare(right.title)))
+    grouped.forEach((items) => items.sort((left, right) => left.title.localeCompare(right.title)))
     return grouped
   }, [tasks])
 
@@ -177,7 +178,7 @@ export function UpcomingCalendar({
         <div className="upcoming-calendar__year-grid">
           {Array.from({ length: 12 }, (_, month) => {
             const date = toLocalDate(new Date(fromLocalDate(cursor).getFullYear(), month, 1))
-            const count = tasks.filter((task) => task.dueDate.slice(0, 7) === date.slice(0, 7)).length
+            const count = tasks.filter((task) => !task.completed && task.dueDate.slice(0, 7) === date.slice(0, 7)).length
             return (
               <button
                 className="upcoming-calendar__month-button"

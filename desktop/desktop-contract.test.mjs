@@ -84,7 +84,8 @@ test("startup reuses existing canonical pairing before any network pairing", () 
     main,
     /if\s*\(await hasCanonicalPairing\(\)\)\s*\{\s*recordAcceptanceEvent\("sync:canonical-pairing-reused"/,
   );
-  assert.match(main, /return START_URL;/);
+  // Launch URL is cache-busted per launch so an asar redeploy is always picked up.
+  assert.match(main, /return `\$\{START_URL\}\?launch=\$\{Date\.now\(\)\.toString\(36\)\}`;/);
   assert.match(main, /recordAcceptanceEvent\("sync:canonical-pairing-deferred"/);
   assert.match(main, /void pairCanonicalWorkspace\(\)\.catch/);
   assert.doesNotMatch(main, /return await pairCanonicalWorkspace\(\);/);
@@ -102,6 +103,13 @@ test("desktop shell persists native Windows reminder schedules and keeps them al
   assert.match(main, /readJsonWithSalvage/);
   assert.match(main, /SoundPlayer/);
   assert.match(main, /SystemSounds/);
+  // powershell -Command does not bind trailing args to $args; the sound spawn
+  // must use a scriptblock with param() so the wav path is actually received.
+  assert.doesNotMatch(main, /\$args\[0\]/);
+  assert.match(main, /param\(\$path, \$count\)/);
+  assert.match(main, /Test-Path -LiteralPath \$path/);
+  // Fallback must stay audible even when the Windows sound scheme is muted.
+  assert.match(main, /\[console\]::beep/);
   assert.match(main, /silent:\s*true/);
   assert.match(main, /PAIRING_TIMEOUT_MS/);
   assert.match(main, /withTimeout/);

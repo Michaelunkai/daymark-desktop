@@ -258,9 +258,18 @@ android {
         applicationId "com.michaelunkai.daymark"
         minSdk 23
         targetSdk 34
-        versionCode 34
-        versionName "1.4.44"
+        versionCode 35
+        versionName "1.4.45"
         manifestPlaceholders = [daymarkGitCommit: daymarkGitCommit ?: "unverified"]
+    }
+
+    flavorDimensions "channel"
+    productFlavors {
+        main {
+        }
+        companion {
+            applicationIdSuffix ".companion"
+        }
     }
 
     sourceSets {
@@ -280,7 +289,26 @@ android {
         }
     }
 
+    def companionKeystore = file(System.getenv("DAYMARK_COMPANION_KEYSTORE")
+        ?: "F:/backup/windowsapps/Daymark/companion-signing/debug.keystore")
+
+    signingConfigs {
+        companionDebug {
+            storeFile companionKeystore
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+    }
+
     buildTypes {
+        debug {
+            // Companion updates must match the signature already installed on
+            // the phone; the escrowed keystore is the only accepted signer.
+            if (companionKeystore.exists()) {
+                signingConfig signingConfigs.companionDebug
+            }
+        }
         release {
             minifyEnabled false
             shrinkResources false

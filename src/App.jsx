@@ -64,9 +64,30 @@ import {
 import { CompanionPanel } from './features/companion/CompanionPanel'
 import './features/companion/companion.css'
 import { useTheme } from './styles/theme'
+import {
+  handOrderLine,
+  isTaskPaused,
+  messagePrefixLine,
+  orderPrefixLine,
+  pauseAllSelection,
+  pausedPrefixLine,
+  parseAgentCount,
+  pendingMessageState,
+  prependJournalLine,
+  reopenedFromMessageLine,
+  resumedPrefixLine,
+  stepOrderLine,
+  subAgentsCreateLine,
+  subAgentsStopLine,
+} from './features/workspace/board-model'
+import { boardHealth, updateAgeState } from './features/workspace/health'
+import { IconPause, IconPlay, IconTrash } from './features/workspace/icons'
+import { UsageMeters } from './features/workspace/UsageMeters'
+import { attachBoardScroll, scrollToSection } from './features/workspace/scroll'
 
 const NAV_ITEMS = [
   { id: 'today', label: 'Today', icon: 'sun', count: 5 },
+  { id: 'control', label: 'Control Panel', icon: 'board', count: 0 },
   { id: 'inbox', label: 'Inbox', icon: 'inbox', count: 4 },
   { id: 'upcoming', label: 'Upcoming', icon: 'calendar', count: 7 },
   { id: 'completed', label: 'Completed', icon: 'check', count: 0 },
@@ -208,6 +229,51 @@ function useAppState() {
   return useSyncExternalStore(appStore.subscribe, appStore.getState, appStore.getState)
 }
 
+function useControlPanelLiveRefresh(enabled, intervalMs = CONTROL_PANEL_REFRESH_MS) {
+  const [lastRefreshedAt, setLastRefreshedAt] = useState(() => Date.now())
+  const refreshNowRef = useRef(() => {})
+  useEffect(() => {
+    if (!enabled) return undefined
+    const storage = createBrowserStorage()
+    const lastSeenRevisionRef = { current: appStore.getState().revision ?? 0 }
+    const refresh = () => {
+      const raw = storage.read?.()
+      if (raw) {
+        const durableRevision = readDurableRevision(raw)
+        // Skip reload (and the re-render it triggers) entirely when the
+        // durable snapshot has not changed since we last saw it.
+        if (durableRevision !== null && durableRevision > lastSeenRevisionRef.current) {
+          lastSeenRevisionRef.current = durableRevision
+          appStore.reload()
+        }
+      }
+      lastSeenRevisionRef.current = Math.max(lastSeenRevisionRef.current, appStore.getState().revision ?? 0)
+      setLastRefreshedAt(Date.now())
+    }
+    refreshNowRef.current = refresh
+    refresh()
+    const timer = window.setInterval(refresh, intervalMs)
+    const unsubscribe = appStore.subscribe((next) => {
+      lastSeenRevisionRef.current = Math.max(lastSeenRevisionRef.current, next.revision ?? 0)
+      setLastRefreshedAt(Date.now())
+    })
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'hidden') refresh()
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      window.clearInterval(timer)
+      unsubscribe()
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      refreshNowRef.current = () => {}
+    }
+  }, [enabled, intervalMs])
+  return {
+    lastRefreshedAt,
+    refreshNow: () => refreshNowRef.current(),
+  }
+}
+
 function makeDue(date, time = null) {
   return { date, time, timezone: null, recurrence: null }
 }
@@ -294,10 +360,12 @@ function toViewTask(task, state) {
   return {
     id: task.id,
     title: task.content,
+    description: task.description ?? '',
     sectionId: task.sectionId ?? null,
     section: state.sections[task.sectionId]?.name ?? 'Other tasks',
     sectionName: state.sections[task.sectionId]?.name ?? 'No section',
     project: task.projectId,
+    projectId: task.projectId,
     projectName: project?.name ?? 'Inbox',
     projectColor: PROJECT_COLORS[project?.color] ?? 'teal',
     due,
@@ -310,7 +378,280 @@ function toViewTask(task, state) {
       : details || 'No description yet.',
     completed: Boolean(task.completedAt),
     completedAt: task.completedAt ?? null,
+    pinned: isTaskPinned(task.description),
+    agents: parseAgentCount(task.description) ?? 0,
+    attachments: Array.isArray(task.attachments) ? task.attachments : null,
   }
+}
+
+const CONTROL_PANEL_REFRESH_MS = 6000
+// Cheap revision probe: avoid JSON.parsing the full snapshot (every task
+// description included) on every poll just to read one number. Falls back to
+// a real parse when the regex cannot find the field.
+const DURABLE_REVISION_RE = /"revision"\s*:\s*(\d+)/
+const readDurableRevision = (raw) => {
+  const match = DURABLE_REVISION_RE.exec(raw)
+  if (match) return Number(match[1])
+  try {
+    const durable = JSON.parse(raw)
+    return typeof durable?.revision === 'number' ? durable.revision : null
+  } catch {
+    return null
+  }
+}
+const SESSION_UPDATE_LINE = /^—\s*(update|heartbeat|message|ORDER|REOPENED|PAUSED|RESUMED)\s+((?:[01]?\d|2[0-3]):[0-5]\d)\s*—\s*(.*)$/i
+const CONTROL_UPDATE_KIND_TONES = { UPDATE: 'indigo', HEARTBEAT: 'teal', MESSAGE: 'indigo', ORDER: 'amber', REOPENED: 'amber', PAUSED: 'amber', RESUMED: 'teal' }
+
+function extractSessionUpdates(description) {
+  return String(description ?? '')
+    .split(/\r?\n/)
+    .reduce((updates, line) => {
+      const match = line.match(SESSION_UPDATE_LINE)
+      if (match) {
+        updates.push({ kind: match[1].toUpperCase(), time: match[2], body: match[3].trim() })
+      }
+      return updates
+    }, [])
+}
+
+function latestSessionUpdate(description) {
+  // Agent run logs prepend their newest line first, so the first marker is the latest update.
+  return extractSessionUpdates(description)[0] ?? null
+}
+
+function sessionUpdateRelative(time, now = new Date()) {
+  const [hour, minute] = String(time).split(':').map(Number)
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return time
+  const stamp = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute)
+  let diffSeconds = Math.round((now.getTime() - stamp.getTime()) / 1000)
+  if (diffSeconds < 0) {
+    stamp.setDate(stamp.getDate() - 1)
+    diffSeconds = Math.round((now.getTime() - stamp.getTime()) / 1000)
+  }
+  if (diffSeconds < 45) return 'just now'
+  if (diffSeconds < 3600) return `${Math.round(diffSeconds / 60)}m ago`
+  if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)}h ago`
+  return time
+}
+
+function controlClock(now = new Date()) {
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+}
+
+// Pinning convention: the literal marker line `— pinned —` is the FIRST line of
+// the task description. Both the Android app and future sessions parse it.
+const PINNED_MARKER = '— pinned —'
+const ASSIGN_SESSION_UPDATE_LINE = 'session assigned and pinned for this task'
+
+// Sequential auto-run: by default a clicked session only launches when the
+// previous one finished; the delay picker adds extra minutes between starts.
+const AUTO_SEQUENCE_KEY = 'daymark.control-auto-sequence'
+const AUTO_DELAY_KEY = 'daymark.control-start-delay-min'
+const AUTO_QUEUE_KEY = 'daymark.control-session-queue'
+const AUTO_LAST_START_KEY = 'daymark.control-last-start-at'
+const QUEUED_MARKER = '— queued —'
+const AUTO_DELAY_CHOICES = [0, 1, 2, 3, 5, 10, 15, 30]
+// Auto interval override: when set, a new queued session force-starts every N
+// minutes even while the previous one is still running (button shows yellow).
+const AUTO_INTERVAL_KEY = 'daymark.control-auto-interval-min'
+const AUTO_INTERVAL_CHOICES = [1, 2, 3, 5, 10, 15, 30]
+
+function readAutoIntervalMinutes() {
+  const value = Number(localStorage.getItem(AUTO_INTERVAL_KEY))
+  return Number.isFinite(value) && value > 0 && AUTO_INTERVAL_CHOICES.includes(value) ? value : 0
+}
+
+function readAutoQueue() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(AUTO_QUEUE_KEY) ?? '[]')
+    return Array.isArray(parsed) ? parsed.filter((entry) => entry && typeof entry.id === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+function writeAutoQueue(queue) {
+  try {
+    localStorage.setItem(AUTO_QUEUE_KEY, JSON.stringify(queue.slice(-50)))
+  } catch {
+    // Storage full/unavailable: the session still starts this once, only the
+    // cross-restart queue memory is lost.
+  }
+}
+
+function readAutoDelayMinutes() {
+  const value = Number(localStorage.getItem(AUTO_DELAY_KEY))
+  return Number.isFinite(value) && value >= 0 && AUTO_DELAY_CHOICES.includes(value) ? value : 0
+}
+
+function isTaskPinned(description) {
+  return String(description ?? '').split(/\r?\n/)[0]?.trim() === PINNED_MARKER
+}
+
+function sortPinnedFirst(tasks) {
+  return [...tasks.filter((session) => session.pinned), ...tasks.filter((session) => !session.pinned)]
+}
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error('The file could not be read.'))
+    reader.onload = () => {
+      const result = String(reader.result ?? '')
+      const commaIndex = result.indexOf(',')
+      resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result)
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
+function attachmentBytesUrl(attachmentId) {
+  return `/api/sync/attachment/${encodeURIComponent(attachmentId)}`
+}
+
+function attachmentAuthHeaders(syncKey) {
+  return syncKey ? { authorization: `Bearer ${syncKey}` } : {}
+}
+
+async function fetchAttachmentBytes(syncKey, attachmentId) {
+  const response = await fetch(attachmentBytesUrl(attachmentId), {
+    headers: attachmentAuthHeaders(syncKey),
+  })
+  if (!response.ok) throw new Error(String(response.status))
+  const payload = await response.json()
+  if (!payload || typeof payload.dataBase64 !== 'string') throw new Error('The attachment bytes were rejected.')
+  return payload
+}
+
+function base64ToObjectUrl(dataBase64, mimeType) {
+  const binary = atob(String(dataBase64))
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index)
+  return URL.createObjectURL(new Blob([bytes], { type: mimeType || 'application/octet-stream' }))
+}
+
+function isImageMime(mimeType) {
+  return String(mimeType ?? '').toLowerCase().startsWith('image/')
+}
+
+function formatAttachmentSize(size) {
+  const bytes = Number(size)
+  if (!Number.isFinite(bytes) || bytes < 0) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function controlSessionDue(task, today) {
+  const date = task.due?.date
+  if (!date) return { label: 'Unscheduled', tone: 'muted' }
+  const label = `${date === today ? 'Today' : date === addDays(today, 1) ? 'Tomorrow' : new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`))}${task.due?.time ? `, ${formatTime(task.due.time)}` : ''}`
+  return { label, tone: date === today ? 'teal' : date < today ? 'danger' : 'indigo' }
+}
+
+function buildControlSession(task, state, today) {
+  const project = state.projects[task.projectId]
+  const updates = extractSessionUpdates(task.description)
+  const latest = updates[0] ?? null
+  const due = controlSessionDue(task, today)
+  // BoardTaskCard renders `details`/`note` (same contract as toViewTask);
+  // control sessions must carry them too or the workspace board crashes.
+  const details = task.description?.trim() ?? ''
+  const hasLongDetails = details.length > COMPACT_TASK_DETAILS_LENGTH || details.includes('\n')
+  return {
+    id: task.id,
+    title: task.content,
+    description: task.description ?? '',
+    details,
+    note: hasLongDetails
+      ? `${details.slice(0, COMPACT_TASK_DETAILS_LENGTH).trimEnd()}...`
+      : details || 'No description yet.',
+    projectId: task.projectId,
+    sectionId: task.sectionId,
+    workspaceName: project?.name ?? 'Inbox',
+    workspaceColor: PROJECT_COLORS[project?.color] ?? 'teal',
+    priority: task.priority,
+    priorityLabel: task.priority === 1 ? 'Urgent' : task.priority === 2 ? 'High' : task.priority === 3 ? 'Low' : 'Normal',
+    priorityTone: task.priority === 1 ? 'danger' : task.priority === 2 ? 'amber' : 'muted',
+    due: due.label,
+    dueTone: due.tone,
+    latest,
+    latestRelative: latest ? sessionUpdateRelative(latest.time) : '',
+    latestTone: latest ? CONTROL_UPDATE_KIND_TONES[latest.kind] ?? 'indigo' : 'muted',
+    updateCount: updates.length,
+    agents: parseAgentCount(task.description) ?? 0,
+    updatedAt: task.updatedAt,
+    completed: Boolean(task.completedAt),
+    pinned: isTaskPinned(task.description),
+    attachments: Array.isArray(task.attachments) ? task.attachments : null,
+  }
+}
+
+function controlBoardStage(sectionName) {
+  const normalized = String(sectionName ?? '').toLowerCase().replace(/[^a-z]/g, '')
+  if (normalized === 'inprogress') return 'inprogress'
+  if (normalized === 'todo') return 'todo'
+  if (normalized === 'finished' || normalized === 'done') return 'finished'
+  return null
+}
+
+function isWorkspaceProject(project) {
+  // Workspaces are declared by convention: the project description begins with the marker word "workspace".
+  return String(project?.description ?? '').trim().toLowerCase().startsWith('workspace')
+}
+
+function inProgressTask(task, state) {
+  return controlBoardStage(state.sections[task.sectionId]?.name) === 'inprogress'
+}
+
+const CONTROL_UPDATE_FLASH_MS = 120000
+const CONTROL_UPDATE_SEEN_KEY = 'daymark.control-update-seen'
+// Awaiting-reply nudge law: an unanswered `— message` line is nudged 90s after
+// it was sent, then again 90s later — at most 2 nudges, then it just waits.
+const CONTROL_NUDGE_AFTER_MS = 90000
+const CONTROL_NUDGE_MAX = 2
+const CONTROL_NUDGE_TICK_MS = 5000
+
+function controlUpdateSignature(latest) {
+  return latest ? `${latest.kind}|${latest.time}|${latest.body}` : ''
+}
+
+function readControlUpdateSeen() {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(CONTROL_UPDATE_SEEN_KEY) ?? '{}')
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function markControlUpdateSeen(taskId, signature, seenAt = Date.now()) {
+  try {
+    const seen = readControlUpdateSeen()
+    seen[taskId] = { signature, seenAt }
+    window.localStorage.setItem(CONTROL_UPDATE_SEEN_KEY, JSON.stringify(seen))
+  } catch {
+    // Storage being unavailable only costs the red flash, never the board.
+  }
+}
+
+function useSessionUpdateFlash(taskId, latest) {
+  const signature = controlUpdateSignature(latest)
+  const [flashing, setFlashing] = useState(false)
+  useEffect(() => {
+    if (!signature) {
+      setFlashing(false)
+      return undefined
+    }
+    const seen = readControlUpdateSeen()[taskId]
+    const isNew = !seen || seen.signature !== signature
+    if (isNew) markControlUpdateSeen(taskId, signature)
+    const expiresAt = (isNew ? Date.now() : seen.seenAt) + CONTROL_UPDATE_FLASH_MS
+    setFlashing(Date.now() < expiresAt)
+    const timer = window.setTimeout(() => setFlashing(false), Math.max(0, expiresAt - Date.now()))
+    return () => window.clearTimeout(timer)
+  }, [signature, taskId])
+  return flashing
 }
 
 const ICONS = {
@@ -435,6 +776,11 @@ const ICONS = {
   close: (
     <>
       <path d="m6 6 12 12M18 6 6 18" />
+    </>
+  ),
+  message: (
+    <>
+      <path d="M4 5.5h16v11H9l-5 4v-15Z" />
     </>
   ),
   edit: (
@@ -936,18 +1282,205 @@ function SectionHeading({
   )
 }
 
+function TaskAttachments({ initialAttachments, syncKey, taskId }) {
+  const [attachments, setAttachments] = useState(Array.isArray(initialAttachments) ? initialAttachments : null)
+  const [expanded, setExpanded] = useState(false)
+  const [status, setStatus] = useState('idle')
+  const [hint, setHint] = useState('')
+  const inputRef = useRef(null)
+  const loadedRef = useRef(Array.isArray(initialAttachments))
+
+  useEffect(() => {
+    const next = Array.isArray(initialAttachments) ? initialAttachments : null
+    setAttachments(next)
+    loadedRef.current = Array.isArray(initialAttachments)
+  }, [initialAttachments])
+
+  const attachmentsPath = `/api/agent/v1/tasks/${encodeURIComponent(taskId)}/attachments`
+
+  const loadAttachments = async () => {
+    if (loadedRef.current || !syncKey) return
+    setStatus('busy')
+    try {
+      const response = await fetch(attachmentsPath, {
+        headers: attachmentAuthHeaders(syncKey),
+      })
+      if (!response.ok) throw new Error(String(response.status))
+      const payload = await response.json()
+      const entries = payload?.attachments ?? payload?.data?.attachments
+      loadedRef.current = true
+      setAttachments(Array.isArray(entries) ? entries : [])
+      setStatus('idle')
+    } catch {
+      setStatus('error')
+    }
+  }
+
+  const handleFiles = async (event) => {
+    const files = Array.from(event.target.files ?? [])
+    event.target.value = ''
+    if (!files.length || !syncKey) return
+    setStatus('busy')
+    setHint('')
+    // The sync worker rejects request bodies over 2.5 MB (worker payload cap),
+    // so oversized files are refused up front with a clear reason instead of a
+    // silent failure — any image or document type is accepted.
+    const maxBytes = 2_400_000
+    let failed = false
+    let tooBig = 0
+    for (const file of files) {
+      try {
+        if (file.size > maxBytes) {
+          tooBig += 1
+          continue
+        }
+        const dataBase64 = await readFileAsBase64(file)
+        const response = await fetch(attachmentsPath, {
+          body: JSON.stringify({
+            dataBase64,
+            mimeType: file.type || 'application/octet-stream',
+            name: file.name,
+          }),
+          headers: { 'content-type': 'application/json', ...attachmentAuthHeaders(syncKey) },
+          method: 'POST',
+        })
+        if (!response.ok) throw new Error(String(response.status))
+        const payload = await response.json()
+        const attachment = payload?.attachment ?? payload?.data?.attachment ?? (payload?.id ? payload : null)
+        if (!attachment?.id) throw new Error('The upload was rejected.')
+        loadedRef.current = true
+        setAttachments((current) => [attachment, ...(Array.isArray(current) ? current : [])])
+      } catch {
+        failed = true
+      }
+    }
+    if (tooBig) setHint(`${tooBig} file${tooBig === 1 ? '' : 's'} over 2.4 MB were skipped — the server caps uploads at 2.5 MB.`)
+    setExpanded(true)
+    setStatus(failed && !loadedRef.current ? 'error' : 'idle')
+  }
+
+  const list = Array.isArray(attachments) ? attachments : []
+
+  return (
+    <span className="board-task__attachments" data-task-attachments={taskId}>
+      <input hidden multiple onChange={handleFiles} ref={inputRef} type="file" />
+      <button
+        className="board-task__attach"
+        disabled={status === 'busy'}
+        onClick={() => inputRef.current?.click()}
+        title="Attach a file to this task"
+        type="button"
+      >
+        Attach file
+      </button>
+      {!expanded ? (
+        <button
+          className="board-task__attach board-task__attach--secondary"
+          onClick={() => {
+            setExpanded(true)
+            loadAttachments()
+          }}
+          type="button"
+        >
+          Attachments{list.length ? ` (${list.length})` : ''}
+        </button>
+      ) : null}
+      {expanded ? (
+        status === 'error' ? (
+          <small className="board-task__attachments-hint" role="status">Attachments unavailable.</small>
+        ) : (
+          <ul className="board-task__attachment-list">
+            {hint ? <li><small className="board-task__attachments-hint" role="status">{hint}</small></li> : null}
+            {list.map((attachment) => (
+              <li key={attachment.id}>
+                <AttachmentItem attachment={attachment} syncKey={syncKey} />
+              </li>
+            ))}
+            {!list.length ? <li><small className="board-task__attachments-hint">No attachments yet.</small></li> : null}
+          </ul>
+        )
+      ) : null}
+    </span>
+  )
+}
+
+// Raw bytes live behind an authorized JSON endpoint, so thumbnails and
+// downloads fetch the payload once and hand it to the browser as a blob.
+function AttachmentItem({ attachment, syncKey }) {
+  const [objectUrl, setObjectUrl] = useState(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let revoked = null
+    let cancelled = false
+    setObjectUrl(null)
+    setFailed(false)
+    fetchAttachmentBytes(syncKey, attachment.id)
+      .then((payload) => {
+        if (cancelled) return
+        revoked = base64ToObjectUrl(payload.dataBase64, payload.mimeType || attachment.mimeType)
+        setObjectUrl(revoked)
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true)
+      })
+    return () => {
+      cancelled = true
+      if (revoked) URL.revokeObjectURL(revoked)
+    }
+  }, [attachment.id, attachment.mimeType, syncKey])
+
+  const download = async () => {
+    if (!objectUrl) return
+    const link = document.createElement('a')
+    link.href = objectUrl
+    link.download = attachment.name || 'attachment'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  }
+
+  const label = attachment.name || 'Attachment'
+  return (
+    <button className="board-task__attachment-link" disabled={failed || !objectUrl} onClick={download} title={`Download ${label}`} type="button">
+      {isImageMime(attachment.mimeType) && objectUrl ? (
+        <img
+          alt={label}
+          className="board-task__attachment-thumb"
+          loading="lazy"
+          src={objectUrl}
+        />
+      ) : (
+        <span aria-hidden="true" className="board-task__attachment-icon">{isImageMime(attachment.mimeType) ? '🖼' : '📄'}</span>
+      )}
+      <span className="board-task__attachment-name">{label}</span>
+      <small className="board-task__attachment-size">{failed ? 'Unavailable' : formatAttachmentSize(attachment.size)}</small>
+    </button>
+  )
+}
+
 function BoardTaskCard({
+  defaultExpandedDetails = false,
   isReordering,
   onCancelReorder,
+  onAssign,
   onCopy,
+  onDelete,
   onLongPressReorder,
+  onHand,
+  onMessage,
   onReorderMove,
   onReorderEnd,
   onOpen,
   onToggle,
+  syncKey,
   task,
 }) {
-  const [detailsExpanded, setDetailsExpanded] = useState(false)
+  const [detailsExpanded, setDetailsExpanded] = useState(defaultExpandedDetails)
+  const [messageOpen, setMessageOpen] = useState(false)
+  const [messageDraft, setMessageDraft] = useState('')
+  const latestUpdate = latestSessionUpdate(task.description)
+  const updateFlashing = useSessionUpdateFlash(task.id, latestUpdate)
   const callbacksRef = useRef({ onLongPressReorder, onReorderEnd, onReorderMove, taskId: task.id })
   callbacksRef.current = { onLongPressReorder, onReorderEnd, onReorderMove, taskId: task.id }
   const reorderControllerRef = useRef(null)
@@ -1023,7 +1556,17 @@ function BoardTaskCard({
         onPointerUp={(event) => reorderControllerRef.current.pointerUp(event)}
         type="button"
       >
+        {latestUpdate ? (
+          <span className={`board-task__update${updateFlashing ? ' is-new' : ''}`} data-update-flash={updateFlashing ? 'new' : 'seen'}>
+            <span className={`board-task__update-kind board-task__update-kind--${CONTROL_UPDATE_KIND_TONES[latestUpdate.kind] ?? 'indigo'}`}>{latestUpdate.kind}</span>
+            <span className="board-task__update-text">{latestUpdate.body || `${latestUpdate.kind} at ${latestUpdate.time}`}</span>
+            <span className="board-task__update-time">{sessionUpdateRelative(latestUpdate.time)}</span>
+          </span>
+        ) : null}
         <span className={`board-task__priority board-task__priority--${task.priorityTone}`} />
+        {task.pinned ? <span className="board-task__pinned" title="Pinned to the top of In Progress">pinned</span> : null}
+        <span className="board-task__agents" title="Sub-agents reported by the newest — agents — journal line">🤖 {task.agents}</span>
+        {pendingMessageState(task.description ?? '').pending ? <span className="board-task__awaiting" role="status">awaiting reply</span> : null}
         <strong>{task.title}</strong>
         {task.details ? (
           <span
@@ -1035,7 +1578,91 @@ function BoardTaskCard({
         ) : null}
         <small>{task.due}</small>
       </button>
+      {onHand && !task.completed ? (
+        <button
+          aria-label={`Order ${task.title} to stop and run /hand now`}
+          className="icon-button board-task__hand"
+          data-hand-order={task.id}
+          onClick={(event) => {
+            event.stopPropagation()
+            onHand(task)
+          }}
+          title="Prepend a hand ORDER — the session stops its current step and runs /hand immediately"
+          type="button"
+        >
+          Hand
+        </button>
+      ) : null}
+      {onMessage ? (
+        <button
+          aria-expanded={messageOpen}
+          aria-label={`Message session ${task.title}`}
+          className="icon-button board-task__message-toggle"
+          data-message-task={task.id}
+          onClick={(event) => {
+            event.stopPropagation()
+            setMessageOpen((open) => !open)
+          }}
+          title="Message this session"
+          type="button"
+        >
+          <Icon name="message" size={15} />
+        </button>
+      ) : null}
+      {onMessage && (messageOpen || detailsExpanded) ? (
+        <form
+          className="board-task__message"
+          data-message-form={task.id}
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (!messageDraft.trim()) return
+            if (onMessage(task, messageDraft)) setMessageDraft('')
+          }}
+        >
+          <input
+            aria-label={`Message for ${task.title}`}
+            className="board-task__message-input"
+            onChange={(event) => setMessageDraft(event.target.value)}
+            placeholder="Message the session — Enter sends"
+            type="text"
+            value={messageDraft}
+          />
+          <button className="primary-button board-task__message-send" disabled={!messageDraft.trim()} type="submit">
+            Send
+          </button>
+        </form>
+      ) : null}
       <span className="board-task__actions">
+        {onAssign && !task.completed ? (
+          <button
+            aria-label={`Assign session for ${task.title}`}
+            className="board-task__assign"
+            data-assign-session={task.id}
+            onClick={(event) => {
+              event.stopPropagation()
+              onAssign(task)
+            }}
+            title="Move to In Progress, pin it to the top, and start the session"
+            type="button"
+          >
+            Assign session
+          </button>
+        ) : null}
+        {onDelete ? (
+          <button
+            aria-label={`Delete ${task.title}`}
+            className="icon-button board-task__delete"
+            data-delete-task={task.id}
+            onClick={(event) => {
+              event.stopPropagation()
+              onDelete(task.id)
+            }}
+            title="Delete task"
+            type="button"
+          >
+            <Icon name="close" size={15} />
+          </button>
+        ) : null}
         {hasLongDetails ? (
           <>
             <button
@@ -1074,6 +1701,7 @@ function BoardTaskCard({
           </button>
         ) : null}
       </span>
+      {syncKey ? <TaskAttachments initialAttachments={task.attachments} syncKey={syncKey} taskId={task.id} /> : null}
     </article>
   )
 }
@@ -1098,6 +1726,853 @@ function TaskComposer({ inputRef, value, onChange, onSubmit, onCancel }) {
         <Icon name="close" size={16} />
       </button>
     </form>
+  )
+}
+
+function SessionCard({
+  onAddStep,
+  onComplete,
+  onDelete,
+  onHand,
+  onLogUpdate,
+  onMessage,
+  onMove,
+  onMoveToWorkspace,
+  onOpen,
+  onReopen,
+  onSaveDescription,
+  onSubAgentsCreate,
+  onSubAgentsStop,
+  onTogglePause,
+  pausedOverride,
+  sections,
+  session,
+  syncKey,
+  workspaces,
+}) {
+  const [logDraft, setLogDraft] = useState('')
+  const [editingDescription, setEditingDescription] = useState(false)
+  const [descriptionDraft, setDescriptionDraft] = useState(session.description)
+  const [messageDraft, setMessageDraft] = useState('')
+  const [agentsDraft, setAgentsDraft] = useState('')
+  const [agentsOrdered, setAgentsOrdered] = useState(null)
+  const agentsOrderedTimer = useRef(null)
+  const [stepOpen, setStepOpen] = useState(false)
+  const [stepDraft, setStepDraft] = useState('')
+  const [tickMs, setTickMs] = useState(() => Date.now())
+  const projectSections = sections.filter((section) => section.projectId === session.projectId)
+  const latest = session.latest
+  const updateFlashing = useSessionUpdateFlash(session.id, latest)
+  const descriptionFirstLine = (session.description ?? '').split('\n')[0] || null
+  const serverPaused = isTaskPaused(session.description ?? '')
+  const paused = pausedOverride !== undefined && pausedOverride !== serverPaused ? pausedOverride : serverPaused
+  const age = updateAgeState(descriptionFirstLine, Date.now())
+  const pending = pendingMessageState(session.description ?? '', new Date(tickMs))
+
+  useEffect(() => {
+    if (!pending.pending) return undefined
+    const timer = window.setInterval(() => setTickMs(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [pending.pending])
+
+  const submitLog = (event) => {
+    event.preventDefault()
+    const text = logDraft.trim()
+    if (!text) return
+    onLogUpdate(session, text)
+    setLogDraft('')
+  }
+
+  const submitMessage = (event) => {
+    event.preventDefault()
+    const text = messageDraft.trim()
+    if (!text) return
+    if (onMessage?.(session, text)) setMessageDraft('')
+  }
+
+  const submitAgentsCreate = (event) => {
+    event.preventDefault()
+    const count = Number(agentsDraft)
+    if (!Number.isInteger(count) || count < 1 || count > 20) return
+    if (onSubAgentsCreate?.(session, count)) {
+      setAgentsDraft('')
+      // Immediate red confirmation: the order was sent; the session's next
+      // journal line (created N agents) will flash red on its own.
+      setAgentsOrdered(count)
+      window.clearTimeout(agentsOrderedTimer.current)
+      agentsOrderedTimer.current = window.setTimeout(() => setAgentsOrdered(null), 8000)
+    }
+  }
+
+  const submitStep = (event) => {
+    event.preventDefault()
+    const text = stepDraft.trim()
+    if (!text) return
+    if (onAddStep?.(session, text)) {
+      setStepDraft('')
+      setStepOpen(false)
+    }
+  }
+
+  return (
+    <article className={`control-card control-card--${session.latestTone}${paused ? ' control-card--paused' : ''}`} data-control-card={session.id}>
+      <div aria-live="polite" className={`control-card__latest control-card__latest--${session.latestTone}${updateFlashing ? ' is-new' : ''}`} title={latest ? `${latest.kind} logged at ${latest.time}` : 'No updates logged yet'}>
+        {session.pinned ? <span className="control-card__pinned" title="Pinned to the top of In Progress">pinned</span> : null}
+        {latest ? (
+          <>
+            <span className={`control-card__latest-kind control-card__latest-kind--${session.latestTone}`}>{latest.kind}</span>
+            <p className="control-card__latest-body">{latest.body || `${latest.kind} at ${latest.time}`}</p>
+            <span className="control-card__latest-time">{session.latestRelative} · {latest.time}</span>
+          </>
+        ) : (
+          <>
+            <span className="control-card__latest-kind control-card__latest-kind--muted">IDLE</span>
+            <p className="control-card__latest-body">No session updates logged yet.</p>
+          </>
+        )}
+      </div>
+
+      <header className="control-card__head">
+        <span aria-hidden="true" className={`project-dot project-dot--${session.workspaceColor}`} />
+        <span className="control-card__workspace" title={session.workspaceName}>{session.workspaceName}</span>
+        <span className={`control-card__priority control-card__priority--${session.priorityTone}`}>{session.priorityLabel}</span>
+        {paused ? <span className="control-card__paused-pill">Paused</span> : null}
+        {pending.pending ? (
+          <span className="control-card__awaiting-pill" data-awaiting-reply={session.id} role="status" title="The newest line on this task is still your message">
+            Awaiting reply · {pending.elapsedSec}s
+          </span>
+        ) : null}
+        <span className={`control-card__age control-card__age--${age.state}`} title="Five-minute update law">{age.label}</span>
+      </header>
+
+      <h3 className="control-card__title">
+        <button onClick={() => onOpen(session)} title="Open the full task editor" type="button">{session.title}</button>
+      </h3>
+
+      <div className="control-card__meta">
+        <span className={`control-card__chip control-card__chip--${session.dueTone}`}>
+          <Icon name="clock" size={13} />
+          {session.due}
+        </span>
+        {session.updateCount > 1 ? <span className="control-card__chip control-card__chip--muted">{session.updateCount} log lines</span> : null}
+        {(
+          <span className="control-card__chip control-card__chip--agents" data-agents-count={session.agents} title="Sub-agents reported by the newest — agents — journal line">
+            🤖 {session.agents} agents
+          </span>
+        )}
+      </div>
+
+      {editingDescription ? (
+        <form className="control-card__editor" onSubmit={submitDescription}>
+          <textarea
+            aria-label={`Description for ${session.title}`}
+            onChange={(event) => setDescriptionDraft(event.target.value)}
+            rows={6}
+            value={descriptionDraft}
+          />
+          <div className="control-card__editor-actions">
+            <button className="primary-button" disabled={!descriptionDraft.trim()} type="submit">Save description</button>
+            <button className="secondary-button" onClick={() => { setEditingDescription(false); setDescriptionDraft(session.description) }} type="button">Cancel</button>
+          </div>
+        </form>
+      ) : session.description ? (
+        <details className="control-card__log">
+          <summary>Session log{session.updateCount > 1 ? ` · ${session.updateCount} lines` : ''}</summary>
+          <pre>{session.description}</pre>
+        </details>
+      ) : (
+        <p className="control-card__log-empty">No description yet — log the first update below.</p>
+      )}
+
+      <form className="control-card__composer" onSubmit={submitLog}>
+        <input
+          aria-label={`Log an update for ${session.title}`}
+          onChange={(event) => setLogDraft(event.target.value)}
+          placeholder="Log an update for this session…"
+          value={logDraft}
+        />
+        <button className="secondary-button" disabled={!logDraft.trim()} type="submit">Log</button>
+      </form>
+
+      {onMessage ? (
+        <form className="control-card__composer control-card__message" data-message-form={session.id} onSubmit={submitMessage}>
+          <input
+            aria-label={`Message ${session.title}`}
+            onChange={(event) => setMessageDraft(event.target.value)}
+            placeholder="Message the session — Enter sends"
+            value={messageDraft}
+          />
+          <button className="primary-button" disabled={!messageDraft.trim()} type="submit">Send</button>
+        </form>
+      ) : null}
+
+      {onSubAgentsCreate || onSubAgentsStop ? (
+        <div className="control-card__agents" data-agents-control={session.id}>
+          <form className="control-card__agents-create" onSubmit={submitAgentsCreate}>
+            <input
+              aria-label={`Number of sub-agents for ${session.title}`}
+              inputMode="numeric"
+              max="20"
+              min="1"
+              onChange={(event) => setAgentsDraft(event.target.value)}
+              placeholder="N"
+              type="number"
+              value={agentsDraft}
+            />
+            <button className="secondary-button" disabled={!agentsDraft.trim()} type="submit">Create</button>
+          </form>
+          {agentsOrdered != null ? (
+            <span className="control-card__agents-ordered" data-agents-ordered={session.id} role="status">
+              ORDERED {agentsOrdered} AGENTS
+            </span>
+          ) : null}
+          {onSubAgentsStop ? (
+            <button
+              className="control-card__action control-card__agents-stop"
+              onClick={() => onSubAgentsStop(session)}
+              title="Prepend an ORDER line telling every sub-agent to stop"
+              type="button"
+            >
+              Stop all
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {onAddStep ? (
+        stepOpen ? (
+          <form className="control-card__composer control-card__step" data-step-form={session.id} onSubmit={submitStep}>
+            <input
+              aria-label={`Extra step for ${session.title}`}
+              autoFocus
+              onChange={(event) => setStepDraft(event.target.value)}
+              placeholder="Extra step — e.g. also update the README"
+              value={stepDraft}
+            />
+            <button className="primary-button" disabled={!stepDraft.trim()} type="submit">Add step</button>
+            <button aria-label="Cancel extra step" className="icon-button" onClick={() => setStepOpen(false)} type="button">
+              <Icon name="close" size={15} />
+            </button>
+          </form>
+        ) : (
+          <button className="control-card__action control-card__add-step" onClick={() => setStepOpen(true)} title="Prepend an ORDER line with an extra step" type="button">
+            <Icon name="plus" size={13} />
+            Add step
+          </button>
+        )
+      ) : null}
+
+      <footer className="control-card__actions">
+        <select
+          aria-label={`Move ${session.title} to another stage`}
+          className="control-card__select"
+          onChange={(event) => { if (event.target.value !== (session.sectionId ?? '')) onMove(session, event.target.value || null) }}
+          value={session.sectionId ?? ''}
+        >
+          <option value="">No stage</option>
+          {projectSections.map((section) => (
+            <option key={section.id} value={section.id}>{section.name}</option>
+          ))}
+        </select>
+        <select
+          aria-label={`Move ${session.title} to another workspace`}
+          className="control-card__select control-card__select--workspace"
+          onChange={(event) => { if (event.target.value) onMoveToWorkspace(session, event.target.value) }}
+          value=""
+        >
+          <option value="">Move to workspace…</option>
+          {workspaces.filter((workspace) => workspace.id !== session.projectId).map((workspace) => (
+            <option key={workspace.id} value={workspace.id}>{workspace.name}</option>
+          ))}
+        </select>
+        <button aria-expanded={editingDescription} className="control-card__action" onClick={() => { setDescriptionDraft(session.description); setEditingDescription((open) => !open) }} type="button">Edit</button>
+        {session.completed ? (
+          <button className="control-card__action control-card__action--reopen" onClick={() => onReopen(session)} type="button">Reopen</button>
+        ) : (
+          <button className="control-card__action control-card__action--complete" onClick={() => onComplete(session)} type="button">
+            <Icon name="check" size={14} />
+            Complete
+          </button>
+        )}
+        <button
+          aria-label={`Order ${session.title} to stop and run /hand now`}
+          className="control-card__action control-card__hand"
+          data-hand-order={session.id}
+          onClick={() => onHand(session)}
+          title="Prepend a hand ORDER — the session stops its current step and runs /hand immediately"
+          type="button"
+        >
+          Hand
+        </button>
+        <button
+          aria-label={paused ? `Resume ${session.title}` : `Pause ${session.title}`}
+          aria-pressed={paused}
+          className={`control-card__action ${paused ? 'control-card__resume' : 'control-card__pause'}`}
+          data-pause-toggle={session.id}
+          onClick={() => onTogglePause(session)}
+          title={paused ? 'Prepend a RESUMED line and resume this session' : 'Prepend a PAUSED line and pause this session'}
+          type="button"
+        >
+          {paused ? <IconPlay size={14} /> : <IconPause size={14} />}
+          {paused ? 'Resume' : 'Pause'}
+        </button>
+        <button className="control-card__action control-card__action--danger" data-delete-task={session.id} onClick={() => onDelete(session)} type="button">
+          <Icon name="close" size={14} />
+          Delete
+        </button>
+      </footer>
+      {syncKey ? <TaskAttachments initialAttachments={session.attachments} syncKey={syncKey} taskId={session.id} /> : null}
+    </article>
+  )
+}
+
+function controlRowDetails(session) {
+  const body = String(session.details ?? '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('—'))
+    .join(' ')
+    .trim()
+  const text = body || String(session.note ?? '')
+  return text.length > 220 ? `${text.slice(0, 220).trimEnd()}...` : text
+}
+
+function ControlBoardRow({ onAssign, onDelete, onOpen, onPromote, onReopen, session, variant }) {
+  const rowDetails = controlRowDetails(session)
+  return (
+    <div className={`control-board__row${session.completed ? ' is-completed' : ''}`} data-control-row={session.id}>
+      <button className="control-board__row-title" onClick={() => onOpen(session)} title="Open the full task editor" type="button">{session.title}</button>
+      <div className="control-board__row-meta">
+        <span aria-hidden="true" className={`project-dot project-dot--${session.workspaceColor}`} />
+        <span className="control-board__row-workspace">{session.workspaceName}</span>
+        <span className={`control-card__priority control-card__priority--${session.priorityTone}`}>{session.priorityLabel}</span>
+      </div>
+      {rowDetails ? (
+        <p className="control-board__row-details" title={rowDetails}>{rowDetails}</p>
+      ) : null}
+      <div className="control-board__row-actions">
+        <button
+          aria-label={`Delete ${session.title}`}
+          className="control-card__action control-card__action--danger"
+          data-delete-task={session.id}
+          onClick={() => onDelete(session)}
+          title="Delete task"
+          type="button"
+        >
+          <Icon name="close" size={14} />
+        </button>
+        {variant === 'todo' ? (
+          <>
+            {onAssign ? (
+              <button
+                aria-label={`Assign session for ${session.title}`}
+                className="control-card__action control-card__action--assign"
+                data-assign-session={session.id}
+                onClick={() => onAssign(session)}
+                title="Move to In Progress, pin it to the top, and start the session"
+                type="button"
+              >
+                Assign session
+              </button>
+            ) : null}
+            <button className="control-card__action control-card__action--complete" onClick={() => onPromote(session)} type="button">Start</button>
+          </>
+        ) : (
+          <button className="control-card__action control-card__action--reopen" onClick={() => onReopen(session)} type="button">Reopen</button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ControlBoardAddTask({ stage, label, onCreate, defaultWorkspaceId }) {
+  const [open, setOpen] = useState(false)
+  const [title, setTitle] = useState('')
+
+  const submit = (event) => {
+    event.preventDefault()
+    const trimmed = title.trim()
+    if (!trimmed) return
+    if (onCreate(trimmed, defaultWorkspaceId ?? '', 2, stage)) {
+      setTitle('')
+      setOpen(false)
+    }
+  }
+
+  if (!open) {
+    return (
+      <button className="control-board__add-trigger" onClick={() => setOpen(true)} title={`Add task to ${label}`} type="button">
+        <Icon name="plus" size={13} />
+        Add task
+      </button>
+    )
+  }
+  return (
+    <form className="control-board__add" onSubmit={submit}>
+      <input
+        aria-label={`Add task to ${label}`}
+        autoFocus
+        className="control-board__add-input"
+        onChange={(event) => setTitle(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            setTitle('')
+            setOpen(false)
+          }
+        }}
+        placeholder="Task title…"
+        type="text"
+        value={title}
+      />
+      <button className="control-card__action" disabled={!title.trim()} type="submit">Add</button>
+    </form>
+  )
+}
+
+function ControlPanelWorkspace({
+  board,
+  finishedToday,
+  onAddStep,
+  onAssign,
+  onComposerSubmit,
+  onComplete,
+  onDelete,
+  onHand,
+  onLogUpdate,
+  onManualRefresh,
+  onMessage,
+  onMove,
+  onMoveToWorkspace,
+  onOpen,
+  onPromote,
+  onReopen,
+  onSaveDescription,
+  onSubAgentsCreate,
+  onSubAgentsStop,
+  onTogglePause,
+  refreshedAt,
+  sections,
+  sessions,
+  syncKey,
+  workspaces,
+}) {
+  const [layout, setLayout] = useState('board')
+  // Start-delay picker: minutes every newly queued session waits before the
+  // queue runner launches it. Persisted so it survives reloads.
+  const [startDelayMin, setStartDelayMin] = useState(() => readAutoDelayMinutes())
+  const changeStartDelay = (minutes) => {
+    setStartDelayMin(minutes)
+    try { localStorage.setItem(AUTO_DELAY_KEY, String(minutes)) } catch { /* non-fatal */ }
+  }
+  // Same Auto interval override as the workspace board To do heading — both
+  // surfaces read/write one localStorage key, so behavior stays in sync.
+  const [autoIntervalMin, setAutoIntervalMin] = useState(() => readAutoIntervalMinutes())
+  const changeAutoInterval = (minutes) => {
+    setAutoIntervalMin(minutes)
+    try { localStorage.setItem(AUTO_INTERVAL_KEY, String(minutes)) } catch { /* non-fatal */ }
+  }
+  const [composerOpen, setComposerOpen] = useState(false)
+  const [composerTitle, setComposerTitle] = useState('')
+  const [composerWorkspaceId, setComposerWorkspaceId] = useState('')
+  const [composerPriority, setComposerPriority] = useState(2)
+
+  const activeWorkspaceCount = new Set(sessions.map((session) => session.projectId)).size
+  const runningAgentsTotal = sessions.reduce((sum, session) => sum + (session.agents ?? 0), 0)
+  const refreshSeconds = Math.max(0, Math.round((Date.now() - refreshedAt) / 1000))
+  const refreshLabel = refreshSeconds < 5 ? 'just now' : refreshSeconds < 60 ? `${refreshSeconds}s ago` : `${Math.floor(refreshSeconds / 60)}m ago`
+
+  const submitComposer = (event) => {
+    event.preventDefault()
+    const title = composerTitle.trim()
+    if (!title) return
+    if (onComposerSubmit(title, composerWorkspaceId || (workspaces[0]?.id ?? null), composerPriority)) {
+      setComposerTitle('')
+      setComposerWorkspaceId('')
+      setComposerPriority(2)
+      setComposerOpen(false)
+    }
+  }
+
+  const boardRef = useRef(null)
+  const [finishedDeleteArmed, setFinishedDeleteArmed] = useState(false)
+  const [finishedDeleteStatus, setFinishedDeleteStatus] = useState('')
+  const [finishedDeleting, setFinishedDeleting] = useState(false)
+  const [pauseFlips, setPauseFlips] = useState({})
+  const finishedDisarmTimer = useRef(null)
+
+  useEffect(() => {
+    const node = boardRef.current
+    if (!node) return undefined
+    return attachBoardScroll(node)
+  }, [])
+
+  const togglePause = (session) => {
+    const serverPaused = isTaskPaused(session.description ?? '')
+    const currentlyPaused = pauseFlips[session.id] !== undefined && pauseFlips[session.id] !== serverPaused
+      ? pauseFlips[session.id]
+      : serverPaused
+    // Optimistic flip now; the real write reads the LIVE task record at click
+    // time inside onTogglePause, so a concurrent journal prepend is never lost.
+    setPauseFlips((prev) => ({ ...prev, [session.id]: !currentlyPaused }))
+    window.setTimeout(() => {
+      setPauseFlips((prev) => {
+        const next = { ...prev }
+        delete next[session.id]
+        return next
+      })
+    }, 8000)
+    onTogglePause(session, !currentlyPaused)
+  }
+
+  // Pause-all / resume-all: one button for every In Progress session at once.
+  // Each target goes through the same single-session path (optimistic flip +
+  // live-record journal prepend), so no session can lose a concurrent line.
+  const pauseAll = pauseAllSelection(
+    sessions.map((session) => ({ id: session.id, description: session.description, pausedOverride: pauseFlips[session.id] })),
+  )
+  const togglePauseAll = () => {
+    const byId = new Map(sessions.map((session) => [session.id, session]))
+    pauseAll.targetIds.forEach((id) => {
+      const session = byId.get(id)
+      if (session) togglePause(session)
+    })
+  }
+
+  const runFinishedDelete = async () => {
+    window.clearTimeout(finishedDisarmTimer.current)
+    setFinishedDeleteArmed(false)
+    if (finishedDeleting) return
+    // board.finished is the plain array of sessions rendered in the Finished
+    // column — exactly what the user sees next to the button is what gets deleted.
+    const targets = board.finished ?? []
+    if (!targets.length) return
+    setFinishedDeleting(true)
+    setFinishedDeleteStatus(`Deleting ${targets.length}…`)
+    const deleted = new Set()
+    const failed = new Set()
+    for (const session of targets) {
+      try {
+        if (await onDelete(session)) deleted.add(session.id)
+        else failed.add(session.id)
+      } catch {
+        failed.add(session.id)
+      }
+    }
+    // Failed deletes are retried until nothing is left — the button may never
+    // report done while finished cards the user saw are still on the board.
+    for (let pass = 0; pass < 3 && failed.size; pass += 1) {
+      for (const id of [...failed]) {
+        try {
+          if (await onDelete({ id })) {
+            failed.delete(id)
+            deleted.add(id)
+          }
+        } catch {
+          // keep the id in failed for the next pass / honest report
+        }
+      }
+    }
+    setFinishedDeleting(false)
+    const doneCount = [...deleted].length
+    const stuckCount = failed.size
+    setFinishedDeleteStatus(stuckCount
+      ? `Deleted ${doneCount}; ${stuckCount} could not be deleted — click again to retry`
+      : `Deleted ${doneCount} task${doneCount === 1 ? '' : 's'}`)
+    window.setTimeout(() => setFinishedDeleteStatus(''), 6000)
+  }
+
+  const armFinishedDelete = () => {
+    if (finishedDeleteArmed) {
+      runFinishedDelete()
+      return
+    }
+    setFinishedDeleteArmed(true)
+    setFinishedDeleteStatus(`Press again to delete all ${board.finished?.length ?? 0} finished tasks`)
+    window.clearTimeout(finishedDisarmTimer.current)
+    finishedDisarmTimer.current = window.setTimeout(() => {
+      setFinishedDeleteArmed(false)
+      setFinishedDeleteStatus('')
+    }, 4000)
+  }
+
+  const finishedCount = board.finished?.length ?? 0
+  const lawHealth = boardHealth(sessions.map((session) => session.description ?? ''), Date.now())
+
+  return (
+    <div className="control-panel">
+      <div className="view-header control-panel__header">
+        <div>
+          <span className="section-kicker">WORKSPACE LIVE CONTROL</span>
+          <h1>AI control panel</h1>
+          <p>Every In Progress session across your workspaces — updates stream in live while you watch.</p>
+        </div>
+        <div className="view-header__actions">
+          <div aria-label="Panel layout" className="segmented-control" role="group">
+            <button className={layout === 'board' ? 'is-selected' : ''} onClick={() => setLayout('board')} title="Board view" type="button">
+              <Icon name="board" size={16} />
+              Board
+            </button>
+            <button className={layout === 'grid' ? 'is-selected' : ''} onClick={() => setLayout('grid')} title="Grid view" type="button">
+              <Icon name="list" size={16} />
+              Grid
+            </button>
+          </div>
+          <span className="control-panel__refresh" role="status">
+            <span aria-hidden="true" className="control-panel__refresh-dot" />
+            Live · refreshed {refreshLabel}
+          </span>
+          <UsageMeters />
+          <label className="control-panel__delay" title="Minutes every newly clicked session waits before it starts; sessions always run one after another">
+            Start delay
+            <select
+              aria-label="Minutes before each new session starts"
+              onChange={(event) => changeStartDelay(Number(event.target.value))}
+              value={startDelayMin}
+            >
+              {AUTO_DELAY_CHOICES.map((minutes) => (
+                <option key={minutes} value={minutes}>{minutes === 0 ? 'Immediate' : `${minutes} min`}</option>
+              ))}
+            </select>
+          </label>
+          <button className="secondary-button" onClick={onManualRefresh} type="button">Refresh now</button>
+          <button aria-expanded={composerOpen} className="primary-button" onClick={() => setComposerOpen((open) => !open)} type="button">
+            <Icon name="plus" size={17} />
+            New session
+          </button>
+        </div>
+      </div>
+
+      <div className="control-panel__stats" role="list">
+        <span role="listitem"><strong>{sessions.length}</strong> running sessions</span>
+        <span role="listitem" title="Sub-agents reported running across all In Progress sessions"><strong>{runningAgentsTotal}</strong> agents running</span>
+        <span role="listitem"><strong>{activeWorkspaceCount}</strong> workspaces active</span>
+        <span role="listitem"><strong>{finishedToday.length}</strong> finished today</span>
+        <span role="listitem" title="In Progress cards with an update fresher than five minutes"><strong>{lawHealth.onTime}/{lawHealth.watched}</strong> on time · 5-min law</span>
+      </div>
+
+      {composerOpen ? (
+        <form className="control-panel__composer" onSubmit={submitComposer}>
+          <input
+            aria-label="New session name"
+            autoFocus
+            onChange={(event) => setComposerTitle(event.target.value)}
+            placeholder="What should the next session do?"
+            type="text"
+            value={composerTitle}
+          />
+          <select
+            aria-label="New session workspace"
+            onChange={(event) => setComposerWorkspaceId(event.target.value)}
+            value={composerWorkspaceId}
+          >
+            <option value="">Workspace…</option>
+            {workspaces.map((workspace) => (
+              <option key={workspace.id} value={workspace.id}>{workspace.name}</option>
+            ))}
+          </select>
+          <select
+            aria-label="New session priority"
+            onChange={(event) => setComposerPriority(Number(event.target.value))}
+            value={composerPriority}
+          >
+            <option value={1}>Urgent</option>
+            <option value={2}>High</option>
+            <option value={3}>Low</option>
+            <option value={4}>Normal</option>
+          </select>
+          <button className="primary-button" disabled={!composerTitle.trim()} type="submit">Open session</button>
+          <button className="secondary-button" onClick={() => setComposerOpen(false)} type="button">Cancel</button>
+        </form>
+      ) : null}
+
+      {layout === 'board' ? (
+        <div className="control-board" ref={boardRef}>
+          <section aria-label="To do sessions" className="control-board__column control-board__column--todo">
+            <header className="control-board__heading">
+              <h2><button className="control-board__heading-button" onClick={() => scrollToSection(boardRef.current, 0)} title="Jump to this section" type="button">To do</button></h2>
+              <span className="control-board__count">{board.todo.length}</span>
+              <span className={`board-column__auto${autoIntervalMin ? ' board-column__auto--active' : ''}`}>
+                <button
+                  className={`board-column__auto-button${autoIntervalMin ? ' is-interval' : ''}`}
+                  data-auto-interval-toggle
+                  onClick={() => changeAutoInterval(autoIntervalMin ? 0 : 5)}
+                  title={autoIntervalMin
+                    ? `Auto: a new session starts every ${autoIntervalMin} min, counting the sessions already running — N queued with K running launches only N - K new ones. Click to go back to the default (start after the previous finishes).`
+                    : 'Auto: sessions start one after another, each after the previous finishes. Click to force-start a new session every X minutes instead.'}
+                  type="button"
+                >
+                  Auto{autoIntervalMin ? ` · ${autoIntervalMin}m` : ''}
+                </button>
+                {autoIntervalMin ? (
+                  <select
+                    aria-label="Auto interval minutes"
+                    data-auto-interval-minutes
+                    onChange={(event) => changeAutoInterval(Number(event.target.value))}
+                    value={autoIntervalMin}
+                  >
+                    {AUTO_INTERVAL_CHOICES.map((minutes) => (
+                      <option key={minutes} value={minutes}>{minutes} min</option>
+                    ))}
+                  </select>
+                ) : null}
+              </span>
+            </header>
+            <div className="control-board__cards">
+              {board.todo.length ? board.todo.map((session) => (
+                <ControlBoardRow
+                  key={session.id}
+                  onAssign={onAssign}
+                  onDelete={onDelete}
+                  onOpen={onOpen}
+                  onPromote={onPromote}
+                  onReopen={onReopen}
+                  session={session}
+                  variant="todo"
+                />
+              )) : <p className="control-board__empty">Nothing is queued.</p>}
+              <ControlBoardAddTask defaultWorkspaceId={workspaces[0]?.id ?? ''} label="To do" onCreate={onComposerSubmit} stage="todo" />
+            </div>
+          </section>
+          <section aria-label="In Progress sessions" className="control-board__column control-board__column--inprogress">
+            <header className="control-board__heading">
+              <h2><button className="control-board__heading-button" onClick={() => scrollToSection(boardRef.current, 1)} title="Jump to this section" type="button">In Progress</button></h2>
+              <span className="control-board__count">{sessions.length}</span>
+              {sessions.length ? (
+                <button
+                  aria-label={pauseAll.nextPaused ? `Pause all ${pauseAll.targetIds.length} running sessions` : `Resume all ${pauseAll.targetIds.length} paused sessions`}
+                  aria-pressed={!pauseAll.nextPaused}
+                  className={`control-board__pause-all${pauseAll.nextPaused ? '' : ' control-board__pause-all--resume'}`}
+                  data-pause-all="inprogress"
+                  disabled={!pauseAll.targetIds.length}
+                  onClick={togglePauseAll}
+                  title={pauseAll.nextPaused ? `Pause every running session at once (${pauseAll.targetIds.length}) — click again to resume all` : `Resume every paused session at once (${pauseAll.targetIds.length})`}
+                  type="button"
+                >
+                  {pauseAll.nextPaused ? <IconPause size={14} /> : <IconPlay size={14} />}
+                  {pauseAll.nextPaused ? `Pause all (${pauseAll.targetIds.length})` : `Resume all (${pauseAll.targetIds.length})`}
+                </button>
+              ) : null}
+            </header>
+            {sessions.length ? (
+              <div className="control-grid">
+                {sessions.map((session) => (
+                  <SessionCard
+                    key={session.id}
+                    onAddStep={onAddStep}
+                    onComplete={onComplete}
+                    onDelete={onDelete}
+                    onHand={onHand}
+                    onLogUpdate={onLogUpdate}
+                    onMessage={onMessage}
+                    onMove={onMove}
+                    onMoveToWorkspace={onMoveToWorkspace}
+                    onOpen={onOpen}
+                    onReopen={onReopen}
+                    onSaveDescription={onSaveDescription}
+                    onSubAgentsCreate={onSubAgentsCreate}
+                    onSubAgentsStop={onSubAgentsStop}
+                    onTogglePause={togglePause}
+                    pausedOverride={pauseFlips[session.id]}
+                    sections={sections}
+                    session={session}
+                    syncKey={syncKey}
+                    workspaces={workspaces}
+                  />
+                ))}
+              </div>
+            ) : <p className="control-board__empty">No sessions are running — open one with New session.</p>}
+            <ControlBoardAddTask defaultWorkspaceId={workspaces[0]?.id ?? ''} label="In Progress" onCreate={onComposerSubmit} stage="inprogress" />
+          </section>
+          <section aria-label="Finished sessions" className="control-board__column control-board__column--finished">
+            <header className="control-board__heading">
+              <h2><button className="control-board__heading-button" onClick={() => scrollToSection(boardRef.current, 2)} title="Jump to this section" type="button">Finished</button></h2>
+              <span className="control-board__count">{board.finished.length}</span>
+              {finishedCount ? (
+                <button
+                  aria-label={finishedDeleteArmed ? `Confirm deleting all ${finishedCount} finished tasks` : `Delete all ${finishedCount} finished tasks`}
+                  className={`control-panel__finished-delete-all${finishedDeleteArmed ? ' --armed' : ''}`}
+                  data-delete-all-finished=""
+                  disabled={finishedDeleting}
+                  onClick={armFinishedDelete}
+                  type="button"
+                >
+                  <IconTrash size={13} />
+                  {finishedDeleting ? 'Deleting…' : finishedDeleteArmed ? `Click again to delete ${finishedCount}` : 'Delete all'}
+                </button>
+              ) : null}
+              {finishedDeleteStatus ? (
+                <span className="control-board__delete-status" role="status">{finishedDeleteStatus}</span>
+              ) : null}
+            </header>
+            <div className="control-board__cards">
+              {board.finished.length ? board.finished.map((session) => (
+                <ControlBoardRow
+                  key={session.id}
+                  onDelete={onDelete}
+                  onOpen={onOpen}
+                  onPromote={onPromote}
+                  onReopen={onReopen}
+                  session={session}
+                  variant="finished"
+                />
+              )) : <p className="control-board__empty">Nothing finished yet.</p>}
+              <ControlBoardAddTask defaultWorkspaceId={workspaces[0]?.id ?? ''} label="Finished" onCreate={onComposerSubmit} stage="finished" />
+            </div>
+          </section>
+        </div>
+      ) : sessions.length ? (
+        <div className="control-grid">
+          {sessions.map((session) => (
+            <SessionCard
+                    key={session.id}
+                    onAddStep={onAddStep}
+                    onComplete={onComplete}
+                    onDelete={onDelete}
+                    onHand={onHand}
+                    onLogUpdate={onLogUpdate}
+                    onMessage={onMessage}
+                    onMove={onMove}
+                    onMoveToWorkspace={onMoveToWorkspace}
+                    onOpen={onOpen}
+                    onReopen={onReopen}
+                    onSaveDescription={onSaveDescription}
+                    onSubAgentsCreate={onSubAgentsCreate}
+                    onSubAgentsStop={onSubAgentsStop}
+                    onTogglePause={togglePause}
+                    pausedOverride={pauseFlips[session.id]}
+                    sections={sections}
+                    session={session}
+                    workspaces={workspaces}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="control-panel__empty">
+          <h2>No sessions are running</h2>
+          <p>Open a session and its updates will stream into this workspace panel as agents work.</p>
+          <button className="primary-button" onClick={() => setComposerOpen(true)} type="button">
+            <Icon name="plus" size={17} />
+            Start the first session
+          </button>
+        </div>
+      )}
+
+      {finishedToday.length ? (
+        <section className="control-panel__finished">
+          <h2>Finished today</h2>
+          <ul>
+            {finishedToday.map((session) => (
+              <li key={session.id}>
+                <span aria-hidden="true" className={`project-dot project-dot--${session.workspaceColor}`} />
+                <span className="control-panel__finished-title">{session.title}</span>
+                <span className="control-panel__finished-workspace">{session.workspaceName}</span>
+                <button className="control-card__action control-card__action--reopen" onClick={() => onReopen(session)} type="button">Reopen</button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </div>
   )
 }
 
@@ -1324,12 +2799,18 @@ function getRouteInfo(route, state) {
   if (route === 'reminders') {
     return { title: 'Reminders', kicker: 'DEVICE ALERTS', subtitle: 'Set audible alerts for the exact moments that matter.' }
   }
+  if (route === 'control') {
+    return { title: 'AI control panel', kicker: 'WORKSPACE LIVE CONTROL', subtitle: 'Every In Progress session across your workspaces — human and agent controls on one live surface.' }
+  }
   if (route.startsWith('project:')) {
     const project = state.projects[route.slice('project:'.length)]
+    const workspace = isWorkspaceProject(project)
     return {
       title: project?.name ?? 'Project',
-      kicker: 'PROJECT VIEW',
-      subtitle: project?.description?.trim() || 'No project details yet. Edit this project to add context.',
+      kicker: workspace ? 'WORKSPACE LIVE BOARD' : 'PROJECT VIEW',
+      subtitle: workspace
+        ? 'Your workspace pipeline — To do, In Progress, and Finished live side by side, with fresh updates flashing red.'
+        : project?.description?.trim() || 'No project details yet. Edit this project to add context.',
     }
   }
   const today = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date()).toUpperCase()
@@ -1376,6 +2857,7 @@ function UpcomingCalendar({
 }) {
   const taskBuckets = useMemo(() => {
     return tasks.reduce((buckets, task) => {
+      if (task.completedAt) return buckets
       if (!task.due?.date) return buckets
       if (!buckets[task.due.date]) buckets[task.due.date] = []
       buckets[task.due.date].push(task)
@@ -2029,8 +3511,40 @@ function DiaryField({ label, value, placeholder, onChange, rows = 5 }) {
   )
 }
 
+const DIARY_MOODS = [
+  { value: 'great', label: 'Great' },
+  { value: 'good', label: 'Good' },
+  { value: 'okay', label: 'Okay' },
+  { value: 'low', label: 'Low' },
+  { value: 'rough', label: 'Rough' },
+]
+
+function diaryEntryText(entry) {
+  return [entry.body, entry.morning, entry.highlights, entry.reflection, entry.tomorrow]
+    .filter((value) => typeof value === 'string')
+    .join(' ')
+}
+
+function diarySearchResults(diaryEntries, query) {
+  const needle = query.trim().toLowerCase()
+  if (!needle) return []
+  return Object.entries(diaryEntries)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([date, entry]) => {
+      const text = diaryEntryText(entry)
+      const hit = text.toLowerCase().indexOf(needle)
+      return hit === -1 ? null : { date, entry, excerpt: text.slice(Math.max(0, hit - 40), hit + 80).trim() }
+    })
+    .filter(Boolean)
+}
+
+function countDiaryWords(entry) {
+  return diaryEntryText(entry).split(/\s+/).filter(Boolean).length
+}
+
 function JournalView({
   journal,
+  onDiaryDelete,
   onDiaryUpdate,
   onNoteAdd,
   onNoteComplete,
@@ -2041,6 +3555,8 @@ function JournalView({
 }) {
   const today = toLocalDate(new Date())
   const [selectedDate, setSelectedDate] = useState(today)
+  const [diaryQuery, setDiaryQuery] = useState('')
+  const [confirmClearDay, setConfirmClearDay] = useState(null)
   const [selectedNoteId, setSelectedNoteId] = useState(() => journal.notes[0]?.id ?? null)
   const selectedNote = journal.notes.find((note) => note.id === selectedNoteId) ?? null
   const diaryEntry = journal.diaryEntries[selectedDate] ?? {
@@ -2049,7 +3565,16 @@ function JournalView({
     highlights: '',
     reflection: '',
     tomorrow: '',
+    mood: '',
   }
+  const diaryDates = useMemo(
+    () => Object.keys(journal.diaryEntries).sort((a, b) => b.localeCompare(a)),
+    [journal.diaryEntries],
+  )
+  const diaryMatches = useMemo(
+    () => diarySearchResults(journal.diaryEntries, diaryQuery),
+    [journal.diaryEntries, diaryQuery],
+  )
 
   useEffect(() => {
     if (!selectedNoteId || journal.notes.some((note) => note.id === selectedNoteId)) return
@@ -2089,12 +3614,74 @@ function JournalView({
             {Object.values(diaryEntry).some((value) => typeof value === 'string' && value.trim()) ? 'Saved locally' : 'Start a new day'}
           </span>
         </div>
+        <div className="diary-browse">
+          <input
+            aria-label="Search diary entries"
+            className="diary-search"
+            onChange={(event) => setDiaryQuery(event.target.value)}
+            placeholder="Search all entries..."
+            type="search"
+            value={diaryQuery}
+          />
+          <details className="diary-days" open={diaryQuery.trim() ? undefined : false}>
+            <summary>
+              {diaryQuery.trim()
+                ? `${diaryMatches.length} matching entr${diaryMatches.length === 1 ? 'y' : 'ies'}`
+                : `Browse entries (${diaryDates.length})`}
+            </summary>
+            <div className="diary-days-list">
+              {(diaryQuery.trim() ? diaryMatches : diaryDates.map((date) => ({ date, entry: journal.diaryEntries[date] }))).map(({ date, entry, excerpt }) => (
+                <button
+                  aria-pressed={date === selectedDate}
+                  className={date === selectedDate ? 'diary-day-link is-current' : 'diary-day-link'}
+                  key={date}
+                  onClick={() => {
+                    setSelectedDate(date)
+                    setDiaryQuery('')
+                  }}
+                  type="button"
+                >
+                  <strong>
+                    {date === today ? 'Today' : new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).format(fromLocalDate(date))}
+                  </strong>
+                  <span>{excerpt || diaryEntryText(entry).slice(0, 120) || 'Empty entry'}</span>
+                </button>
+              ))}
+              {diaryQuery.trim() && !diaryMatches.length ? <p className="diary-days-empty">No entries match “{diaryQuery.trim()}”.</p> : null}
+              {!diaryQuery.trim() && !diaryDates.length ? <p className="diary-days-empty">No entries yet — today is page one.</p> : null}
+            </div>
+          </details>
+        </div>
         <div className="diary-intro">
           <div>
             <span className="section-kicker">A DAY IN VIEW</span>
             <h2>{new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(fromLocalDate(selectedDate))}</h2>
+            <span className="journal-count">{countDiaryWords(diaryEntry)} words</span>
           </div>
           <p>Capture the shape of the day in small, useful pieces. Each section saves immediately and syncs with the rest of Daymark.</p>
+        </div>
+        <div className="diary-mood" role="group" aria-label="Mood for the day">
+          <span>Mood</span>
+          <button
+            aria-pressed={!diaryEntry.mood}
+            className={!diaryEntry.mood ? 'text-button is-active' : 'text-button'}
+            onClick={() => onDiaryUpdate(selectedDate, { mood: '' })}
+            type="button"
+          >
+            —
+          </button>
+          {DIARY_MOODS.map((mood) => (
+            <button
+              aria-pressed={diaryEntry.mood === mood.value}
+              className={diaryEntry.mood === mood.value ? 'text-button is-active' : 'text-button'}
+              key={mood.value}
+              onClick={() => onDiaryUpdate(selectedDate, { mood: mood.value })}
+              type="button"
+            >
+              {mood.label}
+            </button>
+          ))}
+          {diaryEntry.mood ? <span className="journal-saved">Feeling {diaryEntry.mood}</span> : null}
         </div>
         <div className="diary-entry-grid">
           <DiaryField label="Start of day" placeholder="What matters as you begin?" value={diaryEntry.morning} onChange={(value) => onDiaryUpdate(selectedDate, { morning: value })} />
@@ -2112,6 +3699,33 @@ function JournalView({
               value={diaryEntry.body}
             />
           </label>
+          {journal.diaryEntries[selectedDate] ? (
+            confirmClearDay === selectedDate ? (
+              <span className="diary-clear-confirm">
+                <button
+                  className="text-button diary-clear-day"
+                  onClick={() => {
+                    onDiaryDelete(selectedDate)
+                    setConfirmClearDay(null)
+                  }}
+                  type="button"
+                >
+                  Confirm clear
+                </button>
+                <button className="text-button" onClick={() => setConfirmClearDay(null)} type="button">
+                  Keep it
+                </button>
+              </span>
+            ) : (
+              <button
+                className="text-button diary-clear-day"
+                onClick={() => setConfirmClearDay(selectedDate)}
+                type="button"
+              >
+                Clear this day
+              </button>
+            )
+          ) : null}
         </div>
       </section>
     )
@@ -2559,6 +4173,9 @@ function App() {
     }
     if (syncPushRunnerRef.current) return
     if (syncPushTimerRef.current) window.clearTimeout(syncPushTimerRef.current)
+    // User-initiated writes must hit the wire immediately — zero debounce. The 0ms
+    // task only coalesces multiple dispatches inside one event handler into a
+    // single push; it can never defer a push to a later sync tick.
     syncPushTimerRef.current = window.setTimeout(async () => {
       syncPushTimerRef.current = null
       if (generation !== syncGenerationRef.current || syncPushRunnerRef.current) return
@@ -2575,6 +4192,7 @@ function App() {
         ) {
           syncPushRequestedRef.current = false
           setSyncStatus('syncing')
+          const pushStartedAt = performance.now()
           const pushed = await pushSyncStateWithRebase(
             appStore.getState(),
             syncRemoteRevisionRef.current,
@@ -2586,6 +4204,7 @@ function App() {
             runner.controller.signal.aborted ||
             generation !== syncGenerationRef.current
           ) return
+          console.info(`[daymark] sync push confirmed in ${Math.round(performance.now() - pushStartedAt)}ms (revision ${pushed.revision})`)
           syncRemoteRevisionRef.current = pushed.revision
           syncChannelRef.current?.publish(pushed.state)
           syncPushRetryCountRef.current = 0
@@ -2607,6 +4226,7 @@ function App() {
           10_000,
           250 * (2 ** Math.min(syncPushRetryCountRef.current - 1, 5)),
         )
+        console.warn(`[daymark] sync push failed — retrying in ${retryDelay}ms`)
         syncPushRetryTimerRef.current = window.setTimeout(() => {
           syncPushRetryTimerRef.current = null
           if (generation === syncGenerationRef.current) {
@@ -2618,7 +4238,7 @@ function App() {
           syncPushRunnerRef.current = null
         }
       }
-    }, 50)
+    }, 0)
     return () => {
       if (syncPushTimerRef.current) {
         window.clearTimeout(syncPushTimerRef.current)
@@ -2856,7 +4476,9 @@ function App() {
     [state],
   )
   const calendarTasks = useMemo(
-    () => Object.values(state.tasks),
+    // Completed tasks must never reappear in the calendar, so the calendar
+    // query drops them (and their stale due dates) at the source.
+    () => Object.values(state.tasks).filter((task) => !task.completedAt),
     [state.tasks],
   )
   const journal = useMemo(
@@ -2871,9 +4493,12 @@ function App() {
     () =>
       Object.values(state.projects)
         .filter((project) => project.id !== state.preferences.inboxProjectId && !project.isArchived)
-        .sort((left, right) => left.order - right.order),
+        .sort((left, right) => (Number(isWorkspaceProject(right)) - Number(isWorkspaceProject(left)))
+          || left.order - right.order),
     [state],
   )
+  const workspaceSidebarItems = projectItems.filter((project) => isWorkspaceProject(project))
+  const regularProjectItems = projectItems.filter((project) => !isWorkspaceProject(project))
   const orderItems = useMemo(
     () => Object.values(state.orderItems ?? {}).sort((left, right) => left.order - right.order),
     [state.orderItems],
@@ -2891,7 +4516,16 @@ function App() {
     if (route === 'inbox') scoped = availableTasks.filter((task) => task.project === state.preferences.inboxProjectId)
     if (route === 'upcoming') scoped = availableTasks.filter((task) => state.tasks[task.id]?.due?.date >= today)
     if (route.startsWith('project:')) scoped = availableTasks.filter((task) => task.project === route.slice('project:'.length))
-    if (route === 'today') scoped = availableTasks.filter((task) => state.tasks[task.id]?.due?.date <= today)
+    if (route === 'today') scoped = availableTasks.filter((task) => {
+      // Completed tasks must NEVER reappear under Today - not even ones
+      // completed today (the dedicated Completed route keeps that history).
+      if (task.completed) {
+        return false
+      }
+      // Tasks without a due date are excluded from Today scoping.
+      const dueDate = state.tasks[task.id]?.due?.date
+      return Boolean(dueDate) && dueDate <= today
+    })
     if (route === 'completed') {
       scoped = sortCompletedHistoryNewestFirst(tasks.filter((task) => task.completed))
     }
@@ -2951,6 +4585,85 @@ function App() {
       .sort((left, right) => left.order - right.order || left.name.localeCompare(right.name))
       .map(({ order, ...section }) => section)
   }, [route, state.sections, state.tasks, visibleTasks])
+
+  const { lastRefreshedAt: controlPanelRefreshedAt, refreshNow: refreshControlPanelNow } = useControlPanelLiveRefresh(route === 'control')
+
+  const controlBoardColumns = useMemo(() => {
+    const columns = { todo: [], inprogress: [], finished: [] }
+    for (const task of Object.values(state.tasks)) {
+      const stage = controlBoardStage(state.sections[task.sectionId]?.name)
+      if (stage) columns[stage].push(buildControlSession(task, state, today))
+    }
+    const byPriority = (left, right) => (left.priority ?? 4) - (right.priority ?? 4)
+      || String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? ''))
+      || left.id.localeCompare(right.id)
+    columns.todo = columns.todo.filter((session) => !session.completed).sort(byPriority)
+    columns.inprogress = columns.inprogress.filter((session) => !session.completed).sort(byPriority)
+    columns.inprogress = sortPinnedFirst(columns.inprogress)
+    columns.finished = columns.finished.sort((left, right) => String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? ''))
+      || left.id.localeCompare(right.id))
+    return columns
+  }, [state, today])
+
+  const controlSessions = useMemo(() => controlBoardColumns.inprogress
+    .filter((session) => {
+      if (!searchTerm.trim()) return true
+      const query = searchTerm.trim().toLowerCase()
+      return `${session.title} ${session.description} ${session.workspaceName}`.toLowerCase().includes(query)
+    })
+  , [controlBoardColumns, searchTerm])
+
+  const controlFinishedToday = useMemo(() => Object.values(state.tasks)
+    .filter((task) => task.completedAt && task.completedAt.slice(0, 10) === today && inProgressTask(task, state))
+    .map((task) => buildControlSession(task, state, today))
+    .sort((left, right) => String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? ''))
+      || left.id.localeCompare(right.id))
+  , [state, today])
+
+  const isWorkspace = route.startsWith('project:') && isWorkspaceProject(state.projects[route.slice('project:'.length)])
+
+  // Auto interval override for the workspace board To do column: 0 = default
+  // sequential queue; N > 0 = force-start a queued session every N minutes.
+  const [autoIntervalMin, setAutoIntervalMin] = useState(() => readAutoIntervalMinutes())
+  const changeAutoInterval = (minutes) => {
+    setAutoIntervalMin(minutes)
+    try { localStorage.setItem(AUTO_INTERVAL_KEY, String(minutes)) } catch { /* non-fatal */ }
+  }
+
+  // The workspace board always renders EXACTLY these three canonical columns —
+  // every section and task of the project maps into one of them, so stage names
+  // (even duplicated ones) can never produce duplicate panels.
+  const workspaceBoardColumns = useMemo(() => {
+    if (!isWorkspace) return []
+    const projectId = route.slice('project:'.length)
+    const columns = [
+      { key: 'todo', name: 'To do', tasks: [], sectionId: null },
+      { key: 'inprogress', name: 'In Progress', tasks: [], sectionId: null },
+      { key: 'finished', name: 'Finished', tasks: [], sectionId: null },
+    ]
+    const byKey = new Map(columns.map((column) => [column.key, column]))
+    for (const section of Object.values(state.sections)) {
+      if (section.projectId !== projectId) continue
+      const column = byKey.get(controlBoardStage(section.name))
+      if (column && !column.sectionId) column.sectionId = section.id
+    }
+    const byPriority = (left, right) => (left.priority ?? 4) - (right.priority ?? 4)
+      || String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? ''))
+      || left.id.localeCompare(right.id)
+    for (const task of Object.values(state.tasks)) {
+      if (task.projectId !== projectId) continue
+      const stage = controlBoardStage(state.sections[task.sectionId]?.name)
+      const session = buildControlSession(task, state, today)
+      if (task.completedAt || stage === 'finished') byKey.get('finished').tasks.push(session)
+      else if (stage === 'inprogress') byKey.get('inprogress').tasks.push(session)
+      else byKey.get('todo').tasks.push(session)
+    }
+    for (const column of columns) column.tasks.sort(byPriority)
+    for (const column of columns) {
+      if (column.key === 'inprogress') column.tasks = sortPinnedFirst(column.tasks)
+    }
+    return columns
+  }, [isWorkspace, route, state, today])
 
   useEffect(() => {
     if (composerOpen) {
@@ -3369,6 +5082,11 @@ function App() {
     if (!result.ok) setNotice(result.message)
   }
 
+  const deleteDiary = (date) => {
+    const result = appStore.dispatch({ type: 'diary.remove', date })
+    if (!result.ok) setNotice(result.message)
+  }
+
   const saveProject = (projectId, project) => {
     const result = appStore.dispatch({ type: 'project.update', projectId, patch: project })
     if (!result.ok) setNotice(result.message)
@@ -3571,6 +5289,333 @@ function App() {
     }
   }
 
+  const ensureWorkspaceStageSection = (projectId, stage) => {
+    const existing = Object.values(state.sections).find((section) =>
+      section.projectId === projectId && controlBoardStage(section.name) === stage)
+    if (existing) return existing.id
+    const names = { todo: 'To do', inprogress: 'In Progress', finished: 'Finished' }
+    const sectionId = createId('section')
+    const created = appStore.dispatch({
+      type: 'section.add',
+      input: { id: sectionId, projectId, name: names[stage] ?? 'To do', order: stage === 'inprogress' ? 1 : stage === 'finished' ? 2 : 0 },
+    })
+    if (!created.ok) {
+      setNotice(created.message)
+      return null
+    }
+    return sectionId
+  }
+
+  const ensureControlSection = (projectId) => ensureWorkspaceStageSection(projectId, 'inprogress')
+
+  const completeControlTask = (session) => {
+    const result = appStore.dispatch({ type: 'task.complete', taskId: session.id })
+    if (!result.ok) setNotice(result.message)
+    else {
+      setNotice('')
+      setUndoAvailable(false)
+    }
+  }
+
+  const reopenControlTask = (session) => {
+    if (session.completed) {
+      const result = appStore.dispatch({ type: 'task.uncomplete', taskId: session.id })
+      if (!result.ok) {
+        setNotice(result.message)
+        return
+      }
+    }
+    const sectionId = ensureControlSection(session.projectId)
+    if (sectionId && sectionId !== session.sectionId) {
+      appStore.dispatch({ type: 'task.update', taskId: session.id, patch: { sectionId } })
+    }
+    const line = `— REOPENED ${controlClock()} — Session reopened from the AI control panel.`
+    appStore.dispatch({
+      type: 'task.update',
+      taskId: session.id,
+      patch: { description: session.description ? `${line}\n${session.description}` : line },
+    })
+    setNotice('')
+    setUndoAvailable(false)
+  }
+
+  /**
+   * Pause/resume toggle: reads the LIVE task record at click time (a stale
+   * render closure could overwrite a journal line an agent prepended seconds
+   * ago) and prepends the PAUSED/RESUMED marker below a leading "— pinned —".
+   */
+  const toggleControlPause = (session, nextPaused) => {
+    const live = appStore.getState().tasks[session.id]
+    const current = live?.description ?? session.description ?? ''
+    const line = nextPaused ? pausedPrefixLine() : resumedPrefixLine()
+    const result = appStore.dispatch({
+      type: 'task.update',
+      taskId: session.id,
+      patch: { description: prependJournalLine(current, line) },
+    })
+    if (!result.ok) setNotice(result.message)
+    else setNotice('')
+  }
+
+  const promoteControlTask = (session) => {
+    const sectionId = ensureControlSection(session.projectId)
+    if (!sectionId) return
+    const result = appStore.dispatch({
+      type: 'task.update',
+      taskId: session.id,
+      patch: { sectionId },
+    })
+    if (!result.ok) setNotice(result.message)
+    else {
+      setNotice('')
+      setUndoAvailable(false)
+    }
+  }
+
+  // Assign session: move the task into In Progress, pin it to the very top of
+  // the column (marker line + low order for server-side ordering), prepend the
+  // journal update line, and start an agent session so the run is announced.
+  const assignControlSession = (session) => {
+    if (!session || session.completed) return
+    const sectionId = ensureControlSection(session.projectId)
+    if (!sectionId) return
+    const minOrder = Object.values(state.tasks)
+      .filter((candidate) => candidate.sectionId === sectionId)
+      .reduce((min, candidate) => Math.min(min, candidate.order ?? 0), 0)
+    const pinnedBlock = `${PINNED_MARKER}\n— update ${controlClock()} — ${ASSIGN_SESSION_UPDATE_LINE}`
+    const result = appStore.dispatch({
+      type: 'task.update',
+      taskId: session.id,
+      patch: {
+        sectionId,
+        order: minOrder - 1000,
+        description: session.description ? `${pinnedBlock}\n${session.description}` : pinnedBlock,
+      },
+    })
+    if (!result.ok) {
+      setNotice(result.message)
+      return
+    }
+    setNotice('')
+    setUndoAvailable(false)
+    // Sequential auto-run: the clicked session joins the queue and is launched
+    // by the queue runner only when the previously started session finished.
+    const queue = readAutoQueue()
+    if (!queue.some((entry) => entry.id === session.id)) {
+      queue.push({ id: session.id, enqueuedAt: Date.now(), startedAt: null })
+      writeAutoQueue(queue)
+    }
+  }
+
+  // New tasks always default to the To do stage of their project.
+  const defaultTodoSectionId = (projectId) => {
+    const sections = Object.values(state.sections).filter((section) => section.projectId === projectId)
+    return (sections.find((section) => controlBoardStage(section.name) === 'todo') ?? sections[0])?.id ?? null
+  }
+
+  const moveControlTask = (session, sectionId) => {
+    const result = appStore.dispatch({
+      type: 'task.update',
+      taskId: session.id,
+      patch: { sectionId: sectionId ?? null },
+    })
+    if (!result.ok) setNotice(result.message)
+    else {
+      setNotice('')
+      setUndoAvailable(false)
+    }
+  }
+
+  const moveControlTaskToWorkspace = (session, projectId) => {
+    if (!projectId || projectId === session.projectId || !state.projects[projectId]) return
+    const sectionId = ensureControlSection(projectId)
+    if (!sectionId) return
+    const result = appStore.dispatch({
+      type: 'task.update',
+      taskId: session.id,
+      patch: { projectId, sectionId },
+    })
+    if (!result.ok) setNotice(result.message)
+    else {
+      setNotice(`Session moved to the ${state.projects[projectId].name} workspace.`)
+      setUndoAvailable(false)
+    }
+  }
+
+  const logControlUpdate = (session, text) => {
+    const line = `— update ${controlClock()} — ${text}`
+    const result = appStore.dispatch({
+      type: 'task.update',
+      taskId: session.id,
+      patch: { description: session.description ? `${line}\n${session.description}` : line },
+    })
+    if (!result.ok) setNotice(result.message)
+    else {
+      setNotice('')
+      setUndoAvailable(false)
+    }
+  }
+
+  // Real-time channel to any session/task (running, to-do, or finished): the
+  // ZCode session re-reads its task description while working, so prepending a
+  // journal line delivers the user's message. For a completed task or one in a
+  // Finished section, the task is first reopened (uncompleted + moved back to
+  // In Progress) and a `— REOPENED HH:MM — continued by user message` line is
+  // logged, then the `— message HH:MM — <text>` line is prepended at the top —
+  // always BELOW the — pinned — marker when present, so assign/pin keeps working.
+  const messageControlTask = (task, text) => {
+    const trimmed = String(text ?? '').replace(/\s+/g, ' ').trim()
+    if (!trimmed) return false
+    // Read the LIVE task record: a stale render closure could miss a completion
+    // or a journal line an agent prepended seconds ago.
+    const live = appStore.getState().tasks[task.id] ?? {}
+    const stage = controlBoardStage(state.sections[live.sectionId ?? task.sectionId]?.name)
+    const needsReopen = Boolean(live.completedAt) || stage === 'finished'
+    if (needsReopen) {
+      const uncomplete = appStore.dispatch({ type: 'task.uncomplete', taskId: task.id })
+      if (!uncomplete.ok) {
+        setNotice(uncomplete.message)
+        return false
+      }
+      const sectionId = ensureControlSection(task.projectId)
+      if (sectionId && sectionId !== (live.sectionId ?? task.sectionId)) {
+        const moved = appStore.dispatch({ type: 'task.update', taskId: task.id, patch: { sectionId } })
+        if (!moved.ok) {
+          setNotice(moved.message)
+          return false
+        }
+      }
+    }
+    let currentDescription = String(live.description ?? task.description ?? '')
+    if (needsReopen) currentDescription = prependJournalLine(currentDescription, reopenedFromMessageLine())
+    const description = prependJournalLine(currentDescription, messagePrefixLine(trimmed))
+    const result = appStore.dispatch({
+      type: 'task.update',
+      taskId: task.id,
+      patch: { description },
+    })
+    if (!result.ok) {
+      setNotice(result.message)
+      return false
+    }
+    setNotice('')
+    return true
+  }
+
+  // One-shot imperative orders to a session (sub-agents, extra steps): an
+  // `— ORDER HH:MM —` journal line the agent acts on at its next description read.
+  const orderControlTask = (session, line) => {
+    const live = appStore.getState().tasks[session.id]
+    const current = live?.description ?? session.description ?? ''
+    const result = appStore.dispatch({
+      type: 'task.update',
+      taskId: session.id,
+      patch: { description: prependJournalLine(current, line) },
+    })
+    if (!result.ok) setNotice(result.message)
+    else setNotice('')
+    return Boolean(result.ok)
+  }
+
+  const createSubAgents = (session, count) => orderControlTask(session, subAgentsCreateLine(count))
+
+  const stopSubAgents = (session) => orderControlTask(session, subAgentsStopLine())
+
+  const addControlStep = (session, text) => orderControlTask(session, stepOrderLine(text))
+
+  // Hand button: one-shot ORDER that makes the session drop its current step
+  // and run the /hand skill (matched by the bridge and relay demand parsers).
+  const handControlTask = (session) => orderControlTask(session, handOrderLine())
+
+  // Unanswered-message nudge: while the newest agent-relevant journal line is
+  // still the user's message, prepend an ORDER nudge after 90s and 180s (max 2).
+  // A newer update/heartbeat/REOPENED/PAUSED/RESUMED line clears the state.
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const liveState = appStore.getState()
+      for (const task of Object.values(liveState.tasks)) {
+        const pending = pendingMessageState(task.description ?? '')
+        if (!pending.pending || pending.nudges >= CONTROL_NUDGE_MAX) continue
+        if (pending.elapsedSec < (CONTROL_NUDGE_AFTER_MS / 1000) * (pending.nudges + 1)) continue
+        appStore.dispatch({
+          type: 'task.update',
+          taskId: task.id,
+          patch: {
+            description: prependJournalLine(
+              task.description ?? '',
+              orderPrefixLine('unanswered message nudge: reply to the message above now'),
+            ),
+          },
+        })
+      }
+    }, CONTROL_NUDGE_TICK_MS)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const saveControlDescription = (session, description) => {
+    const result = appStore.dispatch({
+      type: 'task.update',
+      taskId: session.id,
+      patch: { description },
+    })
+    if (!result.ok) setNotice(result.message)
+    else {
+      setNotice('')
+      setUndoAvailable(false)
+    }
+  }
+
+  const deleteBoardTask = (taskId) => {
+    const task = state.tasks[taskId]
+    const result = appStore.dispatch({ type: 'task.delete', taskId })
+    if (!result.ok) setNotice(result.message)
+    else {
+      setNotice(`Deleted "${task?.content ?? 'task'}".`)
+      setUndoAvailable(true)
+    }
+  }
+
+  const deleteControlTask = (session) => {
+    const result = appStore.dispatch({ type: 'task.delete', taskId: session.id })
+    if (!result.ok) {
+      setNotice(result.message)
+      return false
+    }
+    setNotice(`Deleted "${session.title}".`)
+    setUndoAvailable(true)
+    return true
+  }
+
+  const createControlSession = (title, workspaceId, priority, stage = 'todo') => {
+    const requestedProjectId = state.projects[workspaceId] ? workspaceId : state.preferences.inboxProjectId
+    if (!state.projects[requestedProjectId]) {
+      setNotice('Create a workspace first, then open a session inside it.')
+      return false
+    }
+    // Column-level "+ Add task" passes an explicit stage (todo/inprogress/finished);
+    // the header composer defaults to To do — assigning happens explicitly.
+    const sectionId = ensureWorkspaceStageSection(requestedProjectId, stage)
+    if (!sectionId) return false
+    const result = appStore.dispatch({
+      type: 'task.add',
+      input: {
+        content: title,
+        description: `— update ${controlClock()} — Session opened from the AI control panel.`,
+        projectId: requestedProjectId,
+        sectionId,
+        priority: priority ?? 2,
+        due: makeDue(today),
+      },
+    })
+    if (!result.ok) {
+      setNotice(result.message)
+      return false
+    }
+    setNotice('')
+    setUndoAvailable(false)
+    return true
+  }
+
   const taskSiblings = (taskId) => {
     const task = state.tasks[taskId]
     if (!task || task.completedAt) return []
@@ -3651,7 +5696,7 @@ function App() {
         ? state.preferences.inboxProjectId
         : 'project-work'
     const projectId = state.projects[requestedProjectId] ? requestedProjectId : state.preferences.inboxProjectId
-    const sectionId = Object.values(state.sections).find((section) => section.projectId === projectId)?.id ?? null
+    const sectionId = defaultTodoSectionId(projectId)
     const result = appStore.dispatch({
       type: 'task.add',
       input: {
@@ -3706,6 +5751,52 @@ function App() {
       syncStatus,
     }),
   }
+
+  // Sequential auto-run queue runner: on every store change (plus a 15-second
+  // tick so configured minute delays can elapse) the head of the queue is
+  // launched only after the previously started session is finished, and never
+  // before the user-chosen start delay has passed.
+  const [autoQueueTick, setAutoQueueTick] = useState(0)
+  useEffect(() => {
+    const timer = window.setInterval(() => setAutoQueueTick((tick) => tick + 1), 15000)
+    return () => window.clearInterval(timer)
+  }, [])
+  useEffect(() => {
+    const queue = readAutoQueue()
+    if (!queue.length) return
+    const stageOf = (task) => controlBoardStage(state.sections[task?.sectionId]?.name)
+    const isDone = (id) => {
+      const task = state.tasks[id]
+      return !task || Boolean(task.completedAt) || stageOf(task) === 'finished'
+    }
+    const alive = queue.filter((entry) => !isDone(entry.id))
+    if (alive.length !== queue.length) writeAutoQueue(alive)
+    if (!alive.length) return
+    const intervalMs = readAutoIntervalMinutes() * 60000
+    // Interval override: the first not-yet-started entry launches every N
+    // minutes; otherwise strict sequential order (head only after the
+    // previous one finished).
+    const target = intervalMs > 0 ? alive.find((entry) => !entry.startedAt) : alive[0]
+    // BOTH gates count EVERY already-running workspace session, not just the
+    // queue's own — a session running outside the queue also holds the line,
+    // so asking Auto for N sessions with K already running launches only
+    // N - K new ones (interval mode: it stops once running >= queue size).
+    const runningCount = Object.values(state.tasks).filter((task) =>
+      !task.completedAt &&
+      controlBoardStage(state.sections[task.sectionId]?.name) === 'inprogress' &&
+      isWorkspaceProject(state.projects[task.projectId])).length
+    const anyRunning = runningCount > 0
+    if (!target || (intervalMs <= 0 && (target.startedAt || anyRunning))) return
+    if (intervalMs > 0 && runningCount >= alive.length) return
+    const delayMs = intervalMs > 0 ? intervalMs : readAutoDelayMinutes() * 60000
+    const lastStart = Number(localStorage.getItem(AUTO_LAST_START_KEY)) || 0
+    if (Date.now() - lastStart < delayMs) return
+    target.startedAt = Date.now()
+    writeAutoQueue(alive)
+    try { localStorage.setItem(AUTO_LAST_START_KEY, String(Date.now())) } catch { /* non-fatal */ }
+    const task = state.tasks[target.id]
+    window.DaymarkAI?.startSession?.(`Session: ${task?.content ?? 'Queued session'}`, [{ operation: 'getState', payload: null }])
+  }, [state.tasks, state.sections, autoQueueTick])
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
@@ -3928,7 +6019,14 @@ function App() {
     }
     const result = taskEditor.mode === 'edit'
       ? appStore.dispatch({ type: 'task.update', taskId: taskEditor.taskId, patch: adapted.value })
-      : appStore.dispatch({ type: 'task.add', input: adapted.value })
+      : appStore.dispatch({
+        type: 'task.add',
+        input: {
+          ...adapted.value,
+          // New tasks default to the project's To do section unless one was picked.
+          sectionId: adapted.value.sectionId || defaultTodoSectionId(adapted.value.projectId),
+        },
+      })
     if (!result.ok) {
       setNotice(result.message)
       return
@@ -4264,8 +6362,12 @@ function App() {
                           ? tasks.filter((task) => task.completed).length
                           : item.id === 'order'
                             ? orderItems.length
+                          : item.id === 'control'
+                            ? controlSessions.length
                           : item.id === 'notes'
                             ? journal.notes.length
+                          : item.id === 'reminders'
+                            ? reminders.length
                             : Object.keys(journal.diaryEntries).length}
                   icon={item.icon}
                   key={item.id}
@@ -4276,35 +6378,51 @@ function App() {
               ))}
             </SidebarSection>
 
-            <SidebarSection
-              title="PROJECTS"
-              action={
-                <button aria-label="Add project" className="section-action" onClick={() => setProjectDialogOpen(true)} title="Add project" type="button">
-                  <Icon name="plus" size={15} />
-                </button>
-              }
-            >
-              {projectItems.map((project, index) => (
-                <ProjectSidebarItem
-                  active={route === `project:${project.id}`}
-                  canMoveEarlier={index > 0}
-                  canMoveLater={index < projectItems.length - 1}
-                  count={tasks.filter((task) => task.project === project.id && !task.completed).length}
-                  isReordering={reorderMode?.kind === 'project' && reorderMode.id === project.id}
-                  key={project.id}
-                  onClick={() => navigate(`project:${project.id}`)}
-                  onCancelReorder={() => cancelReorderMode()}
-                  onDelete={() => deleteProject(project)}
-                  onEdit={() => editProject(project)}
-                  onLongPressReorder={() => enterReorderMode('project', project.id)}
-                  onReorderMove={(projectId, event) => moveProjectToTarget(projectId, document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-reorder-id]')?.getAttribute('data-reorder-id'))}
-                  onReorderEnd={finishPointerReorder}
-                  onMoveEarlier={() => moveProjectBy(project.id, -1)}
-                  onMoveLater={() => moveProjectBy(project.id, 1)}
-                  project={project}
-                />
-              ))}
-            </SidebarSection>
+            {[
+              ...(workspaceSidebarItems.length ? [{
+                actionLabel: 'Add workspace',
+                items: workspaceSidebarItems,
+                key: 'workspaces',
+                title: 'WORKSPACES',
+              }] : []),
+              {
+                actionLabel: 'Add project',
+                items: regularProjectItems,
+                key: 'projects',
+                title: 'PROJECTS',
+              },
+            ].map((group) => (
+              <SidebarSection
+                action={
+                  <button aria-label={group.actionLabel} className="section-action" onClick={() => setProjectDialogOpen(true)} title={group.actionLabel} type="button">
+                    <Icon name="plus" size={15} />
+                  </button>
+                }
+                key={group.key}
+                title={group.title}
+              >
+                {group.items.map((project, index) => (
+                  <ProjectSidebarItem
+                    active={route === `project:${project.id}`}
+                    canMoveEarlier={index > 0}
+                    canMoveLater={index < group.items.length - 1}
+                    count={tasks.filter((task) => task.project === project.id && !task.completed).length}
+                    isReordering={reorderMode?.kind === 'project' && reorderMode.id === project.id}
+                    key={project.id}
+                    onClick={() => navigate(`project:${project.id}`)}
+                    onCancelReorder={() => cancelReorderMode()}
+                    onDelete={() => deleteProject(project)}
+                    onEdit={() => editProject(project)}
+                    onLongPressReorder={() => enterReorderMode('project', project.id)}
+                    onReorderMove={(projectId, event) => moveProjectToTarget(projectId, document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-reorder-id]')?.getAttribute('data-reorder-id'))}
+                    onReorderEnd={finishPointerReorder}
+                    onMoveEarlier={() => moveProjectBy(project.id, -1)}
+                    onMoveLater={() => moveProjectBy(project.id, 1)}
+                    project={project}
+                  />
+                ))}
+              </SidebarSection>
+            ))}
 
           </div>
           <div className="sidebar__footer">
@@ -4340,7 +6458,7 @@ function App() {
 
         <main className="main-content" ref={mainContentRef}>
           <div className={`content-frame content-frame--${route === 'order' ? 'order' : 'standard'}`}>
-            {route !== 'order' ? (
+            {!['order', 'control'].includes(route) ? (
               <div className="view-header">
                 <div>
                   <span className="section-kicker">{routeInfo.kicker}</span>
@@ -4348,6 +6466,11 @@ function App() {
                   <p>{routeInfo.subtitle}</p>
                 </div>
                 <div className="view-header__actions">
+                  {isWorkspace && (syncStatus === 'syncing' || syncStatus === 'offline') ? (
+                    <span className={`workspace-saving workspace-saving--${syncStatus === 'offline' ? 'retrying' : 'saving'}`} role="status">
+                      {syncStatus === 'offline' ? 'Saving paused — retrying' : 'Saving…'}
+                    </span>
+                  ) : null}
                   {!['upcoming', 'order', 'notes', 'diary'].includes(route) ? (
                     <div aria-label="View mode" className="segmented-control" role="group">
                       <button className={viewMode === 'list' ? 'is-selected' : ''} onClick={() => setViewMode('list')} title="List view" type="button">
@@ -4360,7 +6483,7 @@ function App() {
                       </button>
                     </div>
                   ) : null}
-                  {!['order', 'notes', 'diary'].includes(route) ? <button className="primary-button" onClick={() => openTaskEditor('create', null, route === 'upcoming' ? selectedCalendarDate : null)} type="button">
+                  {!['order', 'notes', 'diary', 'control'].includes(route) ? <button className="primary-button" onClick={() => openTaskEditor('create', null, route === 'upcoming' ? selectedCalendarDate : null)} type="button">
                     <Icon name="plus" size={17} />
                     Add task
                   </button> : null}
@@ -4461,6 +6584,7 @@ function App() {
             ) : route === 'notes' || route === 'diary' ? (
               <JournalView
                 journal={journal}
+                onDiaryDelete={deleteDiary}
                 onDiaryUpdate={updateDiary}
                 onNoteAdd={addNote}
                 onNoteComplete={toggleNote}
@@ -4514,6 +6638,35 @@ function App() {
                 </div>
               </details>
               </>
+            ) : route === 'control' ? (
+              <ControlPanelWorkspace
+                board={controlBoardColumns}
+                finishedToday={controlFinishedToday}
+                onAddStep={addControlStep}
+                onAssign={assignControlSession}
+                onComposerSubmit={createControlSession}
+                onComplete={completeControlTask}
+                onDelete={deleteControlTask}
+                onHand={handControlTask}
+                onLogUpdate={logControlUpdate}
+                onManualRefresh={refreshControlPanelNow}
+                onMessage={messageControlTask}
+                onMove={moveControlTask}
+                onMoveToWorkspace={moveControlTaskToWorkspace}
+                onOpen={(session) => openTaskEditor('edit', state.tasks[session.id])}
+                onAssign={assignControlSession}
+                onPromote={promoteControlTask}
+                onReopen={reopenControlTask}
+                onSaveDescription={saveControlDescription}
+                onSubAgentsCreate={createSubAgents}
+                onSubAgentsStop={stopSubAgents}
+                onTogglePause={toggleControlPause}
+                refreshedAt={controlPanelRefreshedAt}
+                sections={Object.values(state.sections)}
+                sessions={controlSessions}
+                syncKey={syncKey}
+                workspaces={Object.values(state.projects).filter((project) => !project.isArchived)}
+              />
             ) : (
             <div className="task-canvas">
               <div className="canvas-toolbar">
@@ -4614,6 +6767,7 @@ function App() {
                                 : 'Clipboard access is unavailable. Copy the task details from the dialog.')}
                               onOpen={(viewTask) => openTaskEditor('edit', state.tasks[viewTask.id])}
                               onToggle={toggleTask}
+                              syncKey={syncKey}
                               task={task}
                             />
                           )
@@ -4623,14 +6777,112 @@ function App() {
                   ) : (
                     <div className="empty-state">
                       <span className="empty-state__icon"><Icon name="focus" size={22} /></span>
-                      <h2>No tasks in this view</h2>
-                      <p>Add a task here or choose another view from the navigation rail.</p>
+                      <h2>{isWorkspace ? 'Nothing in this workspace yet' : 'No tasks in this view'}</h2>
+                      <p>{isWorkspace ? 'Open a session or move one in from To do — updates will stream in live.' : 'Add a task here or choose another view from the navigation rail.'}</p>
                       <button className="secondary-button" onClick={() => openTaskEditor('create')} type="button">
                         <Icon name="plus" size={16} />
                         Add the next step
                       </button>
                     </div>
                   )}
+                </div>
+              ) : isWorkspace ? (
+                <div className="board-view board-view--workspace">
+                  {workspaceBoardColumns.map((column) => (
+                    <section
+                      className={`board-column board-column--stage-${column.key}${column.key === 'inprogress' ? ' board-column--in-progress' : ''}`}
+                      data-section-drop-id={column.sectionId ?? ''}
+                      key={column.key}
+                      onDragOver={(event) => {
+                        if (event.dataTransfer.types.includes('text/plain')) {
+                          event.preventDefault()
+                          event.dataTransfer.dropEffect = 'move'
+                        }
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault()
+                        const taskId = event.dataTransfer.getData('text/plain')
+                        const task = state.tasks[taskId]
+                        if (!task || task.completedAt) return
+                        const sectionId = column.sectionId ?? ensureWorkspaceStageSection(route.slice('project:'.length), column.key)
+                        if (!sectionId) return
+                        const result = appStore.dispatch({
+                          type: 'task.reorder',
+                          input: { taskId, sectionId, order: column.tasks.length },
+                        })
+                        if (!result.ok) setNotice(result.message)
+                      }}
+                    >
+                      <header className="board-column__heading board-column__heading--stage">
+                        <h2>{column.name}</h2>
+                        <span className="board-column__count">{column.tasks.length}</span>
+                        {column.key === 'todo' ? (
+                          <span className={`board-column__auto${autoIntervalMin ? ' board-column__auto--active' : ''}`}>
+                            <button
+                              className={`board-column__auto-button${autoIntervalMin ? ' is-interval' : ''}`}
+                              data-auto-interval-toggle
+                              onClick={() => changeAutoInterval(autoIntervalMin ? 0 : 5)}
+                              title={autoIntervalMin
+                                ? `Auto: a new session starts every ${autoIntervalMin} min, counting the sessions already running — N queued with K running launches only N - K new ones. Click to go back to the default (start after the previous finishes).`
+                                : 'Auto: sessions start one after another, each after the previous finishes. Click to force-start a new session every X minutes instead.'}
+                              type="button"
+                            >
+                              Auto{autoIntervalMin ? ` · ${autoIntervalMin}m` : ''}
+                            </button>
+                            {autoIntervalMin ? (
+                              <select
+                                aria-label="Auto interval minutes"
+                                data-auto-interval-minutes
+                                onChange={(event) => changeAutoInterval(Number(event.target.value))}
+                                value={autoIntervalMin}
+                              >
+                                {AUTO_INTERVAL_CHOICES.map((minutes) => (
+                                  <option key={minutes} value={minutes}>{minutes} min</option>
+                                ))}
+                              </select>
+                            ) : null}
+                          </span>
+                        ) : null}
+                      </header>
+                      <div className="board-column__body">
+                        {column.tasks.map((task) => (
+                          <BoardTaskCard
+                            defaultExpandedDetails={column.key === 'inprogress'}
+                            isReordering={reorderMode?.kind === 'task' && reorderMode.id === task.id}
+                            key={task.id}
+                            onAssign={column.key === 'todo' ? assignControlSession : undefined}
+                            onCancelReorder={() => cancelReorderMode()}
+                            onCopy={(copied) => setNotice(copied
+                              ? 'Task details copied.'
+                              : 'Clipboard access is unavailable. Copy the task details from the dialog.')}
+                            onDelete={deleteBoardTask}
+                            onLongPressReorder={task.completed ? undefined : () => enterReorderMode('task', task.id)}
+                            onHand={handControlTask}
+                            onMessage={messageControlTask}
+                             onOpen={(viewTask) => openTaskEditor('edit', state.tasks[viewTask.id])}
+                             onReorderEnd={finishPointerReorder}
+                             onReorderMove={moveTaskToPointerTarget}
+                             onToggle={toggleTask}
+                             syncKey={syncKey}
+                             task={task}
+                           />
+                        ))}
+                        {column.tasks.length ? null : (
+                          <p className="board-column__empty">
+                            {column.key === 'inprogress'
+                              ? 'No sessions are running right now.'
+                              : column.key === 'todo'
+                                ? 'Nothing is queued yet.'
+                                : 'Nothing is finished yet.'}
+                          </p>
+                        )}
+                        <button className="board-add" onClick={() => openTaskEditor('create', null, null, column.sectionId)} type="button">
+                          <Icon name="plus" size={15} />
+                          Add task
+                        </button>
+                      </div>
+                    </section>
+                  ))}
                 </div>
               ) : (
                 <div className="board-view">
@@ -4685,7 +6937,10 @@ function App() {
                             onCopy={(copied) => setNotice(copied
                               ? 'Task details copied.'
                               : 'Clipboard access is unavailable. Copy the task details from the dialog.')}
+                            onDelete={deleteBoardTask}
                             onLongPressReorder={task.completed ? undefined : () => enterReorderMode('task', task.id)}
+                            onHand={handControlTask}
+                            onMessage={messageControlTask}
                              onOpen={(viewTask) => openTaskEditor('edit', state.tasks[viewTask.id])}
                              onReorderEnd={finishPointerReorder}
                              onReorderMove={moveTaskToPointerTarget}
@@ -4798,6 +7053,7 @@ function App() {
         onMoveTask={moveTaskFromEditor}
         onCopyTask={copyTaskFromEditor}
         presentation="dialog"
+        projectLabel={isWorkspace ? 'Workspace' : 'Project'}
         projects={toTaskEditorProjectOptions(Object.values(state.projects))}
         orderItems={Object.values(state.orderItems)
           .sort((left, right) => left.order - right.order || left.createdAt.localeCompare(right.createdAt))
@@ -4833,3 +7089,5 @@ function App() {
 }
 
 export default App
+
+// SLICE-DONE: software-engineer

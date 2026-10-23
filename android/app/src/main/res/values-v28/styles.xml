@@ -1,0 +1,15 @@
+<resources>
+    <!-- Extends the window into display cutouts so the black canvas and the
+         WebView's env(safe-area-inset-*) handling stay consistent on notched
+         devices; ignored gracefully below API 28. -->
+    <style name="AppTheme" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:colorAccent">#FFFFFF</item>
+        <item name="android:navigationBarColor">#000000</item>
+        <item name="android:navigationBarDividerColor">#000000</item>
+        <item name="android:statusBarColor">#000000</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+</resources>

@@ -157,7 +157,21 @@ final class ReminderScheduler {
     static void schedule(Context context, JSONObject schedule) {
         if (schedule == null) return;
         long alertAt = schedule.optLong("alertAt", 0L);
-        if (alertAt <= System.currentTimeMillis() || isDelivered(context, schedule)) return;
+        if (isDelivered(context, schedule)) return;
+        if (alertAt <= System.currentTimeMillis()) {
+            // Late-synced reminder (schedule arrived after its alert time): arm it
+            // into the catch-up path instead of silently dropping it. Staggered
+            // like reconcile() so a batch of late reminders does not all fire at
+            // once; the notification ledger still dedupes if already delivered.
+            if (alertAt <= 0L) return;
+            long stagger = Math.abs(schedule.optString("id").hashCode())
+                    % MISSED_ALERT_SPACING_MS;
+            long catchUpAt = System.currentTimeMillis() + 500L + stagger;
+            Log.i("DaymarkReminders", "Late reminder " + schedule.optString("id")
+                    + " (alertAt " + alertAt + ") armed for catch-up at " + catchUpAt);
+            scheduleAt(context, schedule, catchUpAt);
+            return;
+        }
         scheduleAt(context, schedule, alertAt);
     }
 
@@ -203,6 +217,15 @@ final class ReminderScheduler {
                 } catch (SecurityException error) {
                     Log.w("DaymarkReminders", "Exact alarm permission changed while scheduling.", error);
                 }
+            } else {
+                // Exact alarms revoked: still arm inexact so the reminder fires,
+                // and log so the state is surfaced. MainActivity re-runs
+                // reconcile() on every resume, and the boot receiver re-arms on
+                // SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED, so the exact
+                // schedule is restored as soon as permission returns.
+                Log.w("DaymarkReminders",
+                        "Exact alarm permission revoked for " + scheduleFragment(intent)
+                                + " \u2014 falling back to inexact alarm.");
             }
             if (Build.VERSION.SDK_INT >= 23) {
                 alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, alertAt, pending);
@@ -281,10 +304,11 @@ final class ReminderScheduler {
     }
 
     static AudioAttributes audioAttributes(String sound) {
-        int usage = "alarm".equals(normalizeSound(sound))
-                ? AudioAttributes.USAGE_ALARM
-                : AudioAttributes.USAGE_NOTIFICATION;
-        return new AudioAttributes.Builder().setUsage(usage).build();
+        // Every audible reminder channel uses USAGE_ALARM so tones break through
+        // Doze and the lock screen; USAGE_NOTIFICATION gets silenced by both.
+        return new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .build();
     }
 
     private static boolean hasAudibleChannels(NotificationManager manager) {
@@ -530,6 +554,11 @@ final class ReminderScheduler {
 
     static String title(Intent intent) { return intent.getStringExtra(EXTRA_TITLE); }
     static String id(Intent intent) { return intent.getStringExtra(EXTRA_ID); }
+
+    private static String scheduleFragment(Intent intent) {
+        String scheduleId = id(intent);
+        return scheduleId == null || scheduleId.isEmpty() ? "(unknown)" : scheduleId;
+    }
     static String fingerprint(Intent intent) { return intent.getStringExtra(EXTRA_FINGERPRINT); }
     static String details(Intent intent) { return intent.getStringExtra(EXTRA_DETAILS); }
     static int minutes(Intent intent) { return intent.getIntExtra(EXTRA_MINUTES, 0); }

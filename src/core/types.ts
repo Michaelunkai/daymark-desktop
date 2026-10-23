@@ -100,6 +100,7 @@ export interface DiaryEntry {
   highlights: string;
   reflection: string;
   tomorrow: string;
+  mood: string;
   updatedAt: string;
 }
 
@@ -149,6 +150,8 @@ export interface UndoEntry {
 
 export interface SyncTombstone {
   deletedAt: string;
+  /** updatedAt of the record at deletion time; used to re-purge stale copies merged back from other devices. */
+  deletedRecordUpdatedAt?: string;
 }
 
 export interface AppState {
@@ -239,7 +242,7 @@ export type NoteInput = {
 export type NotePatch = Partial<Pick<Note, "title" | "body" | "completedAt" | "order">>;
 
 export type DiaryPatch = Partial<
-  Pick<DiaryEntry, "body" | "morning" | "highlights" | "reflection" | "tomorrow">
+  Pick<DiaryEntry, "body" | "morning" | "highlights" | "reflection" | "tomorrow" | "mood">
 >;
 
 export type ReminderInput = Omit<Reminder, "createdAt" | "updatedAt"> & {

@@ -51,6 +51,7 @@ export function TaskEditor({
   saveError,
   validationErrors = {},
   presentation = 'panel',
+  projectLabel = 'Project',
   onDraftChange,
   onSave,
   onMoveTask,
@@ -469,7 +470,7 @@ export function TaskEditor({
 
               <div className="task-editor__field-grid">
                 <div className="task-editor__field">
-                  <label htmlFor={ids.project}>Project</label>
+                  <label htmlFor={ids.project}>{projectLabel}</label>
                   <div className="task-editor__select-wrap">
                     <select
                       id={ids.project}
@@ -627,7 +628,7 @@ export function TaskEditor({
                   <>
                   <div className="task-editor__field-grid">
                     <div className="task-editor__field">
-                      <label htmlFor={ids.project}>Project</label>
+                      <label htmlFor={ids.project}>{projectLabel}</label>
                       <div className="task-editor__select-wrap">
                         <select
                           id={ids.project}
@@ -643,7 +644,7 @@ export function TaskEditor({
                             setTransferReady(false);
                           }}
                         >
-                          <option value="">Choose Inbox or a project</option>
+                          <option value="">{`Choose Inbox or a ${projectLabel.toLowerCase()}`}</option>
                           <option value="__inbox__">Inbox</option>
                           {projects.map((project) => (
                             <option

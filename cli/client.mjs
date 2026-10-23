@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-export const DEFAULT_API_URL = "https://daymark-desktop.michaelovsky55555.chatgpt.site";
+export const DEFAULT_API_URL = "https://daymark-sync.michaelovsky5.workers.dev";
 const API_PREFIX = "/api/agent/v1/";
 
 export class DaymarkCliError extends Error {

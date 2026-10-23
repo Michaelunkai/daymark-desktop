@@ -76,6 +76,10 @@ public final class ReminderAlarmReceiver extends BroadcastReceiver {
                 .setPriority(Notification.PRIORITY_HIGH)
                 .setCategory("alarm".equals(sound) ? Notification.CATEGORY_ALARM : Notification.CATEGORY_REMINDER)
                 .setVisibility(Notification.VISIBILITY_PUBLIC);
+        if (Build.VERSION.SDK_INT >= 29) {
+            // Full-screen launch so reminders surface above the lock screen.
+            builder.setFullScreenIntent(contentIntent, true);
+        }
         if (Build.VERSION.SDK_INT < 26) {
             builder.setSound(ReminderScheduler.soundUri(context, sound))
                     .setVibrate(new long[]{0L, 180L, 120L, 180L});

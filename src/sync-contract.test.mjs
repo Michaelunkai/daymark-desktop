@@ -52,7 +52,8 @@ test("remote sync contract is present in the client and Sites worker", async () 
   assert.match(app, /setSyncRetryToken\(\(value\) => value \+ 1\)/);
   assert.match(app, /setTimeout\(resolve,\s*250\)/);
   assert.match(app, /pushSyncState/);
-  assert.match(app, /}, 50\)/);
+  assert.match(app, /}, 0\)/);
+  assert.doesNotMatch(app, /setTimeout\(\s*async\s*\(\)\s*=>\s*\{[\s\S]*?syncPushRequestedRef[\s\S]*?\},\s*[1-9]\d*\)/);
   assert.match(worker, /daymark_sync_states/);
   assert.match(worker, /handleSyncChanges/);
   assert.match(worker, /attempt < 80/);

@@ -76,6 +76,7 @@
 .task-view-empty-action:focus-visible,
 .task-board-add-column:focus-visible,
 .task-card-title:focus-visible,
+.task-card-description-toggle:focus-visible,
 .view-task-row-main:focus-visible,
 .task-complete-button:focus-visible,
 .task-disclosure-button:focus-visible,
@@ -399,9 +400,10 @@
   min-height: 360px;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
+  padding-bottom: 12px;
   scroll-behavior: smooth;
   scrollbar-gutter: stable;
-  padding-bottom: 12px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .task-board-column {
@@ -426,9 +428,10 @@
   border: 1px solid #e5e4df;
   border-radius: 8px;
   box-shadow: 0 2px 6px rgb(39 40 35 / 5%);
+  contain: content;
   display: flex;
   flex-direction: column;
-  gap: 13px;
+  gap: 10px;
   padding: 12px;
 }
 
@@ -465,7 +468,9 @@
 }
 
 .task-card-action {
+  height: 32px;
   margin-left: 2px;
+  width: 32px;
 }
 
 .task-card-title {
@@ -475,10 +480,56 @@
   cursor: pointer;
   font: inherit;
   font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
   line-height: 1.4;
   overflow-wrap: anywhere;
   padding: 0;
   text-align: left;
+}
+
+.task-card-description-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.task-card-description {
+  color: #6e7069;
+  display: -webkit-box;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  white-space: pre-line;
+}
+
+.task-card-description--open {
+  display: block;
+  -webkit-line-clamp: unset;
+}
+
+.task-card-description-toggle {
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: #315bd7;
+  cursor: pointer;
+  flex: none;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  min-height: 24px;
+  padding: 2px 6px;
+}
+
+.task-card-description-toggle:hover {
+  background: #eef2fc;
 }
 
 .task-card--completed .task-card-title {
@@ -543,6 +594,12 @@
 .task-board-add-column > span:first-child {
   font-size: 24px;
   font-weight: 300;
+}
+
+@media (pointer: coarse) {
+  .task-card .task-card-action {
+    opacity: 1;
+  }
 }
 
 @media (max-width: 640px) {

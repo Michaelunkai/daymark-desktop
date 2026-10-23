@@ -248,15 +248,16 @@ test("Android reminders sync their definitions and schedule native alerts across
     readFile(new URL("./src/App.jsx", root), "utf8"),
   ]);
   assert.match(manifest, /POST_NOTIFICATIONS/);
-  assert.match(manifest, /SCHEDULE_EXACT_ALARM/);
-  assert.match(manifest, /RECEIVE_BOOT_COMPLETED/);
-  assert.match(manifest, /ReminderAlarmReceiver/);
-  assert.match(manifest, /ReminderAlarmReceiver"[\s\S]*?android:directBootAware="true"/);
-  assert.match(manifest, /ReminderBootReceiver/);
-  assert.match(manifest, /BOOT_COMPLETED/);
-  assert.match(manifest, /LOCKED_BOOT_COMPLETED/);
-  assert.match(manifest, /SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED/);
-  assert.match(manifest, /ReminderBootReceiver"[\s\S]*?android:directBootAware="true"/);
+  // ZERO-BACKGROUND LAW (user-mandated): the companion app must have no boot
+  // receivers and no exact-alarm wakeups — it runs only while on screen and
+  // drains no battery in the background. The old reminder alarm/boot stack was
+  // deliberately removed from the manifest; assert its absence forever.
+  assert.doesNotMatch(manifest, /SCHEDULE_EXACT_ALARM/);
+  assert.doesNotMatch(manifest, /RECEIVE_BOOT_COMPLETED/);
+  assert.doesNotMatch(manifest, /ReminderAlarmReceiver/);
+  assert.doesNotMatch(manifest, /ReminderBootReceiver/);
+  assert.doesNotMatch(manifest, /BOOT_COMPLETED/);
+  assert.doesNotMatch(manifest, /LOCKED_BOOT_COMPLETED/);
   assert.match(activity, /syncReminders/);
   assert.match(activity, /getNotificationStatus/);
   assert.match(activity, /requestNotificationPermission/);
@@ -371,4 +372,20 @@ test("Daymark reminder sounds are moderate twelve-second custom patterns", async
     }
     assert.ok(peak >= 8_000 && peak <= 21_000);
   }
+});
+
+test("AI workspace panel pins pause-all/resume-all at the top of In Progress", async () => {
+  const aiWorkspace = await readFile(
+    new URL("./android/app/src/main/java/com/michaelunkai/daymark/AiWorkspaceActivity.java", root),
+    "utf8",
+  );
+  assert.match(aiWorkspace, /buildProgressHeader/);
+  assert.match(aiWorkspace, /updateProgressHeader/);
+  assert.match(aiWorkspace, /"progress"\.equals\(selectedChip\)/);
+  assert.match(aiWorkspace, /onAllPausePressed/);
+  assert.match(aiWorkspace, /onAllPausePressed\(false\)/);
+  assert.match(aiWorkspace, /Pause all \(/);
+  assert.match(aiWorkspace, /Resume all \(/);
+  assert.match(aiWorkspace, /prependJournalLine\(syncKey, task\.id, line\)/);
+  assert.match(aiWorkspace, /Pausing\\u2026|Pausing\u2026/);
 });

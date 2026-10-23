@@ -230,7 +230,8 @@
   }
 
   .calendar-task-chip {
-    min-block-size: 2rem;
+    /* 40px+ effective touch height on touch screens. */
+    min-block-size: max(2rem, 40px);
   }
 }
 

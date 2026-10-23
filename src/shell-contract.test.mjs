@@ -422,7 +422,11 @@ test('every Order lane exposes direct move and copy calendar actions', () => {
 
 test('shell styles include keyboard focus, mobile layout, and dark theme coverage', () => {
   assert.match(styles, /button:focus-visible/)
-  assert.match(styles, /\[data-theme="dark"\]/)
+  // Root-cause pin: the shell dark rules are theme-agnostic ([data-theme])
+  // because the runtime sets data-theme to the raw preference ("system" by
+  // default), so [data-theme="dark"] guards never matched and light-theme
+  // grey hover fills leaked through.
+  assert.match(styles, /\[data-theme\] \.app-shell \*:hover/)
   assert.match(styles, /@media \(max-width: 720px\)/)
   assert.match(styles, /\.settings-grid/)
   assert.match(styles, /\.visually-hidden/)

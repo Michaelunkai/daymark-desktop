@@ -411,7 +411,14 @@ function applyTombstones(state: AppState): void {
     const collection = key.slice(0, separator);
     const id = key.slice(separator + 1);
     const record = collections[collection]?.[id];
-    if (record && compareMutationTimestamp(tombstone.deletedAt, record.updatedAt) >= 0) {
+    if (!record) return;
+    // A stale copy of the deleted record (identical updatedAt) that is merged
+    // back from another device must stay deleted even when a skewed clock
+    // makes its updatedAt look newer than the deletion. A legitimate restore
+    // receives a fresh updatedAt plus a cleared tombstone, so it survives.
+    const deletedRecordUpdatedAt = tombstone.deletedRecordUpdatedAt;
+    const isStaleDeletedRecord = deletedRecordUpdatedAt !== undefined && deletedRecordUpdatedAt === record.updatedAt;
+    if (isStaleDeletedRecord || compareMutationTimestamp(tombstone.deletedAt, record.updatedAt) >= 0) {
       delete collections[collection][id];
     }
   });

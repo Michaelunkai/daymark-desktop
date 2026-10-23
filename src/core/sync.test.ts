@@ -1,5 +1,6 @@
 import { createSampleState } from "./sample-data";
 import { saveState } from "./storage";
+import { reduce, rollOverIncompleteTasks } from "./store";
 import {
   canonicalizeReminderTombstones,
   canonicalizeReminders,
@@ -287,6 +288,90 @@ staleTombstoneLocal.syncTombstones = {
 };
 const updateWins = mergeSyncStates(staleTombstoneLocal, newerRemote);
 assert(updateWins.tasks["task-welcome"], "A newer entity update must survive an older deletion marker.");
+
+// A restored record must outrank the deletion tombstone still circulating on
+// other devices; otherwise the deletion resurrects right after the restore syncs.
+const restoreAfterDelete = reduce(createSampleState(older, "restore-delete-client"), {
+  type: "task.restore",
+  task: createSampleState(older, "restore-delete-client").tasks["task-welcome"],
+}, "2026-08-04T10:00:02.000Z");
+const restoredState = restoreAfterDelete.ok ? restoreAfterDelete.state : null;
+assert(restoredState, "A task restore must succeed.");
+assert(
+  restoredState.tasks["task-welcome"].updatedAt === "2026-08-04T10:00:02.000Z",
+  "A restored task must receive a fresh updatedAt so it outranks its tombstone.",
+);
+const restoredMerged = mergeSyncStates(restoredState, deletedLocal);
+assert(
+  restoredMerged.tasks["task-welcome"],
+  "A restored task must not be re-deleted by a circulating tombstone during sync.",
+);
+
+// rollOverIncompleteTasks must not re-date tombstoned tasks; otherwise the
+// mechanically bumped updatedAt resurrects the deleted task during merge.
+const rolloverLocal = createSampleState(older, "rollover-client");
+rolloverLocal.syncTombstones = {
+  "tasks:task-welcome": { deletedAt: newer },
+};
+rolloverLocal.tasks["task-welcome"].due = {
+  date: "2026-08-03",
+  time: null,
+  timezone: null,
+  recurrence: null,
+};
+const rolled = rollOverIncompleteTasks(rolloverLocal, "2026-08-04", "2026-08-04T10:00:02.000Z").state;
+assert(!rolled.tasks["task-welcome"] || rolled.tasks["task-welcome"].due?.date === "2026-08-03",
+  "A tombstoned task must not be rolled over to today.");
+const rolledMerged = mergeSyncStates(rolled, deletedLocal);
+assert(
+  !rolledMerged.tasks["task-welcome"],
+  "Rollover must not resurrect a deleted task under today's date.",
+);
+
+// A deleted task must stay deleted across fresh syncs: a stale copy of the
+// exact record that was deleted (identical updatedAt) merged back from another
+// device must be re-purged on every sync, even when a skewed clock makes its
+// updatedAt look newer than the deletion.
+const purgeDeleteSource = createSampleState(older, "purge-delete-client");
+// The task was last edited on a device whose clock runs ahead, so the record
+// that gets deleted carries an updatedAt newer than the deletion timestamp.
+purgeDeleteSource.tasks["task-welcome"].updatedAt = "2026-08-04T10:09:00.000Z";
+const deleteResult = reduce(purgeDeleteSource, {
+  type: "task.delete",
+  taskId: "task-welcome",
+}, "2026-08-04T10:05:00.000Z");
+const purgeDeleteLocal = deleteResult.ok ? deleteResult.state : null;
+assert(purgeDeleteLocal, "A task delete must succeed.");
+assert(
+  purgeDeleteLocal.syncTombstones["tasks:task-welcome"].deletedRecordUpdatedAt === "2026-08-04T10:09:00.000Z",
+  "A task delete must capture the deleted record's updatedAt in its tombstone.",
+);
+const purgeResurrectRemote = createSampleState(older, "purge-resurrect-client");
+// The other device's clock runs ahead, so the untouched stale copy carries an
+// updatedAt that outranks the deletion's wall-clock timestamp.
+purgeResurrectRemote.tasks["task-welcome"].updatedAt = "2026-08-04T10:09:00.000Z";
+const purgeFirstMerge = mergeSyncStates(purgeDeleteLocal, purgeResurrectRemote);
+assert(
+  !purgeFirstMerge.tasks["task-welcome"],
+  "A deletion must purge a merged-back copy of the deleted task.",
+);
+// Fresh sync with the same stale remote copy: the task must stay deleted even
+// though its updatedAt outranks the tombstone's wall-clock deletion time.
+const purgeSecondMerge = mergeSyncStates(purgeFirstMerge, purgeResurrectRemote);
+assert(
+  !purgeSecondMerge.tasks["task-welcome"],
+  "A deleted task must stay deleted across fresh syncs.",
+);
+
+// A local edit with an OLDER timestamp than the deletion must not resurrect
+// the deleted task.
+const staleEditRemote = createSampleState(newer, "stale-edit-client");
+staleEditRemote.tasks["task-welcome"].updatedAt = older;
+const staleEditMerged = mergeSyncStates(purgeDeleteLocal, staleEditRemote);
+assert(
+  !staleEditMerged.tasks["task-welcome"],
+  "A local edit older than the deletion must not resurrect the deleted task.",
+);
 
 assert(syncStatesMatch(local, local), "A state should match itself.");
 assert(

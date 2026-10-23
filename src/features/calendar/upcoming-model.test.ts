@@ -62,6 +62,27 @@ test("buckets only scheduled tasks and sorts stable task order within a day", ()
   assert.equal(buckets["2026-08-10"], undefined)
 })
 
+test("skips completed tasks from calendar buckets unless explicitly included", () => {
+  const completedToday = { ...task("done", "2026-08-08"), completedAt: "2026-08-08T09:00:00.000Z" }
+  const scheduled = task("open", "2026-08-08")
+
+  const buckets = bucketTasksByDate([completedToday, scheduled])
+  assert.deepEqual(buckets["2026-08-08"].map((item) => item.id), ["open"])
+
+  const inclusiveBuckets = bucketTasksByDate([completedToday, scheduled], { includeCompleted: true })
+  assert.deepEqual(inclusiveBuckets["2026-08-08"].map((item) => item.id), ["done", "open"])
+})
+
+test("completed task counts are excluded from calendar day markers", () => {
+  assert.deepEqual(
+    countTasksByDate([
+      { ...task("done", "2026-08-08"), completedAt: "2026-08-08T09:00:00.000Z" },
+      task("open", "2026-08-08"),
+    ]),
+    { "2026-08-08": 1 },
+  )
+})
+
 test("returns marker counts for days containing scheduled tasks", () => {
   assert.deepEqual(
     countTasksByDate([
@@ -96,7 +117,7 @@ test("selects valid dates and moves tasks immutably while preserving due metadat
   })
 })
 
-test("groups future tasks for a scan-friendly agenda and keeps completed tasks last", () => {
+test("groups future tasks for a scan-friendly agenda and never resurfaces completed tasks", () => {
   const groups = groupUpcomingTasks([
     { id: "done", title: "Already done", dueDate: "2026-08-05", completed: true },
     { id: "active", title: "Plan release", dueDate: "2026-08-05", completed: false },
@@ -105,5 +126,5 @@ test("groups future tasks for a scan-friendly agenda and keeps completed tasks l
   ], "2026-08-05")
 
   assert.deepEqual(groups.map((group) => group.label), ["Today", "Tomorrow"])
-  assert.deepEqual(groups[0].tasks.map((task) => task.id), ["active", "done"])
+  assert.deepEqual(groups[0].tasks.map((task) => task.id), ["active"])
 })

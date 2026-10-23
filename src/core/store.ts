@@ -112,8 +112,12 @@ export function rollOverIncompleteTasks(
     throw new Error("Today must be a valid local date.");
   }
 
+  // Tasks with a deletion tombstone are logically deleted; the record only
+  // lingers until the next sync merge removes it. Re-dating them here would
+  // stamp updatedAt past the tombstone and resurrect the deleted task.
   const overdueTaskIds = Object.values(state.tasks)
     .filter((task) => task.completedAt === null && task.due?.date && task.due.date < today)
+    .filter((task) => !state.syncTombstones?.[`tasks:${task.id}`])
     .map((task) => task.id);
   if (!overdueTaskIds.length) return { state, changed: false };
 
@@ -179,16 +183,22 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       clearTombstone(state, "tasks", id);
       return { ok: true, inverse: { type: "task.remove", taskId: id } };
     }
-    case "task.restore":
-      state.tasks[action.task.id] = structuredClone(action.task);
-      clearTombstone(state, "tasks", action.task.id);
-      return { ok: true, inverse: { type: "task.remove", taskId: action.task.id } };
+    case "task.restore": {
+      // Restores must stamp a fresh updatedAt: other devices and the server can
+      // still hold this record's deletion tombstone, and mergeSyncStates deletes
+      // any record whose updatedAt is not newer than its tombstone — otherwise
+      // the deletion resurrects right after the restore syncs.
+      const restoredTask = { ...structuredClone(action.task), updatedAt: now };
+      state.tasks[restoredTask.id] = restoredTask;
+      clearTombstone(state, "tasks", restoredTask.id);
+      return { ok: true, inverse: { type: "task.remove", taskId: restoredTask.id } };
+    }
     case "task.remove":
     case "task.delete": {
       const task = state.tasks[action.taskId];
       if (!task) return invalid("The task no longer exists.");
       delete state.tasks[action.taskId];
-      markTombstone(state, "tasks", action.taskId, now);
+      markTombstone(state, "tasks", action.taskId, now, task.updatedAt);
       return { ok: true, inverse: { type: "task.restore", task: structuredClone(task) } };
     }
     case "task.transferToOrder": {
@@ -200,7 +210,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       state.orderItems[orderItemResult.item.id] = orderItemResult.item;
       clearTombstone(state, "orderItems", orderItemResult.item.id);
       delete state.tasks[action.taskId];
-      markTombstone(state, "tasks", action.taskId, now);
+      markTombstone(state, "tasks", action.taskId, now, task.updatedAt);
       return {
         ok: true,
         inverse: {
@@ -218,7 +228,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       delete state.orderItems[action.orderItemId];
       markTombstone(state, "orderItems", action.orderItemId, now);
       clearOrderRelations(state, action.orderItemId);
-      state.tasks[action.task.id] = structuredClone(action.task);
+      state.tasks[action.task.id] = { ...structuredClone(action.task), updatedAt: now };
       clearTombstone(state, "tasks", action.task.id);
       return {
         ok: true,
@@ -342,10 +352,12 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       clearTombstone(state, "projects", id);
       return { ok: true, inverse: { type: "project.remove", projectId: id } };
     }
-    case "project.restore":
-      state.projects[action.project.id] = structuredClone(action.project);
-      clearTombstone(state, "projects", action.project.id);
-      return { ok: true, inverse: { type: "project.remove", projectId: action.project.id } };
+    case "project.restore": {
+      const restoredProject = { ...structuredClone(action.project), updatedAt: now };
+      state.projects[restoredProject.id] = restoredProject;
+      clearTombstone(state, "projects", restoredProject.id);
+      return { ok: true, inverse: { type: "project.remove", projectId: restoredProject.id } };
+    }
     case "project.remove": {
       const project = state.projects[action.projectId];
       if (!project) return invalid("The project no longer exists.");
@@ -388,10 +400,12 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       };
     }
     case "project.restoreBundle": {
-      state.projects[action.project.id] = structuredClone(action.project);
+      // Fresh updatedAt on restored project/sections so circulating deletion
+      // tombstones cannot re-delete them during the next sync merge.
+      state.projects[action.project.id] = { ...structuredClone(action.project), updatedAt: now };
       clearTombstone(state, "projects", action.project.id);
       for (const section of action.sections) {
-        state.sections[section.id] = structuredClone(section);
+        state.sections[section.id] = { ...structuredClone(section), updatedAt: now };
         clearTombstone(state, "sections", section.id);
       }
       for (const task of action.tasks) state.tasks[task.id] = structuredClone(task);
@@ -491,8 +505,8 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       if (state.orderItems[action.orderItem.id]) return invalid("The original Order item already exists.");
 
       delete state.tasks[action.taskId];
-      markTombstone(state, "tasks", action.taskId, now);
-      state.orderItems[action.orderItem.id] = structuredClone(action.orderItem);
+      markTombstone(state, "tasks", action.taskId, now, task.updatedAt);
+      state.orderItems[action.orderItem.id] = { ...structuredClone(action.orderItem), updatedAt: now };
       clearTombstone(state, "orderItems", action.orderItem.id);
       return {
         ok: true,
@@ -523,7 +537,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       return { ok: true, inverse: { type: "note.remove", noteId: id } };
     }
     case "note.restore":
-      state.notes[action.note.id] = structuredClone(action.note);
+      state.notes[action.note.id] = { ...structuredClone(action.note), updatedAt: now };
       clearTombstone(state, "notes", action.note.id);
       return { ok: true, inverse: { type: "note.remove", noteId: action.note.id } };
     case "note.remove":
@@ -580,6 +594,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
         highlights: before?.highlights ?? "",
         reflection: before?.reflection ?? "",
         tomorrow: before?.tomorrow ?? "",
+        mood: before?.mood ?? "",
         updatedAt: now,
       };
       state.diaryEntries[action.date] = entry;
@@ -592,7 +607,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       };
     }
     case "diary.restore":
-      state.diaryEntries[action.entry.date] = structuredClone(action.entry);
+      state.diaryEntries[action.entry.date] = { ...structuredClone(action.entry), updatedAt: now };
       clearTombstone(state, "diaryEntries", action.entry.date);
       return { ok: true, inverse: { type: "diary.remove", date: action.entry.date } };
     case "diary.update": {
@@ -605,10 +620,11 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
         highlights: before?.highlights ?? "",
         reflection: before?.reflection ?? "",
         tomorrow: before?.tomorrow ?? "",
+        mood: before?.mood ?? "",
         updatedAt: now,
         ...action.patch,
       };
-      const hasContent = [next.body, next.morning, next.highlights, next.reflection, next.tomorrow]
+      const hasContent = [next.body, next.morning, next.highlights, next.reflection, next.tomorrow, next.mood]
         .some((value) => value.trim());
       if (!hasContent) {
         if (!before) return { ok: true, changed: false, inverse: { type: "diary.update", date: action.date, patch: {} } };
@@ -646,7 +662,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       };
     }
     case "reminder.restore":
-      state.reminders[action.reminder.id] = structuredClone(action.reminder);
+      state.reminders[action.reminder.id] = { ...structuredClone(action.reminder), updatedAt: now };
       clearTombstone(state, "reminders", action.reminder.id);
       return { ok: true, inverse: { type: "reminder.remove", reminderId: action.reminder.id } };
     case "reminder.remove":
@@ -670,7 +686,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       return { ok: true, inverse: { type: "section.remove", sectionId: id } };
     }
     case "section.restore":
-      state.sections[action.section.id] = structuredClone(action.section);
+      state.sections[action.section.id] = { ...structuredClone(action.section), updatedAt: now };
       clearTombstone(state, "sections", action.section.id);
       return { ok: true, inverse: { type: "section.remove", sectionId: action.section.id } };
     case "section.remove": {
@@ -700,7 +716,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       return { ok: true, inverse: { type: "filter.remove", filterId: id } };
     }
     case "filter.restore":
-      state.filters[action.filter.id] = structuredClone(action.filter);
+      state.filters[action.filter.id] = { ...structuredClone(action.filter), updatedAt: now };
       clearTombstone(state, "filters", action.filter.id);
       return { ok: true, inverse: { type: "filter.remove", filterId: action.filter.id } };
     case "filter.remove": {
@@ -874,11 +890,21 @@ function createUndoEntry(inverse: UndoAction, createdAt: string): UndoEntry {
   return { id: createId("undo"), label: inverse.type, inverse, createdAt };
 }
 
-function markTombstone(state: AppState, collection: string, id: string, deletedAt: string): void {
+function markTombstone(
+  state: AppState,
+  collection: string,
+  id: string,
+  deletedAt: string,
+  deletedRecordUpdatedAt?: string,
+): void {
   state.syncTombstones ??= {};
   const key = `${collection}:${id}`;
   const current = state.syncTombstones[key];
-  if (!current || deletedAt >= current.deletedAt) state.syncTombstones[key] = { deletedAt };
+  if (!current || deletedAt >= current.deletedAt) {
+    state.syncTombstones[key] = deletedRecordUpdatedAt !== undefined
+      ? { deletedAt, deletedRecordUpdatedAt }
+      : { deletedAt };
+  }
 }
 
 function clearTombstone(state: AppState, collection: string, id: string): void {

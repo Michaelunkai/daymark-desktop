@@ -21,6 +21,12 @@ export type UpcomingTask = {
     recurrence: string | null
   } | null
   order?: number
+  completedAt?: string | null
+}
+
+export type BucketTasksByDateOptions = {
+  /** Opt in to keeping completed tasks in the buckets. Default: skip them. */
+  includeCompleted?: boolean
 }
 
 export type UpcomingAgendaTask = {
@@ -44,6 +50,9 @@ export function groupUpcomingTasks(
 ): UpcomingTaskGroup[] {
   const grouped = new Map<LocalDate, UpcomingAgendaTask[]>()
   tasks.forEach((task) => {
+    // Completed tasks must never surface in the calendar, even if a stale
+    // due date keeps pointing at today or a future day.
+    if (task.completed) return
     const bucket = grouped.get(task.dueDate) ?? []
     bucket.push(task)
     grouped.set(task.dueDate, bucket)
@@ -110,10 +119,16 @@ export function navigateUpcomingRange(
 
 export function bucketTasksByDate<Task extends UpcomingTask>(
   tasks: readonly Task[],
+  options: BucketTasksByDateOptions = {},
 ): Record<LocalDate, Task[]> {
   const buckets: Record<LocalDate, Task[]> = {}
+  const includeCompleted = options.includeCompleted === true
 
   for (const task of tasks) {
+    // Completed tasks must never surface in the calendar buckets unless the
+    // caller explicitly opts in, even when a stale due date keeps pointing
+    // at today or a future day.
+    if (!includeCompleted && task.completedAt) continue
     if (!task.due) continue
     ;(buckets[task.due.date] ??= []).push(task)
   }
