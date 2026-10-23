@@ -254,7 +254,9 @@ async function handleAgent(req, res, pathname, url = new URL("http://local/")) {
     const offset = Number(cursorParam ?? url.searchParams.get("offset") ?? 0) || 0;
     const limit = Math.min(Number(url.searchParams.get("limit") ?? 100), 250);
     const page = items.slice(offset, offset + limit);
-    const envelope = { [coll]: page };
+    // The CLI keys the envelope by the RESOURCE path name (e.g. "order-items"),
+    // not the internal collection name ("orderItems").
+    const envelope = { [listMatch[1]]: page };
     if (offset + limit < items.length) envelope.nextCursor = String(offset + limit);
     return json(res, envelope);
   }
