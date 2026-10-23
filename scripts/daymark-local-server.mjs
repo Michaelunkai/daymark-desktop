@@ -203,9 +203,13 @@ async function handleSync(req, res, syncKey, pathname, url) {
   const expected = Number(payload?.expectedRevision);
   if (!incoming || typeof incoming !== "object" || !Number.isInteger(expected)) return json(res, { error: "invalid_payload" }, 400);
   if (revision !== expected) return json(res, { error: "conflict", revision, state }, 409);
-  const merged = mergeSyncStates(incoming, state);
+  // The merged result MUST be assigned to `state` before committing: this was
+  // once a local variable only, so every client push got a 200 with the merged
+  // data echoed back while the persisted state silently discarded it — no app
+  // edit (tasks, order items, notes) ever survived a sync from any device.
+  state = mergeSyncStates(incoming, state);
   commitState(Math.max(revision + 1, Number(incoming.revision ?? 0), 1));
-  return json(res, { revision, state: merged, updatedAt: state.updatedAt });
+  return json(res, { revision, state, updatedAt: state.updatedAt });
 }
 
 const RESOURCE_MAP = {
