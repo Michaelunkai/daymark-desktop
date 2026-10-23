@@ -264,13 +264,19 @@ android {
     }
 
     flavorDimensions "channel"
+    // FLAVOR NAMING LAW: the first flavor MUST NOT be named "main" — AGP 8.5
+    // merges variant sources into a map keyed by source set name, and a flavor
+    // named "main" collides with the implicit main source set ("Multiple
+    // entries with same key: main=[] and main=[]" at task creation).
     productFlavors {
-        main {
+        stable {
         }
         companion {
             applicationIdSuffix ".companion"
         }
     }
+
+
 
     sourceSets {
         main {
