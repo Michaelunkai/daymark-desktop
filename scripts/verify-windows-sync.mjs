@@ -7,7 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const executablePath = process.env.DAYMARK_RUNTIME_EXECUTABLE_PATH
   ?? path.join(root, "release", "windows", "win-unpacked", "Daymark Runtime.exe");
 const profilePath = path.join(root, "release", "windows", "evidence", "sync-profile");
-const origin = "https://daymark-desktop.michaelovsky55555.chatgpt.site";
+const origin = process.env.DAYMARK_VERIFY_ORIGIN ?? "http://127.0.0.1:18780";
 const localClientPath = process.env.DAYMARK_LOCAL_CLIENT_PATH
   ? path.resolve(process.env.DAYMARK_LOCAL_CLIENT_PATH)
   : null;

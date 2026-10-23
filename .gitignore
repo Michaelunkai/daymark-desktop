@@ -14,3 +14,4 @@ release/daymark-sites-*.tar.gz
 desktop/assets/daymark.png
 desktop/assets/daymark.ico
 android/gradle/caches/
+android/gradle/.tmp/

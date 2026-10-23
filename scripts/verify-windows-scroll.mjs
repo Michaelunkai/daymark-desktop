@@ -8,7 +8,7 @@ const executablePath = process.env.DAYMARK_RUNTIME_EXECUTABLE_PATH
   ?? path.join(root, "release", "windows", "win-unpacked", "Daymark Runtime.exe");
 const evidenceDirectory = path.join(root, "release", "windows", "evidence", `scroll-${process.pid}-${Date.now()}`);
 const profilePath = path.join(evidenceDirectory, "profile");
-const productionOrigin = "https://daymark-desktop.michaelovsky55555.chatgpt.site";
+const productionOrigin = process.env.DAYMARK_VERIFY_ORIGIN ?? "http://127.0.0.1:18780";
 const wheelDelta = 420;
 const sampleDelays = [0, 16, 32, 64, 120, 240, 500];
 const fixedRoutes = ["today", "inbox", "upcoming", "completed", "order", "notes", "diary"];

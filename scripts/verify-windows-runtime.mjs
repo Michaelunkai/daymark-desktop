@@ -10,7 +10,7 @@ const evidenceDirectory = path.join(root, "release", "windows", "evidence");
 const userDataDirectory = path.join(evidenceDirectory, `runtime-profile-${process.pid}-${Date.now()}`);
 const screenshotPath = path.join(evidenceDirectory, `daymark-windows-runtime-${process.pid}-${Date.now()}.png`);
 const launchArgs = ["--daymark-detached-child"];
-const productionOrigin = "https://daymark-desktop.michaelovsky55555.chatgpt.site";
+const productionOrigin = process.env.DAYMARK_VERIFY_ORIGIN ?? "http://127.0.0.1:18780";
 
 await mkdir(evidenceDirectory, { recursive: true });
 

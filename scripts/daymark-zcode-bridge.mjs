@@ -29,6 +29,16 @@ const ZCODE_CLI = "F:/backup/windowsapps/installed/ZCode/resources/glm/zcode.cjs
 // only serves the genuine opencode client; raw API gets 403 FreeTierError).
 const OPENCODE_CLI = "F:/backup/opencode/bin/opencode.exe";
 const CLI_DIR = "F:/study/WebBuilding/projects/daymark-desktop/cli";
+// NEVER-DIE NET: a single unhandled rejection or stray throw must never kill
+// the bridge — sessions, cards, and the user's live board depend on this
+// process staying up. Every crash is logged and the loop continues.
+process.on("unhandledRejection", (r) => {
+  try { log("unhandledRejection:", String(r && r.message || r).slice(0, 300)); } catch {}
+});
+process.on("uncaughtException", (e) => {
+  try { log("uncaughtException (continuing):", String(e && e.message || e).slice(0, 300)); } catch {}
+});
+
 const POLL_MS = 1_000; // 1s: a card moved out of In Progress is killed within ~1 s
 const nvidiaRuns = new Map(); // taskId -> {aborted} — in-process NVIDIA agent runs
 
@@ -224,6 +234,10 @@ function journalSilenceMin(lines) {
   for (const l of lines) {
     if (MACHINE_NUDGE_RE.test(l)) continue;
     if (META_FILLER_RE.test(l)) continue;
+    // App-side broadcaster lines ("— progress HH:MM —") are status mirrors,
+    // NOT session work: they must never reset the silence clock, or a card
+    // with a dead session shows forever-fresh progress and never revives.
+    if (/^\s*—\s*progress\s+\d\d:\d\d\s*—/.test(l)) continue;
     const m = l.match(/(\d\d:\d\d)/);
     if (m) {
       const age = hhmmAgeMin(m[1]);
@@ -859,7 +873,10 @@ async function launchSession(task) {
     // no explicit model pick - the subscription default wins instead.
     if (gCls && gCls.providerId !== "zai-metered-api") chosenDesc = "— ORDER 00:00 — model: " + gRaw + "\\n" + chosenDesc;
   }
-  const modelOverride = daymarkApplyFailover(task, null, daymarkResolveModelForTask(task.id, chosenDesc));
+  const __pickRaw = daymarkResolveModelForTask(task.id, chosenDesc);
+  log("resolve debug:", task.id, "->", JSON.stringify(__pickRaw ? __pickRaw.modelId : null), "| chosenDesc head:", JSON.stringify(String(chosenDesc).slice(0, 80)));
+  const modelOverride = daymarkApplyFailover(task, null, __pickRaw);
+  log("resolve debug after failover:", task.id, "->", JSON.stringify(modelOverride ? modelOverride.modelId : null));
   if (modelOverride) log("task", task.id, "-> model override", modelOverride.modelId);
   const prompt = `/task ${title} — HARD IDENTITY: you are working EXACTLY the Daymark task with id ${task.id}; GET and PATCH only /api/agent/v1/tasks/${task.id}, never any other card —${demandClause} ${modelOverride && String(modelOverride.modelId).startsWith("zai-metered-api") ? NARRATION_LAW_METERED : NARRATION_LAW}${resumeClause}`;
   if (modelOverride && String(modelOverride.modelId).startsWith("nvidia-nim/")) {
@@ -1765,7 +1782,7 @@ async function poll() {
       }
     }
   } catch (e) {
-    log("poll error:", e.message || e);
+    log("poll error:", e.message || e, "| cause:", e.cause ? String(e.cause.code || e.cause.message || e.cause) : "none");
   } finally {
     polling = false; // POLL MUTEX release: a thrown pass must never freeze the bridge
   }

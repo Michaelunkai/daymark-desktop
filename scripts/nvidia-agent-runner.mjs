@@ -57,7 +57,7 @@ const TOOLS = [
     type: "function",
     function: {
       name: "finish_session",
-      description: "Call when the demand is fully achieved and verified live: reports the final summary and ends the session.",
+      description: "Call ONLY when the demand is fully achieved AND verified with real command outputs already cited in this conversation. Finishing without doing the work is a hard failure.",
       parameters: { type: "object", properties: { summary: { type: "string" } }, required: ["summary"] },
     },
   },
@@ -69,7 +69,7 @@ async function chat(proxyUrl, model, messages, log) {
   const res = await fetch(proxyUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: "Bearer nvapi-proxy" },
-    body: JSON.stringify({ model, messages, tools: TOOLS, tool_choice: "auto", max_tokens: 2048, temperature: 0.3 }),
+    body: JSON.stringify({ model, messages, tools: TOOLS, tool_choice: "required", max_tokens: 2048, temperature: 0.3 }),
     signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
   });
   const text = await res.text();
@@ -145,6 +145,8 @@ export async function runNvidiaAgent(p) {
 
   const started = Date.now();
   let step = 0;
+  let lastSig = "";
+  let repeatCount = 0;
   for (; step < MAX_STEPS; step += 1) {
     if (Date.now() - started > MAX_WALL_MS) { await journal(`time budget ${Math.round(MAX_WALL_MS / 60000)} min elapsed — stopping with partial results`); break; }
     if (await shouldStop()) { await journal("card left In Progress — NVIDIA agent stopping"); break; }
@@ -157,21 +159,41 @@ export async function runNvidiaAgent(p) {
       throw e; // let the bridge's retry/failover machinery handle it
     }
 
-    const toolCalls = msg.tool_calls ?? [];
-    if (msg.content && String(msg.content).trim()) {
-      await journal(`step ${step + 1}: ${clip(msg.content, 160)}`);
+    let toolCalls = msg.tool_calls ?? [];
+    let contentText = String(msg.content ?? "");
+    // TEXT-FORMAT TOOL CALLS: nemotron models on this endpoint print calls as
+    // Goose-style text — content = [[{"name": "...", "parameters": {...}}]] —
+    // instead of native tool_calls. Parse them so the work actually executes.
+    if (!toolCalls.length && contentText.includes("[[")) {
+      const m = contentText.match(/\[\[([\s\S]*?)\]\]/);
+      if (m) {
+        try {
+          const parsed = JSON.parse(m[1]);
+          if (Array.isArray(parsed) && parsed.length && parsed[0] && parsed[0].name) {
+            toolCalls = parsed.map((c, i) => ({
+              id: `textcall-${step}-${i}`,
+              type: "function",
+              function: { name: c.name, arguments: JSON.stringify(c.parameters ?? c.arguments ?? {}) },
+            }));
+            contentText = contentText.replace(m[0], "").trim();
+          }
+        } catch { /* not a tool-call block — treat as plain text */ }
+      }
     }
-    messages.push({ role: "assistant", content: msg.content ?? "", tool_calls: toolCalls });
-    if (msg.reasoning_content) messages[messages.length - 1].reasoning_content = undefined; // keep history lean
+    if (contentText && contentText.trim()) {
+      await journal(`step ${step + 1}: ${clip(contentText, 160)}`);
+    } else if (!toolCalls.length) {
+      // Reasoning models sometimes answer with empty content and no tool call:
+      // journal the turn (never silent) and force a tool call next round.
+      await journal(`step ${step + 1}: reasoning turn completed — continuing with tools`);
+    }
+    // History stays in the MODEL'S OWN convention (text-format calls): a native
+    // tool_calls turn the model never emitted scrambles its context and loops it.
+    messages.push({ role: "assistant", content: contentText || msg.content || "" });
 
     if (!toolCalls.length) {
-      // Model answered without a tool call: treat as interim narration; nudge once, else finish.
-      if (step >= 2) {
-        const summary = clip(msg.content, 400);
-        await journal(`session wrapping up: ${summary}`);
-        await onFinished(summary);
-        return summary;
-      }
+      // Model answered without any tool call (text-only turn): nudge it back to
+      // work — NEVER auto-finish a session that has not called finish_session.
       messages.push({ role: "user", content: "Continue executing the demand with the tools. If it is complete, call finish_session." });
       continue;
     }
@@ -180,15 +202,24 @@ export async function runNvidiaAgent(p) {
       let args = {};
       try { args = JSON.parse(call.function?.arguments ?? "{}"); } catch {}
       if (call.function?.name === "finish_session") {
+        const stepsDone = messages.filter((m) => m.role === "user" && String(m.content).startsWith("TOOL RESULT")).length;
+        if (stepsDone < 8) {
+          await journal(`finish rejected after ${stepsDone} steps — the demand is not done; keep working`);
+          messages.push({ role: "user", content: "FINISH REJECTED: only " + stepsDone + " tool steps executed. The demand requires real work — run the actual commands/verifications first, then finish again with evidence." });
+          continue;
+        }
         const summary = clip(args.summary ?? "completed", 400);
-        await journal(`FINISHED — ${summary}`);
+        await journal(`FINISHED after ${stepsDone} verified steps — ${summary}`);
         await onFinished(summary);
         return summary;
       }
       let result;
       try { result = await execTool(call.function?.name, args, cwd); }
       catch (e) { result = `tool error: ${clip(e.message, 200)}`; }
-      messages.push({ role: "tool", tool_call_id: call.id, content: result });
+      const sig = call.function?.name + ":" + clip(JSON.stringify(args), 120);
+      if (sig === lastSig) repeatCount += 1; else { repeatCount = 0; lastSig = sig; }
+      const repeatNote = repeatCount >= 2 ? " You have repeated this exact call " + (repeatCount + 1) + " times. The result is above - MOVE ON: pick the next concrete step of the demand." : "";
+      messages.push({ role: "user", content: `TOOL RESULT (${call.function?.name}): ${clip(result, 2500)}` + repeatNote });
       await journal(`${call.function?.name}: ${clip(result, 140)}`);
     }
 

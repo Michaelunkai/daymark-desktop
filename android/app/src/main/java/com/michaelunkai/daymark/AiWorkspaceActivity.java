@@ -2264,6 +2264,7 @@ public final class AiWorkspaceActivity extends Activity {
                     deleteAllBusy = false;
                     Toast.makeText(AiWorkspaceActivity.this,
                             "Deleted " + n + " tasks in " + wallMs + " ms", Toast.LENGTH_LONG).show();
+                            android.util.Log.i("DaymarkAi", "DELETE-ALL result: deleted " + n + " finished tasks in " + wallMs + " ms");
                     refreshNow();
                 });
             });
