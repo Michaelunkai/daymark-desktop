@@ -13,7 +13,11 @@ import { join, dirname } from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
 
 delete process.env.DAYMARK_AI_TOKEN;
-delete process.env.DAYMARK_API_URL;
+// BACKEND LAW (2026-10-23): the Daymark local server on this PC is the
+// permanent backend (cloud origin is dead for writes). No Codex / ChatGPT
+// account is ever needed.
+const DAYMARK_LOCAL_API_URL = "http://127.0.0.1:18780";
+const DAYMARK_LOCAL_SYNC_KEY = "vY4K5cwv-slGKV-Of7E3bB";
 
 const HOME = "C:/Users/Admin";
 const STATE_DIR = "F:/backup/ai/daymark-zcode-bridge";
@@ -118,7 +122,7 @@ async function killTreeConfirmed(pid, taskId) {
   return false;
 }
 
-const api = await createDaymarkClient({ apiUrl: DEFAULT_API_URL, token: await getAgentToken() });
+const api = await createDaymarkClient({ apiUrl: DAYMARK_LOCAL_API_URL, token: DAYMARK_LOCAL_SYNC_KEY });
 const V = "/api/agent/v1";
 const withTimeout = (p, ms = 20_000) => Promise.race([p, new Promise((r) => setTimeout(() => r(null), ms))]);
 const req = async (method, path, opts) => {
@@ -377,7 +381,7 @@ async function daymarkUsageTick() {
     if (signature === daymarkLastUsagePush.signature && nowMs - daymarkLastUsagePush.at < DAYMARK_USAGE_PUSH_MAX_AGE_MS) return;
     const syncKey = readFileSync(DAYMARK_SYNCKEY_PATH, "utf8").trim();
     if (!syncKey) return;
-    const syncEndpoint = DEFAULT_API_URL.replace(/\/+$/, "") + "/api/sync/" + encodeURIComponent(syncKey);
+    const syncEndpoint = DAYMARK_LOCAL_API_URL.replace(/\/+$/, "") + "/api/sync/" + encodeURIComponent(syncKey || DAYMARK_LOCAL_SYNC_KEY);
     const headers = { Accept: "application/json", "X-Daymark-Sync-Key": syncKey, Authorization: "Bearer " + syncKey };
     for (let attempt = 0; attempt < 3; attempt += 1) {
       let currentState = null;

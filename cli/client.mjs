@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 
-export const DEFAULT_API_URL = "https://daymark-sync.michaelovsky5.workers.dev";
+// BACKEND LAW (2026-10-23): the user's PC local server is the permanent
+// backend. The cloud origin is dead for writes and is reachable only via an
+// explicit DAYMARK_API_URL override. No Codex / ChatGPT account ever needed.
+export const DEFAULT_API_URL = "http://127.0.0.1:18780";
 const API_PREFIX = "/api/agent/v1/";
 
 export class DaymarkCliError extends Error {

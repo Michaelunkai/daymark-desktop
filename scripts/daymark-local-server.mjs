@@ -253,11 +253,28 @@ async function handleAgent(req, res, pathname, url = new URL("http://local/")) {
     const cursorParam = url.searchParams.get("cursor");
     const offset = Number(cursorParam ?? url.searchParams.get("offset") ?? 0) || 0;
     const limit = Math.min(Number(url.searchParams.get("limit") ?? 100), 250);
-    const page = items.slice(offset, offset + limit);
+    // Optional server-side filters matching the cloud contract: ?status= and
+    // ?projectId= on task lists.
+    let filtered = items;
+    if (listMatch[1] === "tasks") {
+      const status = url.searchParams.get("status");
+      if (status === "open") filtered = filtered.filter((t) => !t.completedAt);
+      else if (status === "completed") filtered = filtered.filter((t) => t.completedAt);
+      const projectId = url.searchParams.get("projectId");
+      if (projectId) filtered = filtered.filter((t) => t.projectId === projectId);
+    }
+    const page = filtered.slice(offset, offset + limit);
     // The CLI keys the envelope by the RESOURCE path name (e.g. "order-items"),
-    // not the internal collection name ("orderItems").
+    // not the internal collection name ("orderItems"). Task lists additionally
+    // carry revision/nextOffset/total for the CLI's strict complete-pagination
+    // loop (cli/client.mjs listAllTasks).
     const envelope = { [listMatch[1]]: page };
     if (offset + limit < items.length) envelope.nextCursor = String(offset + limit);
+    if (listMatch[1] === "tasks") {
+      envelope.revision = revision;
+      envelope.total = filtered.length;
+      envelope.nextOffset = offset + limit < filtered.length ? offset + limit : null;
+    }
     return json(res, envelope);
   }
   const itemMatch = pathname.match(/^\/(projects|sections|labels|filters|tasks|notes|order-items)\/([A-Za-z0-9_-]{3,160})$/);

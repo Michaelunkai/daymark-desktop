@@ -35,8 +35,8 @@ test("Android release exposes the shared responsive app with the premium launche
 
   assert.match(manifest, /android:icon="@drawable\/ic_daymark_launcher"/);
   assert.match(manifest, /android:roundIcon="@drawable\/ic_daymark_launcher"/);
-  assert.match(gradle, /versionCode 34/);
-  assert.match(gradle, /versionName "1\.4\.44"/);
+  assert.match(gradle, /versionCode 35/);
+  assert.match(gradle, /versionName "1\.4\.45"/);
   assert.match(gradle, /androidComponents[\s\S]*?withBuildType\("release"\)/);
   assert.match(gradle, /verifyDaymarkReleaseInputs/);
   assert.match(gradle, /A Daymark release requires DAYMARK_SIGNING_STORE/);
@@ -85,7 +85,8 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(installer, /Verify-DaymarkRelease\.ps1/);
   assert.match(installer, /exactly one installed Daymark APK path/);
   assert.match(installer, /application data identity changed/);
-  assert.match(activity, /daymark-desktop\.michaelovsky55555\.chatgpt\.site/);
+  assert.match(activity, /100\.76\.198\.53:18780/);
+  assert.doesNotMatch(activity, /daymark-desktop\.michaelovsky55555\.chatgpt\.site/);
   assert.match(activity, /setDomStorageEnabled\(true\)/);
   assert.match(activity, /addJavascriptInterface/);
   assert.match(activity, /setTheme/);
