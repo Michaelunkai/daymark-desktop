@@ -3,38 +3,41 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Daymark AI Control Panel: deep gradient background -->
-    <path android:pathData="M0,0h108v108H0z">
+    <!-- Daymark: the day rising over the horizon, the lanes it organises below -->
+    <path android:pathData="M41.5,56 a12.5,12.5 0 0 1 25,0 z">
         <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
             <gradient
                 android:type="linear"
-                android:startX="0" android:startY="0"
-                android:endX="108" android:endY="108"
-                android:startColor="#1A1A2E"
-                android:centerColor="#16213E"
-                android:endColor="#0F3460" />
+                android:startX="41.5" android:startY="43.5"
+                android:endX="66.5" android:endY="56"
+                android:startColor="#FFA25E"
+                android:centerColor="#FF6A45"
+                android:endColor="#FF4530" />
         </aapt:attr>
     </path>
-    <!-- Subtle grid pattern for "control panel" -->
-    <group android:translateX="0" android:translateY="0">
-        <path android:fillColor="#FFFFFF10" android:pathData="M0,0h108v108H0z" />
-        <!-- Vertical grid lines -->
-        <path android:strokeColor="#FFFFFF08" android:strokeWidth="0.5" android:pathData="M12,0v108M24,0v108M36,0v108M48,0v108M60,0v108M72,0v108M84,0v108M96,0v108" />
-        <!-- Horizontal grid lines -->
-        <path android:strokeColor="#FFFFFF08" android:strokeWidth="0.5" android:pathData="M0,12h108M0,24h108M0,36h108M0,48h108M0,60h108M0,72h108M0,84h108M0,96h108" />
-    </group>
-    <!-- White command prompt symbol ">" with cursor -->
-    <group android:translateX="30" android:translateY="28">
-        <!-- Command prompt ">" -->
-        <path android:fillColor="#FFFFFF" android:pathData="M0,0 L18,12 L0,24 Z" />
-        <!-- Pulsing cursor (vertical bar) -->
-        <path android:fillColor="#FFFFFF" android:pathData="M22,0 h3 v24 h-3 Z" />
-        <!-- Second prompt line -->
-        <path android:fillColor="#FFFFFF80" android:pathData="M0,28 L18,40 L0,52 Z" />
-    </group>
-    <!-- Accent corner indicators -->
-    <path android:fillColor="#2DD4BF" android:pathData="M4,4h8v2H4zM4,4v8h2V4z" />
-    <path android:fillColor="#818CF8" android:pathData="M96,4h-8v2h8zM96,4v8h-2V4z" />
-    <path android:fillColor="#2DD4BF" android:pathData="M4,100h8v2H4zM4,100v-8h2v8z" />
-    <path android:fillColor="#818CF8" android:pathData="M96,100h-8v2h8zM96,100v-8h-2v8z" />
+    <!-- Sun rays -->
+    <path android:strokeColor="#FFCBA8" android:strokeWidth="3.6" android:strokeLineCap="round"
+        android:pathData="M54,38 L54,32" />
+    <path android:strokeColor="#FFCBA8" android:strokeWidth="3.6" android:strokeLineCap="round"
+        android:pathData="M37.94,38.17 L41.96,42.63" />
+    <path android:strokeColor="#FFCBA8" android:strokeWidth="3.6" android:strokeLineCap="round"
+        android:pathData="M70.06,38.17 L66.04,42.63" />
+    <!-- Horizon -->
+    <path android:fillColor="#F4F7FC"
+        android:pathData="M33.8,56 h40.4 a1.8,1.8 0 0 1 1.8,1.8 v0 a1.8,1.8 0 0 1 -1.8,1.8 h-40.4 a1.8,1.8 0 0 1 -1.8,-1.8 v0 a1.8,1.8 0 0 1 1.8,-1.8 z" />
+    <!-- Lane one: now -->
+    <path android:fillColor="#F4F7FC"
+        android:pathData="M33.5,64.2 a2.5,2.5 0 1 0 5,0 a2.5,2.5 0 1 0 -5,0" />
+    <path android:fillColor="#F4F7FC"
+        android:pathData="M43,65 h25.3 a1.7,1.7 0 0 1 1.7,1.7 v0 a1.7,1.7 0 0 1 -1.7,1.7 h-25.3 a1.7,1.7 0 0 1 -1.7,-1.7 v0 a1.7,1.7 0 0 1 1.7,-1.7 z" />
+    <!-- Lane two: next -->
+    <path android:fillColor="#F4F7FC" android:fillAlpha="0.76"
+        android:pathData="M33.5,70.6 a2.5,2.5 0 1 0 5,0 a2.5,2.5 0 1 0 -5,0" />
+    <path android:fillColor="#F4F7FC" android:fillAlpha="0.76"
+        android:pathData="M43,71.4 h17.8 a1.7,1.7 0 0 1 1.7,1.7 v0 a1.7,1.7 0 0 1 -1.7,1.7 h-17.8 a1.7,1.7 0 0 1 -1.7,-1.7 v0 a1.7,1.7 0 0 1 1.7,-1.7 z" />
+    <!-- Lane three: later -->
+    <path android:fillColor="#F4F7FC" android:fillAlpha="0.34"
+        android:pathData="M33.5,77 a2.5,2.5 0 1 0 5,0 a2.5,2.5 0 1 0 -5,0" />
+    <path android:fillColor="#F4F7FC" android:fillAlpha="0.34"
+        android:pathData="M43,77.8 h10.3 a1.7,1.7 0 0 1 1.7,1.7 v0 a1.7,1.7 0 0 1 -1.7,1.7 h-10.3 a1.7,1.7 0 0 1 -1.7,-1.7 v0 a1.7,1.7 0 0 1 1.7,-1.7 z" />
 </vector>

@@ -1,0 +1,17 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- Stable channel: exactly one launcher entry ("Daymark" = MainActivity).
+         The shared "Daymark AI" alias belongs to the companion channel only. -->
+    <application>
+        <activity android:name="com.michaelunkai.daymark.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity-alias
+            android:name="com.michaelunkai.daymark.AiWorkspaceLauncher"
+            android:enabled="false"
+            tools:replace="android:enabled" />
+    </application>
+</manifest>
