@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.util.TypedValue;
 import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface;
 import android.webkit.RenderProcessGoneDetail;
@@ -33,10 +34,12 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public final class MainActivity extends Activity {
+    // Sync backend: the user's PC ("Daymark local server") over Tailscale —
+    // reachable from any network. UI + API are both served by that server.
     private static final String START_HOST =
-            "daymark-desktop.michaelovsky55555.chatgpt.site";
+            "100.76.198.53";
     private static final String START_URL =
-            "https://" + START_HOST + "/";
+            "http://100.76.198.53:18780/";
     private static final String BUNDLED_ASSET_DIRECTORY = "daymark/";
     private static final String PREFS_NAME = "daymark";
     private static final String SYNC_KEY_PREF = "sync_key";
@@ -88,7 +91,12 @@ public final class MainActivity extends Activity {
         loadingMessage = new TextView(this);
         loadingMessage.setText("");
         loadingMessage.setTextColor(Color.WHITE);
-        loadingMessage.setTextSize(16);
+        // sp units so the loading/offline text respects the system font scale,
+        // plus padding so the message never touches screen edges on small or
+        // odd-aspect displays.
+        loadingMessage.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+        loadingMessage.setLineSpacing(dp(4), 1f);
+        loadingMessage.setPadding(dp(24), dp(24), dp(24), dp(24));
         loadingMessage.setGravity(android.view.Gravity.CENTER);
         loadingMessage.setOnClickListener(view -> retryCurrentPage());
         loadingCover.setOnClickListener(view -> retryCurrentPage());
@@ -143,7 +151,9 @@ public final class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (webView == null || webView.getUrl() == null) {
+        if (webView == null || !hasVisibleDocument || webView.getUrl() == null) {
+            // No live document to handle the back event in JS (loading/offline screen):
+            // let the system back behavior apply instead of swallowing the press.
             super.onBackPressed();
             return;
         }
@@ -181,6 +191,11 @@ public final class MainActivity extends Activity {
         settings.setUseWideViewPort(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
         settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
+        // Pin text zoom to the system font scale so the user's font-size
+        // preference scales every rendered tab on all WebView versions,
+        // including older devices where the default can drift.
+        settings.setTextZoom(Math.round(100f * Math.max(1f,
+                getResources().getConfiguration().fontScale)));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             settings.setOffscreenPreRaster(true);
         }
@@ -408,6 +423,11 @@ public final class MainActivity extends Activity {
             getWindow().setNavigationBarContrastEnforced(false);
         }
         getWindow().getDecorView().setSystemUiVisibility(0);
+    }
+
+    private int dp(int value) {
+        return Math.round(TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, value, getResources().getDisplayMetrics()));
     }
 
     private WebResourceResponse bundledDaymarkResponse(WebResourceRequest request) {

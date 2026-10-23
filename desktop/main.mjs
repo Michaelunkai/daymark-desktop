@@ -5,6 +5,7 @@ import {
   Menu,
   nativeTheme,
   Notification,
+  powerMonitor,
   session,
   shell,
   Tray,
@@ -18,6 +19,8 @@ import {
   writeFileSync,
 } from "node:fs";
 import { spawn } from "node:child_process";
+import { createDecipheriv, createHash } from "node:crypto";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -31,7 +34,12 @@ import {
 
 const PRODUCT_NAME = "Daymark";
 const DESKTOP_RELEASE_VERSION = "1.4.45";
-const PRODUCTION_ORIGIN = "https://daymark-desktop.michaelovsky55555.chatgpt.site";
+// Origin override: when DAYMARK_ORIGIN is set (persistently, via the hidden
+// launcher), the app talks to that server instead of the cloud host. This keeps
+// sync alive with zero user action when the cloud platform degrades, and needs
+// no Codex / ChatGPT account — ever.
+const PRODUCTION_ORIGIN = process.env.DAYMARK_ORIGIN
+  ?? "https://daymark-desktop.michaelovsky55555.chatgpt.site";
 const START_URL = `${PRODUCTION_ORIGIN}/`;
 const SESSION_PARTITION = "persist:daymark";
 const APP_USER_MODEL_ID = "com.michaelunkai.daymark.windows";
@@ -40,6 +48,22 @@ const PACKAGED_RUNTIME_NAME = "Daymark Runtime.exe";
 const SYNC_PATTERN = /^[A-Za-z0-9_-]{22}$/;
 const PAIRING_TIMEOUT_MS = 15_000;
 const PACKAGED_CLIENT_DIRECTORY = path.join("dist", "client");
+// Re-validate reminder timers on this cadence so system sleep, timer drift, or a
+// lost timeout can never silently skip a reminder.
+const REMINDER_SWEEP_INTERVAL_MS = 60_000;
+const ALARM_SOUND_REPEATS = 5;
+// ZCode CLI keeps per-request token accounting in this local SQLite database
+// (table `model_usage`: completed_at epoch-ms, computed_total_tokens). Read
+// strictly read-only; usage never leaves this machine.
+const ZCODE_USAGE_DB_PATH = process.env.DAYMARK_USAGE_DB_PATH
+  ?? path.join(process.env.USERPROFILE ?? process.env.HOME ?? ".", ".zcode", "cli", "db", "db.sqlite");
+// Trailing windows the usage meters show. 7d is bounded by whatever history
+// the local database happens to retain (currently ~1 day) - the sum is still
+// correct, it just cannot include usage older than the retained rows.
+const USAGE_FIVE_HOUR_WINDOW_MS = 5 * 60 * 60 * 1000;
+const USAGE_SEVEN_DAY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+// Re-read the (live, WAL-backed) database at most this often per process.
+const USAGE_CACHE_TTL_MS = 3_000;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const iconPath = path.join(__dirname, "assets", "daymark.ico");
 
@@ -63,6 +87,7 @@ let deliveredReminderIds = new Set();
 let reminderPersistenceFailure = null;
 let lastReminderPersistenceAck = null;
 const reminderTimers = new Map();
+let activeReminderSoundPlayer = null;
 
 app.setName(PRODUCT_NAME);
 app.setAppUserModelId(APP_USER_MODEL_ID);
@@ -101,6 +126,17 @@ function recordAcceptanceEvent(name, details = {}) {
   if (startupEvents.length > 100) startupEvents.shift();
   console.log(`DAYMARK_ACCEPTANCE_EVENT ${JSON.stringify(event)}`);
   return event;
+}
+
+// Always-visible diagnostics for the reminder timer lifecycle: every arm and
+// every fire is printed to the console (and mirrored to the acceptance event
+// log) so a silently dropped alarm is diagnosable after the fact.
+function logReminderEvent(name, details = {}) {
+  console.log(`DAYMARK_REMINDER_LOG ${JSON.stringify({
+    name,
+    at: new Date().toISOString(),
+    ...details,
+  })}`);
 }
 
 function traceStartup(name, details = {}) {
@@ -400,6 +436,7 @@ async function pairCanonicalWorkspace() {
     }),
   ]);
   lastCanonicalPairingKey = syncKey;
+  persistCanonicalPairingKey(syncKey);
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send("daymark:canonical-paired", syncKey);
   }
@@ -431,7 +468,8 @@ async function resolveLaunchUrl() {
 
   if (await hasCanonicalPairing()) {
     recordAcceptanceEvent("sync:canonical-pairing-reused", { paired: true });
-    return START_URL;
+    // Cache-bust per launch: index.html must refetch after every asar redeploy.
+    return `${START_URL}?launch=${Date.now().toString(36)}`;
   }
 
   recordAcceptanceEvent("sync:canonical-pairing-deferred", { paired: false });
@@ -440,7 +478,7 @@ async function resolveLaunchUrl() {
       message: persistenceErrorMessage(error),
     });
   });
-  return START_URL;
+  return `${START_URL}?launch=${Date.now().toString(36)}`;
 }
 
 function loadPairingFailurePage(error) {
@@ -524,6 +562,7 @@ function windowsPowerShellPath() {
 
 function playWindowsFallbackSound() {
   recordAcceptanceEvent("reminders:sound-fallback", { sound: "system" });
+  logReminderEvent("sound-fallback", { sound: "system" });
   try {
     const fallback = spawn(
       windowsPowerShellPath(),
@@ -534,7 +573,10 @@ function playWindowsFallbackSound() {
         "-WindowStyle",
         "Hidden",
         "-Command",
-        "[System.Media.SystemSounds]::Exclamation.Play()",
+        // Console::Beep uses the speaker directly and is audible even when the
+        // Windows sound scheme mutes SystemSounds, so the fallback can never
+        // be silent.
+        "try { for ($i = 0; $i -lt 3; $i++) { [console]::beep(880, 450); Start-Sleep -Milliseconds 200 }; [System.Media.SystemSounds]::Exclamation.Play(); exit 0 } catch { exit 1 }",
       ],
       { stdio: "ignore", windowsHide: true },
     );
@@ -545,6 +587,18 @@ function playWindowsFallbackSound() {
       message: persistenceErrorMessage(error),
     });
     return false;
+  }
+}
+
+function stopReminderSound() {
+  const player = activeReminderSoundPlayer;
+  activeReminderSoundPlayer = null;
+  if (player && player.exitCode === null && !player.killed) {
+    try {
+      player.kill();
+    } catch {
+      // Process already exited; nothing left to stop.
+    }
   }
 }
 
@@ -563,12 +617,16 @@ function playReminderSound(sound) {
   const startFallback = (reason) => {
     if (fallbackStarted) return;
     fallbackStarted = true;
+    if (activeReminderSoundPlayer === player) activeReminderSoundPlayer = null;
     recordAcceptanceEvent("reminders:sound-custom-failed", { sound, reason });
     playWindowsFallbackSound();
   };
 
+  // The alarm tone repeats until dismissed or until its repeat budget runs out.
+  const repeats = sound === "alarm" ? ALARM_SOUND_REPEATS : 1;
+
   try {
-    recordAcceptanceEvent("reminders:sound-custom-start", { sound, audioPath });
+    recordAcceptanceEvent("reminders:sound-custom-start", { sound, audioPath, repeats });
     const player = spawn(
       windowsPowerShellPath(),
       [
@@ -577,14 +635,22 @@ function playReminderSound(sound) {
         "-NonInteractive",
         "-WindowStyle",
         "Hidden",
+        // powershell.exe -Command does NOT bind trailing arguments to the
+        // automatic argument array, so the previous form handed SoundPlayer a
+        // null path and PlaySync silently played nothing while still exiting 0.
+        // Invoking a scriptblock with param() binds the trailing arguments
+        // correctly, and Test-Path turns a missing wav into exit 1 so the loud
+        // fallback runs.
         "-Command",
-        "try { $player = [System.Media.SoundPlayer]::new($args[0]); $player.PlaySync(); exit 0 } catch { exit 1 }",
+        "& { param($path, $count) if (-not (Test-Path -LiteralPath $path)) { exit 1 }; try { $player = [System.Media.SoundPlayer]::new($path); for ($i = 0; $i -lt [int]$count; $i++) { $player.PlaySync() }; exit 0 } catch { exit 1 } }",
         audioPath,
+        String(repeats),
       ],
       { stdio: "ignore", windowsHide: true },
     );
     player.once("error", (error) => startFallback(persistenceErrorMessage(error)));
     player.once("close", (code) => {
+      if (activeReminderSoundPlayer === player) activeReminderSoundPlayer = null;
       if (code === 0) {
         recordAcceptanceEvent("reminders:sound-custom-complete", { sound });
       } else {
@@ -592,6 +658,7 @@ function playReminderSound(sound) {
       }
     });
     player.unref();
+    activeReminderSoundPlayer = player;
     return true;
   } catch (error) {
     startFallback(persistenceErrorMessage(error));
@@ -609,7 +676,10 @@ function deliverReminder(schedule) {
       ...payload,
       silent: true,
     });
-    notification.on("click", revealMainWindow);
+    notification.on("click", () => {
+      stopReminderSound();
+      revealMainWindow();
+    });
     notification.show();
   } catch (error) {
     recordAcceptanceEvent("reminders:notification-failed", {
@@ -654,17 +724,37 @@ function completeReminder(schedule) {
 }
 
 function scheduleReminder(schedule, delayOverride = null) {
+  const delay = delayOverride ?? timerDelayForSchedule(schedule);
+  logReminderEvent("timer-armed", {
+    id: schedule.id,
+    sound: schedule.sound,
+    alertAt: new Date(schedule.alertAt).toISOString(),
+    delayMs: delay,
+    overdue: schedule.alertAt <= Date.now(),
+    retry: delayOverride !== null,
+  });
   const timer = setTimeout(() => {
     if (delayOverride === null && Date.now() + 500 < schedule.alertAt) {
+      logReminderEvent("timer-early-drift", {
+        id: schedule.id,
+        driftMs: schedule.alertAt - Date.now(),
+      });
       scheduleReminder(schedule);
       return;
     }
     reminderTimers.delete(schedule.id);
+    logReminderEvent("timer-fired", {
+      id: schedule.id,
+      sound: schedule.sound,
+      scheduledAlertAt: new Date(schedule.alertAt).toISOString(),
+      firedAt: new Date().toISOString(),
+      deltaMs: Date.now() - schedule.alertAt,
+    });
     const delivery = deliverReminder(schedule);
     if (!delivery.ok && delivery.retry) {
       scheduleReminder(schedule, MISSED_ALERT_SPACING_MS);
     }
-  }, delayOverride ?? timerDelayForSchedule(schedule));
+  }, delay);
   reminderTimers.set(schedule.id, timer);
 }
 
@@ -679,6 +769,19 @@ function rescheduleReminders() {
       schedule.alertAt <= now ? 250 + missedIndex++ * MISSED_ALERT_SPACING_MS : null,
     );
   }
+}
+
+// Sweep cadence independent of setTimeout: recovers reminders lost to system
+// sleep, timer coalescing, or clock adjustments. Idempotent — deliverReminder
+// dedupes via deliveredReminderIds, and overdue alerts stay spaced apart.
+function sweepReminderTimers(reason) {
+  if (!scheduledReminders.length) return;
+  rescheduleReminders();
+  logReminderEvent("sweep", {
+    reason,
+    scheduled: scheduledReminders.length,
+  });
+  recordAcceptanceEvent("reminders:swept", { reason });
 }
 
 function replaceReminderSchedules(rawSchedules) {
@@ -871,6 +974,403 @@ app.on("open-url", (event, url) => {
   else pendingDeepLink = deepLink;
 });
 
+// ---------------------------------------------------------------------------
+// Usage meters source: trailing 5h/7d token windows from the ZCode CLI local
+// database. The snapshot maps to the renderer contract
+// { fiveHour, sevenDay, updatedAtMs } where each window is { usedPct } or
+// null when not derivable.
+//
+// usedPct needs a plan quota and NO quota is persisted anywhere local (the
+// entitlement snapshot is fetched from the remote zcode-host via RPC - only
+// log lines reference it). Limits are therefore opt-in via env vars so the
+// meters never display a fabricated percentage:
+//   DAYMARK_USAGE_5H_LIMIT_TOKENS, DAYMARK_USAGE_7D_LIMIT_TOKENS
+// Without them both windows are null and the meters hide gracefully.
+// resetsAtMs is not derivable from local data (no window anchor): omitted.
+let usageSnapshotCache = null;
+let usageSnapshotCachedAt = 0;
+
+function readUsageWindowTokens(database, windowMs) {
+  const row = database
+    .prepare(
+      "SELECT SUM(COALESCE(computed_total_tokens, provider_total_tokens, 0)) AS tokens "
+        + "FROM model_usage WHERE completed_at >= ?",
+    )
+    .get(Date.now() - windowMs);
+  return typeof row?.tokens === "number" ? row.tokens : 0;
+}
+
+function usageWindowFor(tokens, limitTokens) {
+  if (!Number.isFinite(limitTokens) || limitTokens <= 0) return null;
+  const usedPct = Math.min(100, Math.max(0, Math.round((tokens / limitTokens) * 100)));
+  return { usedPct };
+}
+
+async function computeUsageSnapshot() {
+  const now = Date.now();
+  if (usageSnapshotCache && now - usageSnapshotCachedAt < USAGE_CACHE_TTL_MS) {
+    return usageSnapshotCache;
+  }
+  let fiveHour = null;
+  let sevenDay = null;
+  let database = null;
+  try {
+    // Dynamic import so a runtime without node:sqlite degrades to nulls
+    // instead of crashing app startup.
+    const { DatabaseSync } = await import("node:sqlite");
+    database = new DatabaseSync(ZCODE_USAGE_DB_PATH, { readOnly: true });
+    fiveHour = usageWindowFor(
+      readUsageWindowTokens(database, USAGE_FIVE_HOUR_WINDOW_MS),
+      Number(process.env.DAYMARK_USAGE_5H_LIMIT_TOKENS),
+    );
+    sevenDay = usageWindowFor(
+      readUsageWindowTokens(database, USAGE_SEVEN_DAY_WINDOW_MS),
+      Number(process.env.DAYMARK_USAGE_7D_LIMIT_TOKENS),
+    );
+  } catch (error) {
+    console.log(`DAYMARK_USAGE_LOG ${JSON.stringify({
+      name: "usage-read-failed",
+      reason: String(error?.message ?? error),
+      at: new Date().toISOString(),
+    })}`);
+  } finally {
+    try {
+      database?.close();
+    } catch {
+      // Already closed - nothing to do.
+    }
+  }
+  usageSnapshotCache = { fiveHour, sevenDay, updatedAtMs: now };
+  usageSnapshotCachedAt = now;
+  return usageSnapshotCache;
+}
+
+// ---------------------------------------------------------------------------
+// Live ZAI subscription quota (mirrors windows/functions/used.ps1 exactly).
+// The OAuth access token is decrypted from ~/.zcode/v2/credentials.json using
+// ZCode's enc:v1: AES-256-GCM fallback scheme (key = SHA256 of a deterministic
+// machine-specific secret), then https://api.z.ai/api/monitor/usage/quota/limit
+// is queried with a bare `authorization` header (no Bearer prefix). The
+// token is NEVER logged, cached to disk, or sent anywhere except api.z.ai.
+const ZAI_QUOTA_URL = "https://api.z.ai/api/monitor/usage/quota/limit";
+const ZAI_CREDENTIALS_PATH = path.join(
+  os.homedir(),
+  ".zcode",
+  "v2",
+  "credentials.json",
+);
+const QUOTA_REFRESH_INTERVAL_MS = 20 * 1000;
+// The quota is fetched every 20s but only pushed to the sync server when the
+// numbers actually changed (or this heartbeat age passed) — a PUT on every
+// fetch would churn the sync revision nonstop for identical readings.
+const QUOTA_SYNC_PUSH_MAX_AGE_MS = 2 * 60 * 1000;
+const QUOTA_FIRST_REFRESH_DELAY_MS = 3_000;
+const QUOTA_SYNC_PUSH_MAX_ATTEMPTS = 3;
+const QUOTA_HTTP_TIMEOUT_MS = 10_000;
+// The token material must never appear in diagnostics or event logs.
+const USAGE_QUOTA_LOG_PREFIX = "DAYMARK_USAGE_QUOTA_LOG";
+
+function logUsageQuotaEvent(name, details = {}) {
+  console.log(`${USAGE_QUOTA_LOG_PREFIX} ${JSON.stringify({
+    name,
+    at: new Date().toISOString(),
+    ...details,
+  })}`);
+}
+
+// ZCode credential fallback decryption: enc:v1:<iv>.<tag>.<payload>, all
+// base64url, AES-256-GCM with a SHA-256 key derived from machine identity.
+function decryptEncV1Credential(value) {
+  if (typeof value !== "string" || !value.startsWith("enc:v1:")) return value ?? "";
+  const parts = value.slice("enc:v1:".length).split(".");
+  if (parts.length !== 3) return "";
+  const secret = `zcode-credential-fallback:${os.platform()}:${os.homedir()}:${os.userInfo().username}`;
+  const key = createHash("sha256").update(secret).digest();
+  const decipher = createDecipheriv(
+    "aes-256-gcm",
+    key,
+    Buffer.from(parts[0], "base64url"),
+  );
+  decipher.setAuthTag(Buffer.from(parts[1], "base64url"));
+  return Buffer.concat([
+    decipher.update(Buffer.from(parts[2], "base64url")),
+    decipher.final(),
+  ]).toString("utf8");
+}
+
+function readZaiAccessToken() {
+  try {
+    if (!existsSync(ZAI_CREDENTIALS_PATH)) return "";
+    const credentials = JSON.parse(readFileSync(ZAI_CREDENTIALS_PATH, "utf8"));
+    return decryptEncV1Credential(credentials["oauth:zai:access_token"] ?? "");
+  } catch {
+    return "";
+  }
+}
+
+// The API's percentage field is the USED percent (currentValue 423 of usage
+// 2000 reports percentage 21). Remaining is derived from remaining/usage when
+// present, otherwise 100 - percentage, clamped to [0, 100].
+function quotaRemainingPctForLimit(limit) {
+  const usage = Number(limit?.usage);
+  let remaining;
+  if (Number.isFinite(usage) && usage > 0 && limit?.remaining != null) {
+    remaining = (Number(limit.remaining) / usage) * 100;
+  } else {
+    remaining = 100 - Number(limit?.percentage);
+  }
+  if (!Number.isFinite(remaining)) return 100;
+  return Math.round(Math.min(100, Math.max(0, remaining)));
+}
+
+// Window identity comes from the row's unit field, NOT row order:
+// unit 3 (number 5) = rolling 5-hour window; unit 6 (number 1) = weekly.
+function quotaWindowKindForLimit(limit) {
+  const unit = Number.parseInt(String(limit?.unit), 10);
+  const number = Number.parseInt(String(limit?.number), 10);
+  if (unit === 3 || number === 5) return "fiveHour";
+  if (unit === 6 || number === 1) return "sevenDay";
+  return "unknown";
+}
+
+function emptyQuotaWindow(updatedAt) {
+  return { remainingPct: 100, resetsAtMs: 0, updatedAt };
+}
+
+function quotaSnapshotFromLimits(limits, updatedAt) {
+  const windows = { fiveHour: null, sevenDay: null };
+  for (const limit of Array.isArray(limits) ? limits : []) {
+    // Free "Start" plan entries and rows without a reset time are excluded.
+    if (limit?.planId || !limit?.nextResetTime) continue;
+    const kind = quotaWindowKindForLimit(limit);
+    if (kind === "unknown" || windows[kind]) continue;
+    windows[kind] = {
+      remainingPct: quotaRemainingPctForLimit(limit),
+      resetsAtMs: Number(limit.nextResetTime) || 0,
+      updatedAt,
+    };
+  }
+  // A window with no row (freshly reset / nothing used) stays at 100%.
+  return {
+    fiveHour: windows.fiveHour ?? emptyQuotaWindow(updatedAt),
+    sevenDay: windows.sevenDay ?? emptyQuotaWindow(updatedAt),
+    updatedAt,
+  };
+}
+
+let usageQuotaCache = null;
+let usageQuotaRefreshInFlight = false;
+let lastQuotaSyncPush = { signature: "", at: 0 };
+
+function usageQuotaStorePath() {
+  return path.join(app.getPath("userData"), "usage-quota.json");
+}
+
+function loadUsageQuotaFromDisk() {
+  if (usageQuotaCache) return usageQuotaCache;
+  try {
+    const persisted = readJsonWithSalvage(usageQuotaStorePath(), null);
+    if (persisted?.fiveHour && persisted?.sevenDay) {
+      usageQuotaCache = persisted;
+    }
+  } catch {
+    // No salvageable snapshot - the defaults below apply.
+  }
+  return usageQuotaCache;
+}
+
+function currentUsageQuotaSnapshot() {
+  return loadUsageQuotaFromDisk();
+}
+
+async function fetchUsageQuotaSnapshot() {
+  const token = readZaiAccessToken();
+  if (!token) throw new Error("zai-access-token-unavailable");
+  const response = await withTimeout(
+    fetch(ZAI_QUOTA_URL, {
+      headers: { authorization: token },
+      cache: "no-store",
+    }),
+    QUOTA_HTTP_TIMEOUT_MS,
+    `ZAI quota request timed out after ${QUOTA_HTTP_TIMEOUT_MS}ms.`,
+  );
+  if (!response.ok) throw new Error(`zai-quota-http-${response.status}`);
+  const payload = await response.json();
+  const updatedAt = new Date().toISOString();
+  return quotaSnapshotFromLimits(payload?.data?.limits, updatedAt);
+}
+
+// Merge the latest quota into the synced workspace state so the Android app
+// can read it. Uses the same optimistic-concurrency pattern as the renderer:
+// read current state, PUT {state, expectedRevision}, re-read + retry on 409.
+function canonicalPairingKeyPath() {
+  try {
+    return path.join(app.getPath("userData"), "canonical-sync-key.txt");
+  } catch {
+    return null;
+  }
+}
+
+function persistCanonicalPairingKey(syncKey) {
+  try {
+    const keyPath = canonicalPairingKeyPath();
+    if (keyPath && SYNC_PATTERN.test(syncKey)) {
+      writeFileSync(keyPath, syncKey, { encoding: "utf8", mode: 0o600 });
+    }
+  } catch {
+    // Best-effort persistence; the push falls back to cookies.
+  }
+}
+
+function loadCanonicalPairingKeyFromDisk() {
+  try {
+    const keyPath = canonicalPairingKeyPath();
+    if (!keyPath || !existsSync(keyPath)) return null;
+    const value = fs.readFileSync(keyPath, "utf8").trim();
+    return SYNC_PATTERN.test(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+async function pushUsageQuotaToSync(snapshot) {
+  let syncKey = null;
+  if (lastCanonicalPairingKey && SYNC_PATTERN.test(lastCanonicalPairingKey)) {
+    syncKey = lastCanonicalPairingKey;
+  } else {
+    syncKey = loadCanonicalPairingKeyFromDisk();
+    if (syncKey) lastCanonicalPairingKey = syncKey;
+  }
+  if (!syncKey) {
+    try {
+      const cookies = await desktopSession().cookies.get({ url: PRODUCTION_ORIGIN });
+      syncKey = cookies.find((cookie) => (
+        cookie.name === "daymark.sync-key" && SYNC_PATTERN.test(cookie.value)
+      ))?.value ?? null;
+    } catch {
+      return;
+    }
+    if (syncKey) persistCanonicalPairingKey(syncKey);
+  }
+  if (!syncKey) return;
+
+  const usagePayload = {
+    fiveHour: snapshot.fiveHour,
+    sevenDay: snapshot.sevenDay,
+    updatedAt: Date.parse(snapshot.updatedAt),
+  };
+  const syncEndpoint = `${PRODUCTION_ORIGIN}/api/sync/${encodeURIComponent(syncKey)}`;
+
+  for (let attempt = 0; attempt < QUOTA_SYNC_PUSH_MAX_ATTEMPTS; attempt += 1) {
+    let currentState = null;
+    try {
+      const readResponse = await withTimeout(
+        desktopSession().fetch(syncEndpoint, {
+          headers: { Accept: "application/json" },
+          cache: "no-store",
+          bypassCustomProtocolHandlers: true,
+        }),
+        QUOTA_HTTP_TIMEOUT_MS,
+        `Quota sync read timed out after ${QUOTA_HTTP_TIMEOUT_MS}ms.`,
+      );
+      if (readResponse.ok) {
+        currentState = (await readResponse.json())?.state ?? null;
+      }
+    } catch {
+      return; // Offline - the next refresh retries.
+    }
+
+    const fallbackState = {
+      schemaVersion: 6,
+      revision: 0,
+      updatedAt: new Date().toISOString(),
+      clientId: "daymark-desktop",
+      projects: {},
+      sections: {},
+      filters: {},
+      tasks: {},
+      orderItems: {},
+      notes: {},
+      reminders: {},
+      diaryEntries: {},
+      syncTombstones: {},
+      preferences: {},
+      undoStack: [],
+    };
+    // The server's mergeSyncStates allowlist drops unknown top-level fields,
+    // so usage rides inside the merged `preferences` object instead.
+    const baseState = structuredClone(currentState ?? fallbackState);
+    baseState.preferences = { ...(baseState.preferences ?? {}), usage: usagePayload };
+    // Mark the state newer so the server's authoritative-state pick keeps our
+    // preferences (the merge compares whole-state updatedAt on ties).
+    baseState.updatedAt = new Date().toISOString();
+    const nextState = baseState;
+
+    try {
+      const writeResponse = await withTimeout(
+        desktopSession().fetch(syncEndpoint, {
+          method: "PUT",
+          headers: { Accept: "application/json", "Content-Type": "application/json" },
+          body: JSON.stringify({
+            state: nextState,
+            expectedRevision: Number(currentState?.revision ?? 0),
+          }),
+          bypassCustomProtocolHandlers: true,
+        }),
+        QUOTA_HTTP_TIMEOUT_MS,
+        `Quota sync write timed out after ${QUOTA_HTTP_TIMEOUT_MS}ms.`,
+      );
+      if (writeResponse.ok) {
+        logUsageQuotaEvent("sync-pushed", { attempt });
+        return;
+      }
+      if (writeResponse.status === 409) continue; // Re-read and retry.
+      logUsageQuotaEvent("sync-push-failed", { status: writeResponse.status });
+      return;
+    } catch (error) {
+      logUsageQuotaEvent("sync-push-failed", {
+        reason: persistenceErrorMessage(error),
+      });
+      return;
+    }
+  }
+  logUsageQuotaEvent("sync-push-exhausted", { attempts: QUOTA_SYNC_PUSH_MAX_ATTEMPTS });
+}
+
+function refreshUsageQuota() {
+  if (usageQuotaRefreshInFlight) return;
+  usageQuotaRefreshInFlight = true;
+  void (async () => {
+    try {
+      const snapshot = await fetchUsageQuotaSnapshot();
+      usageQuotaCache = snapshot;
+      persistJsonAtomically(usageQuotaStorePath(), snapshot, "usage-quota");
+      logUsageQuotaEvent("refreshed", {
+        fiveHourRemainingPct: snapshot.fiveHour.remainingPct,
+        sevenDayRemainingPct: snapshot.sevenDay.remainingPct,
+      });
+      const quotaSignature = `${snapshot.fiveHour.remainingPct}/${snapshot.sevenDay.remainingPct}/${snapshot.fiveHour.resetsAtMs}/${snapshot.sevenDay.resetsAtMs}`;
+      const quotaNow = Date.now();
+      if (
+        quotaSignature !== lastQuotaSyncPush.signature
+        || quotaNow - lastQuotaSyncPush.at >= QUOTA_SYNC_PUSH_MAX_AGE_MS
+      ) {
+        lastQuotaSyncPush = { signature: quotaSignature, at: quotaNow };
+        void pushUsageQuotaToSync(snapshot);
+      }
+    } catch (error) {
+      // On failure keep the last good value (with its old updatedAt); if there
+      // is none, fall back to the on-disk snapshot from a previous session.
+      logUsageQuotaEvent("refresh-failed", {
+        reason: persistenceErrorMessage(error),
+      });
+      loadUsageQuotaFromDisk();
+    } finally {
+      usageQuotaRefreshInFlight = false;
+    }
+  })();
+}
+
 app.whenReady().then(() => {
   traceStartup("app-ready");
   installPackagedClientProtocol();
@@ -880,6 +1380,15 @@ app.whenReady().then(() => {
   }
   scheduledReminders = readReminderSchedules();
   rescheduleReminders();
+  // Re-arm after sleep/resume and re-check on a fixed cadence so reminders fire
+  // at the exact time even if a single setTimeout was lost or coalesced.
+  powerMonitor.on("resume", () => sweepReminderTimers("resume"));
+  powerMonitor.on("unlock", () => sweepReminderTimers("unlock"));
+  const reminderSweepTimer = setInterval(
+    () => sweepReminderTimers("interval"),
+    REMINDER_SWEEP_INTERVAL_MS,
+  );
+  reminderSweepTimer.unref?.();
   ipcMain.handle("daymark:reminders:replace", (_event, schedules) => (
     replaceReminderSchedules(schedules)
   ));
@@ -898,6 +1407,14 @@ app.whenReady().then(() => {
     startupEvents: startupEvents.slice(),
   }));
   ipcMain.handle("daymark:canonical-pairing-key", () => lastCanonicalPairingKey);
+  ipcMain.handle("daymark:usage", () => computeUsageSnapshot());
+  ipcMain.handle("daymark:usage-quota", () => currentUsageQuotaSnapshot());
+  // Background quota refresh: never blocks startup; the first fetch runs a few
+  // seconds after ready, then every 20 seconds. A single interval + in-flight
+  // guard means no timer stacking.
+  setTimeout(refreshUsageQuota, QUOTA_FIRST_REFRESH_DELAY_MS).unref?.();
+  const quotaRefreshTimer = setInterval(refreshUsageQuota, QUOTA_REFRESH_INTERVAL_MS);
+  quotaRefreshTimer.unref?.();
   ipcMain.on("daymark:renderer-ready", (event) => {
     if (
       !mainWindow
@@ -936,6 +1453,9 @@ app.on("before-quit", () => {
   isQuitting = true;
   for (const timer of reminderTimers.values()) clearTimeout(timer);
   reminderTimers.clear();
+  stopReminderSound();
   reminderTray?.destroy();
   reminderTray = null;
 });
+
+// SLICE-DONE: data-engineer

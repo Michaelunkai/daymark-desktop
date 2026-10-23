@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cleartext is permitted ONLY for the user's PC sync backend (the Daymark
+     local server reached over Tailscale). Every other host stays HTTPS-only. -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">100.76.198.53</domain>
+        <domain includeSubdomains="false">192.168.1.129</domain>
+    </domain-config>
+</network-security-config>

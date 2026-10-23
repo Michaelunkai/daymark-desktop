@@ -191,29 +191,11 @@ const SANITIZE_TOMBSTONE_KEEP = 400
 const SANITIZE_UNDO_KEEP = 10
 
 function sanitizeSyncState(state) {
-  if (!state || typeof state !== "object") return state
-  for (const task of Object.values(state.tasks ?? {})) {
-    const description = task?.description
-    if (typeof description !== "string") continue
-    const lines = description.split("\n")
-    if (lines.length <= SANITIZE_DESCRIPTION_MAX_LINES) continue
-    const rest = lines[0].trim() === "— pinned —" ? lines.slice(1) : lines
-    task.description = (lines[0].trim() === "— pinned —" ? [lines[0]] : [])
-      .concat(rest.slice(-SANITIZE_DESCRIPTION_MAX_LINES))
-      .join("\n")
-  }
-  const tombstones = state.syncTombstones
-  if (tombstones && typeof tombstones === "object") {
-    const entries = Object.entries(tombstones)
-    if (entries.length > SANITIZE_TOMBSTONE_KEEP) {
-      entries.sort((a, b) => String(b[1]?.deletedAt ?? "").localeCompare(String(a[1]?.deletedAt ?? "")))
-      state.syncTombstones = Object.fromEntries(entries.slice(0, SANITIZE_TOMBSTONE_KEEP))
-    }
-  }
-  if (Array.isArray(state.undoStack) && state.undoStack.length > SANITIZE_UNDO_KEEP) {
-    state.undoStack = state.undoStack.slice(-SANITIZE_UNDO_KEEP)
-  }
-  return state
+  // Intentionally a NO-OP for task descriptions and undo history: the user's
+  // journals must NEVER be deleted. The unbounded-growth problem was the
+  // daymark_sync_history table, bounded separately (SYNC_HISTORY_KEEP +
+  // SYNC_HISTORY_ARCHIVE_MAX_BYTES). Descriptions stay complete forever.
+  return state;
 }
 
 async function handleSync(request, db, syncKey) {
