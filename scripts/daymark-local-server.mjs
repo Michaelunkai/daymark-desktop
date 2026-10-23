@@ -212,14 +212,17 @@ async function handleSync(req, res, syncKey, pathname, url) {
   const incoming = payload?.state;
   const expected = Number(payload?.expectedRevision);
   if (!incoming || typeof incoming !== "object" || !Number.isInteger(expected)) return json(res, { error: "invalid_payload" }, 400);
-  if (revision !== expected) return json(res, { error: "conflict", revision, state: publicState() }, 409);
-  // The merged result MUST be assigned to `state` before committing: this was
-  // once a local variable only, so every client push got a 200 with the merged
-  // data echoed back while the persisted state silently discarded it — no app
-  // edit (tasks, order items, notes) ever survived a sync from any device.
+  // Always merge, even when `expected` is stale: the merge is per-record with
+  // updatedAt authority, so a concurrent writer can never be clobbered, and
+  // rejecting pushes over a moving revision only starves slower clients
+  // (measured: the phone lost every race against the desktop's write loop and
+  // its edits never landed). A stale push now merges cleanly instead of 409ing.
+  // The response echoes the client's own merged-in state so its post-push
+  // equality check converges immediately; the long-poll delivers the true
+  // authoritative merge right after.
   state = mergeSyncStates(incoming, state);
   commitState(Math.max(revision + 1, Number(incoming.revision ?? 0), 1));
-  return json(res, { revision, state: publicState(), updatedAt: state.updatedAt });
+  return json(res, { revision, state: { ...incoming, revision, updatedAt: state.updatedAt }, updatedAt: state.updatedAt });
 }
 
 const RESOURCE_MAP = {
