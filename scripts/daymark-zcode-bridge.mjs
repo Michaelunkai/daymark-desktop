@@ -325,7 +325,6 @@ const ZAI_QUOTA_URL = "https://api.z.ai/api/monitor/usage/quota/limit";
 const ZAI_CREDENTIALS_PATH = "C:/Users/Admin/.zcode/v2/credentials.json";
 const DAYMARK_SYNCKEY_PATH = "C:/Users/Admin/.zcode/synckey.txt";
 const DAYMARK_USAGE_POLL_MS = 10_000;
-const DAYMARK_USAGE_PUSH_MAX_AGE_MS = 120_000;
 let daymarkLastUsagePush = { signature: "", at: 0 };
 let daymarkUsageInFlight = false;
 function daymarkDecryptEncV1(value) {
@@ -391,8 +390,12 @@ async function daymarkUsageTick() {
     };
     const signature = snap.fiveHour.remainingPct + "/" + snap.sevenDay.remainingPct + "/"
       + snap.fiveHour.resetsAtMs + "/" + snap.sevenDay.resetsAtMs;
-    const nowMs = Date.now();
-    if (signature === daymarkLastUsagePush.signature && nowMs - daymarkLastUsagePush.at < DAYMARK_USAGE_PUSH_MAX_AGE_MS) return;
+    // Push ONLY when a quota value actually changed: every push bumps the
+    // workspace revision and wakes every long-poll client (phone + PC app),
+    // so a keep-alive re-push here churned revisions every ~10s and drowned
+    // real sync traffic. Values stay accurate without re-pushing, and a failed
+    // push leaves daymarkLastUsagePush untouched, so the next tick retries.
+    if (signature === daymarkLastUsagePush.signature) return;
     const syncKey = readFileSync(DAYMARK_SYNCKEY_PATH, "utf8").trim();
     if (!syncKey) return;
     const syncEndpoint = DAYMARK_LOCAL_API_URL.replace(/\/+$/, "") + "/api/sync/" + encodeURIComponent(syncKey || DAYMARK_LOCAL_SYNC_KEY);
@@ -417,7 +420,7 @@ async function daymarkUsageTick() {
       });
       if (writeResponse.ok) {
         log("usage quota pushed:", signature);
-        daymarkLastUsagePush = { signature, at: nowMs };
+        daymarkLastUsagePush = { signature, at: Date.now() };
         break;
       }
       if (writeResponse.status !== 409) { log("usage quota push failed with HTTP", writeResponse.status); return; }
@@ -460,12 +463,18 @@ function daymarkClassifyModel(raw) {
   const id = String(raw || "").trim();
   if (!id) return null;
   if (/^(metered|payg|api|glm-5\.3-flash)$/i.test(id)) return { providerId: "zai-metered-api", modelId: "glm-5.3-flash" };
-  if (id.endsWith("-free")) return { providerId: "opencode-zen-chat", modelId: id };
+  // OPENCODE REMOVED (user order): the opencode executor is out of the stack.
+  // Any free/opencode token resolves to NO override -> the subscription
+  // default runs, so a card can never be routed to the dead executor.
+  if (id.endsWith("-free")) return null;
+  if (/^opencode/i.test(id)) return null;
   if (id.includes("/")) {
     const i = id.indexOf("/");
-    return { providerId: id.slice(0, i), modelId: id.slice(i + 1) };
+    const providerId = id.slice(0, i);
+    if (/^opencode/i.test(providerId)) return null;
+    return { providerId, modelId: id.slice(i + 1) };
   }
-  return { providerId: "opencode-zen-chat", modelId: id };
+  return null; // bare display names run the subscription default
 }
 // GLOBAL MODEL SWITCH: the workspace "model" card's newest "model: <id>"
 // line is the master default for EVERY session without its own per-card
@@ -528,7 +537,8 @@ function daymarkResolveModelForTask(taskId, description) {
     // model resolution, an explicit default pick still rides the keyless
     // free model so the session never stalls (window: 30 min from last outage).
     if (state.providerModelBrokenAt && Date.now() - state.providerModelBrokenAt < 30 * 60_000) {
-      return daymarkResolveModelForTask(taskId, "\u2014 ORDER \u2014 model: glm-5.3-flash-free");
+      // OPENCODE REMOVED: the free executor is gone — an explicit default pick is simply no override.
+      return null;
     }
     return null; // explicit reset -> no override
   }

@@ -60,6 +60,7 @@ public final class MainActivity extends Activity {
     private boolean destroying;
     private boolean hasVisibleDocument;
     private boolean loadingFailed;
+    private int autoRetryAttempt;
     private int loadGeneration;
     private int readinessCheckGeneration = -1;
     private int timeoutGeneration = -1;
@@ -69,6 +70,17 @@ public final class MainActivity extends Activity {
     private boolean startupCreatedEmitted;
     private boolean startupReadyEmitted;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    // A failed load must never wait for the user: on a cold Tailscale handshake
+    // (different network, phone far from the PC) the first attempt can fail
+    // while the VPN is still connecting, so keep retrying until it lands.
+    private final Runnable autoRetryRun = new Runnable() {
+        @Override
+        public void run() {
+            if (destroying || !loadingFailed) return;
+            autoRetryAttempt += 1;
+            retryCurrentPage();
+        }
+    };
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -141,6 +153,7 @@ public final class MainActivity extends Activity {
             reminderRescheduledForActivity = true;
             ReminderScheduler.reschedule(this);
         }
+        if (loadingFailed) retryCurrentPage();
     }
 
     @Override
@@ -165,6 +178,7 @@ public final class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         destroying = true;
+        mainHandler.removeCallbacks(autoRetryRun);
         if (webView != null) {
             webView.stopLoading();
             webView.destroy();
@@ -225,15 +239,24 @@ public final class MainActivity extends Activity {
 
     private void showOffline() {
         if (loadingMessage != null) {
-            loadingMessage.setText("Daymark could not load.\nTap to retry");
+            loadingMessage.setText("Reconnecting to your PC…\nRetrying automatically — tap to retry now");
             loadingMessage.setClickable(true);
         }
         if (loadingCover != null) loadingCover.setClickable(true);
         if (loadingCover != null) loadingCover.setVisibility(View.VISIBLE);
         if (loadingMessage != null) loadingMessage.setVisibility(View.VISIBLE);
+        scheduleAutoRetry();
+    }
+
+    private void scheduleAutoRetry() {
+        mainHandler.removeCallbacks(autoRetryRun);
+        long delay = Math.min(3_000L * (autoRetryAttempt + 1), 10_000L);
+        mainHandler.postDelayed(autoRetryRun, delay);
     }
 
     private void hideLoading() {
+        mainHandler.removeCallbacks(autoRetryRun);
+        autoRetryAttempt = 0;
         if (loadingCover != null) loadingCover.setVisibility(View.GONE);
         if (loadingMessage != null) loadingMessage.setVisibility(View.GONE);
     }

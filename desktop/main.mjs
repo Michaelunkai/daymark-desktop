@@ -1061,9 +1061,8 @@ const ZAI_CREDENTIALS_PATH = path.join(
 );
 const QUOTA_REFRESH_INTERVAL_MS = 20 * 1000;
 // The quota is fetched every 20s but only pushed to the sync server when the
-// numbers actually changed (or this heartbeat age passed) — a PUT on every
-// fetch would churn the sync revision nonstop for identical readings.
-const QUOTA_SYNC_PUSH_MAX_AGE_MS = 2 * 60 * 1000;
+// numbers actually changed — a PUT on every fetch would churn the sync
+// revision nonstop for identical readings, so pushes are change-driven only.
 const QUOTA_FIRST_REFRESH_DELAY_MS = 3_000;
 const QUOTA_SYNC_PUSH_MAX_ATTEMPTS = 3;
 const QUOTA_HTTP_TIMEOUT_MS = 10_000;
@@ -1350,12 +1349,11 @@ function refreshUsageQuota() {
         sevenDayRemainingPct: snapshot.sevenDay.remainingPct,
       });
       const quotaSignature = `${snapshot.fiveHour.remainingPct}/${snapshot.sevenDay.remainingPct}/${snapshot.fiveHour.resetsAtMs}/${snapshot.sevenDay.resetsAtMs}`;
-      const quotaNow = Date.now();
-      if (
-        quotaSignature !== lastQuotaSyncPush.signature
-        || quotaNow - lastQuotaSyncPush.at >= QUOTA_SYNC_PUSH_MAX_AGE_MS
-      ) {
-        lastQuotaSyncPush = { signature: quotaSignature, at: quotaNow };
+      // Push ONLY on a real quota change: a periodic keep-alive re-push bumped
+      // the workspace revision every couple of minutes and woke every sync
+      // client for no data. Unchanged values are still accurate on clients.
+      if (quotaSignature !== lastQuotaSyncPush.signature) {
+        lastQuotaSyncPush = { signature: quotaSignature, at: Date.now() };
         void pushUsageQuotaToSync(snapshot);
       }
     } catch (error) {
