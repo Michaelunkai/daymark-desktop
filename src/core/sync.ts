@@ -375,6 +375,10 @@ function syncComparableState(state: AppState): Omit<AppState, "clientId" | "revi
   delete comparable.clientId;
   delete comparable.revision;
   delete comparable.updatedAt;
+  // Server-internal fields (__syncKey, __knownKeys, …) must never participate
+  // in the comparison: if a server ever echoes one back, the equality would
+  // never hold and this client would push the full document in a tight loop.
+  for (const key of Object.keys(comparable)) if (key.startsWith("__")) delete comparable[key];
   comparable.reminders = canonicalizeReminders(comparable.reminders);
   comparable.syncTombstones = canonicalizeReminderTombstones(comparable.syncTombstones, comparable.reminders);
   return comparable;

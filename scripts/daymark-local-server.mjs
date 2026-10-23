@@ -5,7 +5,7 @@
 // bounded. Serves the exact routes both apps call.
 import http from "node:http";
 import { createHash, randomUUID } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, unlinkSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, unlinkSync, appendFileSync } from "node:fs";
 import { join, dirname, extname, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -119,6 +119,16 @@ function sanitizeSyncState(s) {
   // history table, bounded separately (HISTORY_KEEP + archive max size).
   return s;
 }
+// Internal `__`-prefixed fields (__syncKey, __knownKeys) must NEVER reach
+// clients: they leak into client state, make the client's syncStatesMatch
+// comparison permanently unequal, and turn every client into a 6/second
+// full-document push storm that starves all other sync traffic.
+function publicState() {
+  if (!state) return state;
+  const clone = { ...state };
+  for (const key of Object.keys(clone)) if (key.startsWith("__")) delete clone[key];
+  return clone;
+}
 
 // ---------- helpers ----------
 const SYNC_KEY_RE = /^[A-Za-z0-9_-]{22}$/;
@@ -189,27 +199,27 @@ async function handleSync(req, res, syncKey, pathname, url) {
     if (!Number.isInteger(after) || after < 0) return json(res, { error: "invalid_revision" }, 400);
     const deadline = Date.now() + 24_000;
     while (Date.now() < deadline) {
-      if (revision > after) return json(res, { revision, state, updatedAt: state.updatedAt });
+      if (revision > after) return json(res, { revision, state: publicState(), updatedAt: state.updatedAt });
       await new Promise(r => setTimeout(r, 250));
     }
     res.writeHead(204, { "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" });
     return res.end();
   }
-  if (req.method === "GET") return json(res, { revision, state, updatedAt: state.updatedAt });
+  if (req.method === "GET") return json(res, { revision, state: publicState(), updatedAt: state.updatedAt });
   if (req.method !== "PUT") return json(res, { error: "method_not_allowed" }, 405);
   let payload;
   try { payload = JSON.parse(await readBody(req)); } catch { return json(res, { error: "invalid_json" }, 400); }
   const incoming = payload?.state;
   const expected = Number(payload?.expectedRevision);
   if (!incoming || typeof incoming !== "object" || !Number.isInteger(expected)) return json(res, { error: "invalid_payload" }, 400);
-  if (revision !== expected) return json(res, { error: "conflict", revision, state }, 409);
+  if (revision !== expected) return json(res, { error: "conflict", revision, state: publicState() }, 409);
   // The merged result MUST be assigned to `state` before committing: this was
   // once a local variable only, so every client push got a 200 with the merged
   // data echoed back while the persisted state silently discarded it — no app
   // edit (tasks, order items, notes) ever survived a sync from any device.
   state = mergeSyncStates(incoming, state);
   commitState(Math.max(revision + 1, Number(incoming.revision ?? 0), 1));
-  return json(res, { revision, state, updatedAt: state.updatedAt });
+  return json(res, { revision, state: publicState(), updatedAt: state.updatedAt });
 }
 
 const RESOURCE_MAP = {
@@ -409,6 +419,15 @@ function serveClientFile(pathname) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
   const pathname = url.pathname;
+  // Request journal: makes every client's sync traffic observable on disk so
+  // sync failures can be diagnosed from evidence instead of guesswork.
+  if (pathname.startsWith("/api/") && !pathname.endsWith("/changes")) {
+    const started = Date.now();
+    const reqLog = `${new Date().toISOString()} ${req.socket.remoteAddress} ${req.method} ${pathname} ua="${String(req.headers["user-agent"] ?? "").slice(0, 40)}" len=${req.headers["content-length"] ?? 0}`;
+    res.on("finish", () => {
+      try { appendFileSync(join(DATA_DIR, "requests.log"), `${reqLog} -> ${res.statusCode} (${Date.now() - started}ms)\n`); } catch {}
+    });
+  }
   try {
     if (req.method === "OPTIONS") {
       res.writeHead(204, {
