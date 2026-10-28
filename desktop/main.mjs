@@ -855,12 +855,18 @@ function createReminderTray() {
 }
 
 function enableWindowsBackgroundReminders() {
+  // USER LAW (2026-10-27): exactly ONE Windows entry may auto-start Daymark
+  // work — the DaymarkLocalSyncServer scheduled task (it voices reminders
+  // server-side and supervises every background helper). The app must never
+  // re-register itself for autologin: this used to resurrect the startup
+  // Run key after every launch. Registration is actively removed instead.
   if (process.platform !== "win32" || process.defaultApp) return;
-  app.setLoginItemSettings({
-    openAtLogin: true,
-    openAsHidden: true,
-    args: ["--daymark-background"],
-  });
+  try {
+    app.setLoginItemSettings({ openAtLogin: false, openAsHidden: false, args: ["--daymark-background"] });
+  } catch {
+    // Older Windows builds can reject the call; the Run key is cleaned by
+    // the local server's startup anyway.
+  }
 }
 
 async function createWindow() {

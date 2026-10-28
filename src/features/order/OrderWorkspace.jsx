@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import {useEffect, useMemo, useRef, useState, memo } from 'react'
 
 import { toLocalDate } from '../../core/dates'
 import { DatePicker } from '../calendar/DatePicker'
@@ -90,7 +90,7 @@ async function copyOrderItemText(text) {
   return copied
 }
 
-function OrderItemCard({
+const OrderItemCard = memo(function OrderItemCard({
   dragging,
   index,
   item,
@@ -240,7 +240,7 @@ function OrderItemCard({
       </div>
     </article>
   )
-}
+})
 
 function onMoveBy(item, direction, siblings, onMove) {
   const index = siblings.findIndex((candidate) => candidate.id === item.id)
@@ -301,6 +301,7 @@ function OrderLane({
 export function OrderWorkspace({
   items,
   onAdd,
+  onAddTask,
   onUpdate,
   onComplete,
   onMove,
@@ -423,10 +424,18 @@ export function OrderWorkspace({
           <h1 id="order-title">Order</h1>
           <p>Turn loose thoughts into a sequence you can actually follow.</p>
         </div>
-        <button className="primary-button" onClick={() => openCreate('now')} type="button">
-          <span aria-hidden="true">+</span>
-          Add item
-        </button>
+        <div className="order-header__actions">
+          {onAddTask ? (
+            <button className="secondary-button" onClick={onAddTask} type="button">
+              <span aria-hidden="true">+</span>
+              Add task
+            </button>
+          ) : null}
+          <button className="primary-button" onClick={() => openCreate('now')} type="button">
+            <span aria-hidden="true">+</span>
+            Add item
+          </button>
+        </div>
       </header>
 
       <div className="order-intro">

@@ -531,7 +531,7 @@ test("every task card can attach files through the agent attachment endpoints", 
 
   // Styling exists for the badge, chips, and thumbnails (anchor and button faces).
   assert.match(shellStyles, /\.board-task__pinned,\s*\n\.control-card__pinned \{/);
-  assert.match(shellStyles, /\.board-task__attachment-list a,\n\.board-task__attachment-link \{/);
+  assert.match(shellStyles, /\.board-task__attachment-list a,\s*\n\.board-task__attachment-link \{/);
   assert.match(shellStyles, /\.board-task__attachment-thumb \{[^}]*object-fit: cover;/);
   assert.match(shellStyles, /\.board-task__attachments \{[^}]*flex-wrap: wrap;/);
 });
@@ -891,22 +891,25 @@ test("control board surfaces keep the black vanta surface on hover", async () =>
   assert.doesNotMatch(shellStyles, /\.control-card:hover[^{]*\{[^}]*#1f2937/);
 });
 
-test("blanket hover guard is theme-agnostic and no grey hover fills remain", async () => {
+test("hover law is scoped and theme-agnostic with no grey hover fills (round 3)", async () => {
   const shellStyles = await readFile(new URL("./styles/app-shell.css", import.meta.url), "utf8");
 
-  // Root cause: the runtime sets data-theme to the raw preference (default
-  // "system"), so the old [data-theme="dark"] blanket guard never applied and
-  // light-theme grey hover fills leaked through. The guard must now match any
-  // theme attribute value.
-  assert.match(shellStyles, /\[data-theme\] \.app-shell \*:hover/);
+  // Round-3 law: the universal *:hover guard (whole-document style recalc on
+  // every hover-chain change while scrolling) is replaced by a scoped rule
+  // covering interactive/list element kinds. Selected/active states keep their
+  // solid surface via their own scoped rule.
+  assert.doesNotMatch(shellStyles, /\*:hover/);
+  assert.match(shellStyles, /:root:not\(\[data-theme="light"\]\) :is\(button, a, summary, label, li, tr, option, input, select, textarea/);
+  assert.match(shellStyles, /aria-selected="true"/);
   assert.doesNotMatch(shellStyles, /\[data-theme="dark"\]/);
 
   // Light-theme hover/active fills must stay in the black family (white alpha
   // <= 0.14 over #050507 keeps the surface black), never mid-grey.
   const greyFill = /background(?:-color)?:\s*rgba?\(\s*255\s*,\s*255\s*,\s*255\s*,\s*0\.(?:1[5-9]|[2-9]\d?)\s*\)/;
-  const offenders = [...shellStyles.matchAll(/[^{}]+\{[^}]*\}/g)]
-    .filter((rule) => greyFill.test(rule[0]) && !/scrollbar-thumb/.test(rule[0]));
-  assert.equal(offenders.length, 0, `grey fills found: ${offenders.map((r) => r[0].slice(0, 120)).join(" | ")}`);
+  const offenders = [...shellStyles.matchAll(/[^{}]+{[^}]*}/g)]
+    .map((m) => m[0])
+    .filter((block) => greyFill.test(block));
+  assert.deepEqual(offenders, []);
 });
 
 test("delete-all counts real failures, retries, agents order shows red confirmation, oversize attachments explain", async () => {

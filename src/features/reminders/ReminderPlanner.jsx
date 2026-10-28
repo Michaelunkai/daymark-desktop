@@ -1,11 +1,42 @@
 import { useEffect, useMemo, useState } from 'react'
 import './reminder-planner.css'
 
+// USER LAW (2026-10-28): every new reminder alerts with the alarm sound at
+// 30, 20 and 10 minutes before the event — the trio is the default, never
+// something the user has to assemble by hand.
 const DEFAULT_OFFSETS = [
-  { id: 'default-30', minutes: 30, direction: 'before', sound: 'soft' },
-  { id: 'default-20', minutes: 20, direction: 'before', sound: 'alert' },
-  { id: 'default-10', minutes: 10, direction: 'before', sound: 'alarm' },
+  { id: 'before-30', minutes: 30, direction: 'before', sound: 'alarm' },
+  { id: 'before-20', minutes: 20, direction: 'before', sound: 'alarm' },
+  { id: 'before-10', minutes: 10, direction: 'before', sound: 'alarm' },
 ]
+
+const OFFSET_PRESETS = [
+  {
+    label: '30 / 20 / 10 before',
+    offsets: () => DEFAULT_OFFSETS.map((offset) => ({ ...offset })),
+  },
+  {
+    label: 'At event time only',
+    offsets: () => [{ id: 'at-time', minutes: 0, direction: 'before', sound: 'alarm' }],
+  },
+]
+
+function quickTimeChips(now = new Date()) {
+  const tomorrow9 = new Date(now)
+  tomorrow9.setDate(tomorrow9.getDate() + 1)
+  tomorrow9.setHours(9, 0, 0, 0)
+  const tonight = new Date(now)
+  tonight.setHours(20, 0, 0, 0)
+  if (tonight.getTime() <= now.getTime()) tonight.setDate(tonight.getDate() + 1)
+  return [
+    { label: 'In 5 min', at: new Date(now.getTime() + 5 * 60_000) },
+    { label: 'In 30 min', at: new Date(now.getTime() + 30 * 60_000) },
+    { label: 'In 1 hour', at: new Date(now.getTime() + 60 * 60_000) },
+    { label: 'In 3 hours', at: new Date(now.getTime() + 3 * 60 * 60_000) },
+    { label: 'Tonight 20:00', at: tonight },
+    { label: 'Tomorrow 09:00', at: tomorrow9 },
+  ]
+}
 
 function newDraft() {
   const start = new Date(Date.now() + 60 * 60 * 1000)
@@ -82,6 +113,27 @@ export function ReminderPlanner({
     if (!editor) setError('')
   }, [editor])
 
+  // Bring the whole editor into view the moment it opens. Combined with the
+  // sticky top + viewport-capped height + sticky Save bar, the full editor
+  // (alerts AND actions) is visible immediately on every phone. Repeated on
+  // a short timer because the autofocus scroll and route scroll restoration
+  // can otherwise win the scroll race and leave the editor half off-screen.
+  useEffect(() => {
+    if (!editor) return
+    const scrollEditorIntoView = () => {
+      document.querySelector('.reminder-planner__editor')
+        ?.scrollIntoView({ block: 'start' })
+    }
+    const frame = requestAnimationFrame(scrollEditorIntoView)
+    const first = window.setTimeout(scrollEditorIntoView, 350)
+    const second = window.setTimeout(scrollEditorIntoView, 900)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.clearTimeout(first)
+      window.clearTimeout(second)
+    }
+  }, [editor !== null])
+
   const changeOffset = (id, patch) => {
     setEditor((current) => current ? {
       ...current,
@@ -154,13 +206,26 @@ export function ReminderPlanner({
             <span>What should Daymark remind you about?</span>
             <input autoFocus onChange={(event) => setEditor((current) => ({ ...current, title: event.target.value }))} placeholder="e.g. Call the dentist" value={editor.title} />
           </label>
+          <div aria-label="Quick reminder times" className="reminder-planner__chips" role="group">
+            {quickTimeChips().map((chip) => (
+              <button
+                className="reminder-planner__chip"
+                key={chip.label}
+                onClick={() => setEditor((current) => ({ ...current, eventAt: toLocalDateTime(chip.at) }))}
+                type="button"
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+          <label>
+            <span>Remind me at</span>
+            <input onChange={(event) => setEditor((current) => ({ ...current, eventAt: event.target.value }))} type="datetime-local" value={editor.eventAt} />
+          </label>
+
           <label>
             <span>Details</span>
             <textarea onChange={(event) => setEditor((current) => ({ ...current, details: event.target.value }))} placeholder="Optional context for the notification" rows={3} value={editor.details} />
-          </label>
-          <label>
-            <span>Date and time</span>
-            <input onChange={(event) => setEditor((current) => ({ ...current, eventAt: event.target.value }))} type="datetime-local" value={editor.eventAt} />
           </label>
 
           <div className="reminder-planner__destination">
@@ -218,7 +283,19 @@ export function ReminderPlanner({
           <section className="reminder-planner__alerts">
             <div>
               <strong>Alerts</strong>
-              <span>New reminders start with 30, 20, and 10 minutes before.</span>
+              <span>Fires with the alarm sound at 30, 20 and 10 minutes before. Adjust the alerts below or tap a preset.</span>
+            </div>
+            <div aria-label="Alert presets" className="reminder-planner__chips" role="group">
+              {OFFSET_PRESETS.map((preset) => (
+                <button
+                  className="reminder-planner__chip"
+                  key={preset.label}
+                  onClick={() => setEditor((current) => ({ ...current, offsets: preset.offsets() }))}
+                  type="button"
+                >
+                  {preset.label}
+                </button>
+              ))}
             </div>
             {editor.offsets.map((offset) => (
               <div className="reminder-planner__alert-row" key={offset.id}>
@@ -270,7 +347,7 @@ export function ReminderPlanner({
         )) : (
           <div className="reminder-planner__empty">
             <h3>No reminders yet</h3>
-            <p>Create one for a date and time, then choose every alert you want before or after it.</p>
+            <p>Type what to remember, tap a quick time, save — it alerts your PC and phone with a sound.</p>
           </div>
         )}
       </div>

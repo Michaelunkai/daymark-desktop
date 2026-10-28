@@ -632,7 +632,7 @@ public final class AiWorkspaceActivity extends Activity {
     private static final String DEFAULT_PROVIDER = "zai-headless";
     private static final String TASK_MODEL_PREF_PREFIX = "task_model_";
     private static final String[] PROVIDER_CHOICES = {
-            "zai-headless", "zai-metered-api", "nvidia-nim", "github-models", "mistral-ai", "siliconflow", "sambanova", "cerebras", "openrouter", "groq", "xai", "opencode"
+            "zai-headless", "zai-metered-api", "nvidia-nim", "github-models", "mistral-ai", "siliconflow", "sambanova", "cerebras", "openrouter", "groq", "xai"
     };
     private static final Map<String, String> PROVIDER_LABELS = new LinkedHashMap<String, String>() {{
         put("zai-headless", "Z.ai Coding Plan (subscription)");
@@ -2222,33 +2222,44 @@ public final class AiWorkspaceActivity extends Activity {
         // summary journal line total instead of one per task. Filter is exactly
         // (completed || finishedSectionIds) — To do / In Progress never touched.
         if (deleteFinished) {
-            final java.util.List<String> finishedIds = new ArrayList<>();
-            for (DaymarkWorkspaceClient.TaskInfo task : snapshot.tasks) {
-                if (task.completed || finishedSectionIds.contains(task.sectionId)) {
-                    finishedIds.add(task.id);
-                }
-            }
             final long startMs = SystemClock.elapsedRealtime();
             networkExecutor.execute(() -> {
-                final java.util.concurrent.CountDownLatch latch =
-                        new java.util.concurrent.CountDownLatch(finishedIds.size());
+                // REPEAT-UNTIL-ZERO PURGE: each pass re-pulls the LIVE workspace
+                // and deletes every finished task it finds — tasks outside the
+                // stale snapshot (or completed after it) can never survive.
                 final java.util.concurrent.atomic.AtomicInteger deleted =
                         new java.util.concurrent.atomic.AtomicInteger();
-                for (final String id : finishedIds) {
-                    networkExecutor.execute(() -> {
-                        try {
-                            DaymarkWorkspaceClient.deleteTask(syncKey, id);
-                            deleted.incrementAndGet();
-                        } catch (Exception e) {
-                            Log.w("DaymarkAi", "parallel delete failed for " + id + ": " + e.getMessage());
-                        } finally {
-                            latch.countDown();
+                for (int pass = 0; pass < 5; pass++) {
+                    java.util.List<String> ids = new ArrayList<>();
+                    try {
+                        DaymarkWorkspaceClient.WorkspaceSnapshot fresh =
+                                DaymarkWorkspaceClient.snapshot(DaymarkWorkspaceClient.pull(syncKey));
+                        for (DaymarkWorkspaceClient.TaskInfo t : fresh.tasks) {
+                            if (t.completed || finishedSectionIds.contains(t.sectionId)) ids.add(t.id);
                         }
-                    });
+                    } catch (Exception e) {
+                        Log.w("DaymarkAi", "purge pass " + pass + " re-pull failed: " + e.getMessage());
+                        break;
+                    }
+                    if (ids.isEmpty()) break;
+                    final java.util.concurrent.CountDownLatch latch =
+                            new java.util.concurrent.CountDownLatch(ids.size());
+                    for (final String id : ids) {
+                        networkExecutor.execute(() -> {
+                            try {
+                                DaymarkWorkspaceClient.deleteTask(syncKey, id);
+                                deleted.incrementAndGet();
+                            } catch (Exception e) {
+                                Log.w("DaymarkAi", "parallel delete failed for " + id + ": " + e.getMessage());
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+                    }
+                    try {
+                        latch.await(10, java.util.concurrent.TimeUnit.SECONDS);
+                    } catch (InterruptedException ignored) {}
                 }
-                try {
-                    latch.await(10, java.util.concurrent.TimeUnit.SECONDS);
-                } catch (InterruptedException ignored) {}
                 long wallMs = SystemClock.elapsedRealtime() - startMs;
                 final int n = deleted.get();
                 // ONE summary journal line total, not one per task.

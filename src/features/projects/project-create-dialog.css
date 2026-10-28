@@ -256,6 +256,12 @@
   display: flex;
   gap: 9px;
   margin-left: auto;
+  /* Pin Cancel/Create inside the dialog's scroll area so the primary action
+     is always visible on short/landscape phone viewports. */
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: var(--project-dialog-surface, #fff);
 }
 
 .project-create-dialog__button {

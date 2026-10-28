@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useState, type DragEvent } from "react";
 
 import { ProjectSectionHeader } from "../projects/ProjectSectionHeader";
@@ -38,7 +39,7 @@ interface TaskCardProps {
   onTaskMenu?: (taskId: string) => void;
 }
 
-function TaskCard({ task, labels = [], onTaskOpen, onTaskComplete, onTaskMove, onTaskMenu }: TaskCardProps) {
+const TaskCard = memo(function TaskCard({ task, labels = [], onTaskOpen, onTaskComplete, onTaskMove, onTaskMenu }: TaskCardProps) {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const description = task.description.trim();
   const showDescriptionToggle = isLongDescription(description);
@@ -123,7 +124,7 @@ function TaskCard({ task, labels = [], onTaskOpen, onTaskComplete, onTaskMove, o
       </div>
     </article>
   );
-}
+})
 
 interface BoardColumnProps {
   section: ProjectSection | null;

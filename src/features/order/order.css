@@ -588,7 +588,7 @@
 .order-editor__date-shortcuts button { background: var(--surface-soft); border: 1px solid var(--line-strong); border-radius: 6px; color: var(--ink-soft); cursor: pointer; font-size: 11px; min-height: 44px; padding: 6px 11px; }
 .order-editor__date-shortcuts button:hover, .order-editor__date-shortcuts button:focus-visible { border-color: var(--ink-muted); color: var(--ink); }
 .order-editor__transfer-error { color: var(--accent-strong); font-size: 11px; margin: -4px 0 0; }
-.order-editor__footer { align-items: flex-end; border-top: 1px solid var(--line); display: flex; gap: 12px; justify-content: space-between; margin-top: 3px; padding-top: 15px; }
+.order-editor__footer { position: sticky; bottom: -20px; z-index: 2; margin: 0 -20px -20px; padding: 12px 20px calc(12px + env(safe-area-inset-bottom)); background: var(--surface); align-items: flex-end; border-top: 1px solid var(--line); display: flex; gap: 12px; justify-content: space-between; }
 .order-editor__transfer-actions, .order-editor__actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .order-editor__date-transfer-footer { align-items: center; border-top: 1px solid var(--line); display: flex; gap: 16px; justify-content: space-between; padding-top: 15px; }
 @media (max-width: 1280px) {
@@ -788,4 +788,68 @@
     flex: 1 1 auto;
     min-height: 44px;
   }
+}
+
+/* ORDER CARD OVERHAUL (round 3): circle complete, compact segmented lane
+   control, quiet quick-action cluster (hover on desktop, visible on touch). */
+.order-item__complete {
+  border-radius: 50% !important;
+  height: 30px;
+  width: 30px;
+}
+.order-item__lanes {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: inline-flex;
+  flex: 0 1 auto;
+  gap: 2px;
+  order: 0;
+  overflow: hidden;
+  padding: 2px;
+}
+.order-item__lanes button { min-height: 30px; padding: 0 10px; }
+.order-item__lanes button.is-active {
+  background: var(--teal-soft, var(--surface-tint));
+  border-color: var(--teal);
+  color: var(--teal);
+}
+.order-item__quick { align-items: center; display: flex; gap: 4px; margin-left: auto; }
+.order-item__icon {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  height: 32px;
+  justify-content: center;
+  width: 34px;
+}
+.order-item__icon:hover:not(:disabled),
+.order-item__icon:focus-visible:not(:disabled) { border-color: var(--line-strong); color: var(--ink); }
+.order-item__icon--done { color: var(--teal); font-weight: 800; }
+.order-item__icon--done:hover { border-color: var(--teal); }
+.order-item__icon:disabled { cursor: not-allowed; opacity: .35; }
+@media (hover: hover) and (min-width: 721px) {
+  .order-item__quick { opacity: 0; transition: opacity 120ms ease; }
+  .order-item:hover .order-item__quick,
+  .order-item:focus-within .order-item__quick { opacity: 1; }
+}
+@media (max-width: 720px) {
+  .order-item__lanes { flex: 1 1 100%; }
+  .order-item__lanes button { flex: 1 1 0; font-size: 12px; min-height: 44px; }
+  .order-item__icon { height: 44px; width: 48px; }
+}
+.order-item { content-visibility: auto; contain-intrinsic-size: auto 148px; }
+.order-lane__items { overscroll-behavior: contain; }
+
+.order-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
 }

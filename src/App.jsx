@@ -30,6 +30,7 @@ import './features/calendar/calendar-task-chips.css'
 import { ProjectCreateDialog } from './features/projects/ProjectCreateDialog'
 import './features/projects/project-create-dialog.css'
 import { OrderWorkspace } from './features/order/OrderWorkspace'
+import { JournalWorkspace } from './features/journal/JournalWorkspace'
 import { createLongPressReorderController } from './features/reorder/long-press.js'
 import { sortCompletedHistoryNewestFirst } from './features/tasks/completed-history'
 import {
@@ -163,7 +164,10 @@ const DEFAULT_UI_SETTINGS = {
 }
 
 const appStore = createAppStore(createBrowserStorage())
-appStore.rollOverIncompleteTasks(toLocalDate(new Date()))
+// USER LAW (2026-10-27): NO boot-time rollover. Re-dating open past-due tasks
+// to today made old items "spawn" under Today on every new day — Today must
+// show ONLY tasks the user actually set to today. Overdue tasks keep their
+// real dates (visible under their projects, search, and the calendar).
 const thoughtCaptureStore = createLocalThoughtCaptureStore(getBrowserStorage())
 
 function getBrowserStorage() {
@@ -3872,9 +3876,8 @@ function App() {
   const mainContentRef = useRef(null)
   const legacyRemindersImportedRef = useRef(false)
 
-  useEffect(() => {
-    appStore.rollOverIncompleteTasks(toLocalDate(new Date()))
-  }, [state])
+  // (removed) per-state-change rollover — see USER LAW note at appStore
+  // creation: re-dating past-due tasks into Today is the spawning bug.
   const agentBridgeActionsRef = useRef(null)
   const agentSessionsRef = useRef(new Map())
   const agentSessionTimersRef = useRef(new Map())
@@ -4505,7 +4508,11 @@ function App() {
   )
   const routeInfo = getRouteInfo(route, state)
   const visibleTasks = useMemo(() => {
-    const availableTasks = route === 'completed' || state.preferences.showCompleted
+    // Completing an item removes it from the page it was on — every open
+    // route (list, board, search, Today) hides completed tasks immediately;
+    // only the dedicated Completed route keeps that history. The
+    // showCompleted preference must never re-admit them to open pages.
+    const availableTasks = route === 'completed'
       ? tasks
       : tasks.filter((task) => !task.completed)
     if (searchTerm.trim()) {
@@ -4522,16 +4529,18 @@ function App() {
       if (task.completed) {
         return false
       }
-      // Tasks without a due date are excluded from Today scoping.
+      // Today shows ONLY tasks actually set to today. Overdue days are not
+      // Today (the boot-time rollover re-dates still-open overdue tasks to
+      // today, so anything older that survived is intentionally out).
       const dueDate = state.tasks[task.id]?.due?.date
-      return Boolean(dueDate) && dueDate <= today
+      return Boolean(dueDate) && dueDate === today
     })
     if (route === 'completed') {
       scoped = sortCompletedHistoryNewestFirst(tasks.filter((task) => task.completed))
     }
-    if (route !== 'completed' && !state.preferences.showCompleted) scoped = scoped.filter((task) => !task.completed)
+    if (route !== 'completed') scoped = scoped.filter((task) => !task.completed)
     return scoped
-  }, [route, searchTerm, state.preferences.inboxProjectId, state.preferences.showCompleted, state.tasks, tasks, today])
+  }, [route, searchTerm, state.preferences.inboxProjectId, state.tasks, tasks, today])
 
   const sections = useMemo(() => {
     if (route === 'completed') {
@@ -5604,7 +5613,6 @@ function App() {
         projectId: requestedProjectId,
         sectionId,
         priority: priority ?? 2,
-        due: makeDue(today),
       },
     })
     if (!result.ok) {
@@ -5719,11 +5727,16 @@ function App() {
   }
 
   const openTaskEditor = (mode = 'create', task = null, scheduledDate = null, sectionId = null) => {
+    // Any non-project view (Order, Notes, Diary, control board, Today, …)
+    // still gets a one-tap Add task: the draft defaults to the Inbox project
+    // so saving never requires picking a destination first.
     const fallbackProjectId = route.startsWith('project:')
       ? route.slice('project:'.length)
       : route === 'inbox'
         ? state.preferences.inboxProjectId
-        : null
+        : ['today', 'upcoming', 'completed'].includes(route)
+          ? null
+          : state.preferences.inboxProjectId
     const section = sectionId ? state.sections[sectionId] : null
     const targetSectionId = section?.projectId === fallbackProjectId ? section.id : null
     const draft = task
@@ -6483,10 +6496,10 @@ function App() {
                       </button>
                     </div>
                   ) : null}
-                  {!['order', 'notes', 'diary', 'control'].includes(route) ? <button className="primary-button" onClick={() => openTaskEditor('create', null, route === 'upcoming' ? selectedCalendarDate : null)} type="button">
+                  <button className="primary-button" onClick={() => openTaskEditor('create', null, route === 'upcoming' ? selectedCalendarDate : null)} type="button">
                     <Icon name="plus" size={17} />
                     Add task
-                  </button> : null}
+                  </button>
                 </div>
               </div>
             ) : null}
@@ -6557,6 +6570,7 @@ function App() {
               <OrderWorkspace
                 items={orderItems}
                 onAdd={addOrderItem}
+                onAddTask={() => openTaskEditor('create')}
                 onCopyToTask={copyOrderItemToTask}
                 onComplete={completeOrderItem}
                 onMove={moveOrderItem}
@@ -6582,7 +6596,7 @@ function App() {
                 sections={Object.values(state.sections)}
               />
             ) : route === 'notes' || route === 'diary' ? (
-              <JournalView
+              <JournalWorkspace
                 journal={journal}
                 onDiaryDelete={deleteDiary}
                 onDiaryUpdate={updateDiary}
@@ -6971,6 +6985,33 @@ function App() {
             )}
           </div>
         </main>
+      <nav aria-label="Primary" className="mobile-tabbar">
+        {[
+          { id: 'today', label: 'Today', icon: 'sun' },
+          { id: 'inbox', label: 'Inbox', icon: 'inbox' },
+          { id: 'upcoming', label: 'Upcoming', icon: 'calendar' },
+          { id: 'order', label: 'Order', icon: 'list' },
+        ].map((item) => (
+          <button
+            className={route === item.id ? 'is-active' : ''}
+            key={item.id}
+            onClick={() => { navigate(item.id); setSidebarOpen(false) }}
+            type="button"
+          >
+            <Icon name={item.icon} size={21} />
+            <span>{item.label}</span>
+          </button>
+        ))}
+        <button
+          aria-label="Open navigation menu"
+          className={sidebarOpen ? 'is-active' : ''}
+          onClick={() => setSidebarOpen((open) => !open)}
+          type="button"
+        >
+          <Icon name="board" size={21} />
+          <span>Menu</span>
+        </button>
+      </nav>
 
         <UtilityPanel onAction={utilityAction} />
       </div>

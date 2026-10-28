@@ -1,5 +1,5 @@
 import { migrate } from "./storage";
-import { CURRENT_SCHEMA_VERSION, type AppState } from "./types";
+import { CURRENT_SCHEMA_VERSION, type AppState, type Task } from "./types";
 import {
   canonicalizeReminderTombstones,
   canonicalizeReminders,
@@ -303,6 +303,30 @@ export async function pushSyncState(
   return parseSyncEnvelope(await readSyncPayload(response, "write"), "write", response.status);
 }
 
+
+// Deletion tombstones are authoritative across sync (round-3 law): a record
+// deleted on either side stays deleted unless a LIVE record on the other side
+// is newer than the tombstone (an explicit re-create). Without this, completing
+// an Order item (which deletes it locally) got resurrected by the other side's
+// stale live copy — the user saw the Complete button "do nothing".
+function enforceDeletionTombstones(merged, local, remote) {
+  const tombs = { ...(local?.syncTombstones ?? {}), ...(remote?.syncTombstones ?? {}) };
+  const keys = Object.keys(tombs);
+  merged.syncTombstones = { ...(merged?.syncTombstones ?? {}), ...tombs };
+  if (!keys.length) return merged;
+  for (const key of keys) {
+    const sep = key.indexOf(":");
+    const collection = key.slice(0, sep);
+    const id = key.slice(sep + 1);
+    const live = merged?.[collection]?.[id];
+    if (!live) continue;
+    const tombAt = String(tombs[key]?.updatedAt ?? tombs[key]?.deletedAt ?? "");
+    if (tombAt && String(live.updatedAt ?? "") <= tombAt) {
+      delete merged[collection][id];
+    }
+  }
+  return merged;
+}
 export function mergeSyncStates(local: AppState, remote: AppState): AppState {
   const newerRecord = <T extends { updatedAt: string }>(
     left: Record<string, T>,
@@ -312,6 +336,38 @@ export function mergeSyncStates(local: AppState, remote: AppState): AppState {
     Object.entries(left).forEach(([id, value]) => {
       const other = right[id];
       if (!other || compareRecordAuthority(value, other) > 0) merged[id] = structuredClone(value);
+    });
+    return merged;
+  };
+  // Sticky completion for tasks: the last-write-wins record can be a stale
+  // device's copy (the boot-time rollover re-dates a task another device
+  // already completed, making its un-completed record win on updatedAt). A
+  // completion is only ever undone by an explicit reopen, which stamps
+  // reopenedAt; so the merged task carries the newest completion unless a
+  // reopen is newer still.
+  const mergeTasks = (
+    left: Record<string, Task>,
+    right: Record<string, Task>,
+  ): Record<string, Task> => {
+    const merged = newerRecord(left, right);
+    Object.entries(merged).forEach(([id, record]) => {
+      const a = left[id];
+      const b = right[id];
+      const lastCompletedAt = latestTimestamp(a?.completedAt, b?.completedAt);
+      const lastReopenedAt = latestTimestamp(a?.reopenedAt, b?.reopenedAt);
+      if (!lastCompletedAt && !lastReopenedAt) return;
+      const completionIsSticky = Boolean(lastCompletedAt)
+        && (!lastReopenedAt || compareMutationTimestamp(lastCompletedAt, lastReopenedAt) > 0);
+      if (completionIsSticky) {
+        if (record.completedAt !== lastCompletedAt) {
+          const source = compareMutationTimestamp(a?.completedAt ?? "", b?.completedAt ?? "") >= 0 ? a : b;
+          record.completedAt = lastCompletedAt;
+          record.completionContext = structuredClone(source?.completionContext ?? record.completionContext ?? null);
+        }
+      } else if (record.completedAt) {
+        record.completedAt = null;
+        record.completionContext = null;
+      }
     });
     return merged;
   };
@@ -329,7 +385,7 @@ export function mergeSyncStates(local: AppState, remote: AppState): AppState {
     projects: newerRecord(local.projects, remote.projects),
     sections: newerRecord(local.sections, remote.sections),
     filters: newerRecord(local.filters, remote.filters),
-    tasks: newerRecord(local.tasks, remote.tasks),
+    tasks: mergeTasks(local.tasks, remote.tasks),
     orderItems: newerRecord(local.orderItems, remote.orderItems),
     notes: newerRecord(local.notes, remote.notes),
     reminders: canonicalizeReminders(mergedReminders),
@@ -345,7 +401,7 @@ export function mergeSyncStates(local: AppState, remote: AppState): AppState {
     ),
   };
   applyTombstones(merged);
-  return merged;
+  return enforceDeletionTombstones(merged, local, remote);;
 }
 
 export function rebaseSyncConflict(
@@ -364,6 +420,16 @@ export function rebaseSyncConflict(
 
 export function syncStatesMatch(left: AppState, right: AppState): boolean {
   return stableSerialize(syncComparableState(left)) === stableSerialize(syncComparableState(right));
+}
+
+function latestTimestamp(
+  left: string | null | undefined,
+  right: string | null | undefined,
+): string | null {
+  if (!left && !right) return null;
+  if (!left) return right ?? null;
+  if (!right) return left;
+  return compareMutationTimestamp(left, right) >= 0 ? left : right;
 }
 
 function syncComparableState(state: AppState): Omit<AppState, "clientId" | "revision" | "updatedAt"> {

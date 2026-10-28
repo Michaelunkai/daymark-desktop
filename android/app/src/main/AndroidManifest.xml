@@ -2,6 +2,17 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Voice + exact reminders: alarms must fire at the exact set time with
+         an audible voice alert even when the app is closed (user law
+         2026-10-27). USE_EXACT_ALARM is auto-granted (personal app). -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <!-- Foreground reminder sync (user law 2026-10-27): reminders created on
+         the PC must alert this phone even while the Daymark app is closed. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <application
         android:allowBackup="true"
@@ -16,12 +27,16 @@
             android:name="com.michaelunkai.daymark.GIT_COMMIT"
             android:value="${daymarkGitCommit}" />
         <activity
-            android:name="com.michaelunkai.daymark.MainActivity"
+            android:name="com.michaelunkai.daymark.MainActivity" android:label="Daymark"
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
             android:exported="true"
             android:launchMode="singleTop"
             android:screenOrientation="unspecified"
             android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -68,7 +83,27 @@
             android:excludeFromRecents="true"
             android:exported="true"
             android:noHistory="true" />
-        <!-- No receivers, services, or alarms: the companion app must have
-             zero background execution. It runs only while on screen. -->
+        <!-- Exact reminder alarms (user law 2026-10-27): these were the
+             missing piece — the receiver classes existed but were never
+             registered, so scheduled alarms never delivered. -->
+        <receiver
+            android:name="com.michaelunkai.daymark.ReminderAlarmReceiver"
+            android:exported="false" />
+        <receiver
+            android:name="com.michaelunkai.daymark.ReminderBootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+        <service
+            android:name="com.michaelunkai.daymark.ReminderSyncService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="daymark-reminder-sync" />
+        </service>
     </application>
 </manifest>

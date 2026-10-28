@@ -64,6 +64,11 @@ export interface Task {
   priority: Priority;
   due: TaskDue | null;
   completedAt: string | null;
+  // Stamped by every explicit reopen. Merge authority: a completion newer than
+  // every reopenedAt is sticky and can never be wiped by a stale device's
+  // record (e.g. the boot-time rollover re-dating a task another device
+  // already completed); a reopen newer than every completion reopens the task.
+  reopenedAt?: string | null;
   completionContext: TaskCompletionContext | null;
   order: number;
   createdAt: string;
@@ -195,6 +200,7 @@ export type TaskPatch = Partial<
     | "priority"
     | "due"
     | "completedAt"
+    | "reopenedAt"
     | "completionContext"
     | "order"
   >

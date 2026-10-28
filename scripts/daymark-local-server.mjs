@@ -5,6 +5,7 @@
 // bounded. Serves the exact routes both apps call.
 import http from "node:http";
 import { createHash, randomUUID } from "node:crypto";
+import { spawn } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, unlinkSync, appendFileSync } from "node:fs";
 import { join, dirname, extname, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -71,6 +72,65 @@ function newerRecord(left, right) {
   }
   return merged;
 }
+// Sticky completion (user law 2026-10-27): a completed task must never be
+// resurrected by a stale device's record winning on updatedAt — the classic
+// path is another device's boot-time rollover re-dating a task (fresh
+// updatedAt, completedAt=null) after this side completed it. A completion is
+// only undone by an explicit reopen, which stamps reopenedAt newer than every
+// completion. Applied on the authoritative merged record.
+function latestTs(a, b) {
+  if (!a && !b) return null;
+  if (!a) return b;
+  if (!b) return a;
+  return compareMutationTimestamp(a, b) >= 0 ? a : b;
+}
+function mergeTasksSticky(left, right) {
+  const merged = newerRecord(left, right);
+  for (const [id, record] of Object.entries(merged)) {
+    const a = left?.[id];
+    const b = right?.[id];
+    const lastCompletedAt = latestTs(a?.completedAt, b?.completedAt);
+    const lastReopenedAt = latestTs(a?.reopenedAt, b?.reopenedAt);
+    if (!lastCompletedAt && !lastReopenedAt) continue;
+    const sticky = Boolean(lastCompletedAt)
+      && (!lastReopenedAt || compareMutationTimestamp(lastCompletedAt, lastReopenedAt) > 0);
+    if (sticky) {
+      if (record.completedAt !== lastCompletedAt) {
+        const source = compareMutationTimestamp(a?.completedAt ?? "", b?.completedAt ?? "") >= 0 ? a : b;
+        record.completedAt = lastCompletedAt;
+        record.completionContext = structuredClone(source?.completionContext ?? record.completionContext ?? null);
+      }
+    } else if (record.completedAt) {
+      record.completedAt = null;
+      record.completionContext = null;
+    }
+  }
+  return merged;
+}
+
+// Deletion tombstones are authoritative across sync (round-3 law): a record
+// deleted on either side stays deleted unless a LIVE record on the other side
+// is newer than the tombstone (an explicit re-create). Without this, completing
+// an Order item (which deletes it locally) got resurrected by the other side's
+// stale live copy — the user saw the Complete button "do nothing".
+function enforceDeletionTombstones(merged, local, remote) {
+  const tombs = { ...(local?.syncTombstones ?? {}), ...(remote?.syncTombstones ?? {}) };
+  const keys = Object.keys(tombs);
+  merged.syncTombstones = { ...(merged?.syncTombstones ?? {}), ...tombs };
+  if (!keys.length) return merged;
+  for (const key of keys) {
+    const sep = key.indexOf(":");
+    const collection = key.slice(0, sep);
+    const id = key.slice(sep + 1);
+    const live = merged?.[collection]?.[id];
+    if (!live) continue;
+    const tombAt = String(tombs[key]?.updatedAt ?? tombs[key]?.deletedAt ?? "");
+    if (tombAt && String(live.updatedAt ?? "") <= tombAt) {
+      delete merged[collection][id];
+    }
+  }
+  return merged;
+}
 function mergeSyncStates(local, remote) {
   const authoritative = compareMutationTimestamp(local?.updatedAt, remote?.updatedAt) >= 0 ? local : remote;
   const merged = {
@@ -83,7 +143,7 @@ function mergeSyncStates(local, remote) {
     sections: newerRecord(local?.sections, remote?.sections),
     labels: newerRecord(local?.labels, remote?.labels),
     filters: newerRecord(local?.filters, remote?.filters),
-    tasks: newerRecord(local?.tasks, remote?.tasks),
+    tasks: mergeTasksSticky(local?.tasks, remote?.tasks),
     orderItems: newerRecord(local?.orderItems, remote?.orderItems),
     notes: newerRecord(local?.notes, remote?.notes),
     reminders: newerRecord(local?.reminders, remote?.reminders),
@@ -98,7 +158,11 @@ function mergeSyncStates(local, remote) {
         if (!other || compareMutationTimestamp(v?.deletedAt, other?.deletedAt) >= 0) merged[k] = v;
       }
       const entries = Object.entries(merged).sort((a, b) => String(b[1]?.deletedAt ?? "").localeCompare(String(a[1]?.deletedAt ?? "")));
-      return Object.fromEntries(entries.slice(0, 400));
+      // USER LAW (2026-10-27): deletions must be permanent. A 400-entry cap let
+      // a busy workspace evict tombstones while stale clients still held the
+      // records — the next push resurrected them. Tombstones are ~80 bytes;
+      // 20000 of them cost ~1.6MB, far beyond any stale-client window.
+      return Object.fromEntries(entries.slice(0, 20_000));
     })(),
   };
   // apply tombstones
@@ -109,7 +173,7 @@ function mergeSyncStates(local, remote) {
     const record = merged[collections.find(c => c === coll)]?.[id];
     if (record && compareMutationTimestamp(record.updatedAt, tombstone.deletedAt) <= 0) delete merged[coll][id];
   }
-  return merged;
+  return enforceDeletionTombstones(merged, local, remote);;
 }
 
 // sanitize journal bloat server-side (same policy as the worker fix)
@@ -194,6 +258,50 @@ function markTombstone(s, collection, id, ts) { s.syncTombstones[tombstoneKey(co
 // ---------- routes ----------
 async function handleSync(req, res, syncKey, pathname, url) {
   if (!state) return json(res, { error: "workspace_not_initialized" }, 409);
+  // Compact reminder feed for the phone's native sync service (USER LAW
+  // 2026-10-27: a reminder created on ANY device must reach BOTH devices
+  // always — the phone app can be closed, so its foreground service polls
+  // this tiny endpoint instead of the full 1MB+ sync document). The schema
+  // matches the web client's toNativeReminderSchedules output so the native
+  // ReminderScheduler.replace() consumes it unchanged. Long-polls up to 20s
+  // when the client's revision is current.
+  if (pathname.endsWith("/reminder-feed")) {
+    const now = Date.now();
+    const schedules = reminderSchedules(state)
+      .filter((schedule) => schedule.alertAt > now - 24 * 60 * 60_000)
+      .map((schedule, index) => {
+        const alertAt = schedule.alertAt;
+        const minutes = schedule.minutes ?? 0;
+        const direction = schedule.direction ?? "before";
+        return {
+          id: schedule.id,
+          version: String(schedule.version ?? ""),
+          reminderId: schedule.reminderId ?? schedule.id,
+          title: schedule.title,
+          details: schedule.details,
+          eventAt: schedule.eventAt,
+          alertAt,
+          minutes,
+          direction,
+          ordinal: schedule.ordinal ?? index + 1,
+          total: schedule.total ?? 1,
+          sound: schedule.sound ?? "alert",
+        };
+      });
+    const after = Number(url.searchParams.get("rev") ?? -1);
+    if (Number.isInteger(after) && after >= revision) {
+      const deadline = Date.now() + 20_000;
+      while (Date.now() < deadline) {
+        if (revision > after) break;
+        await new Promise(r => setTimeout(r, 250));
+      }
+    }
+    if (revision <= after) {
+      res.writeHead(204, { "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" });
+      return res.end();
+    }
+    return json(res, { revision, updatedAt: state.updatedAt, schedules });
+  }
   if (pathname.endsWith("/changes")) {
     const after = Number(url.searchParams.get("after") ?? -1);
     if (!Number.isInteger(after) || after < 0) return json(res, { error: "invalid_revision" }, 400);
@@ -320,7 +428,12 @@ async function handleAgent(req, res, pathname, url = new URL("http://local/")) {
         return json(res, resp);
       }
       Object.assign(record, body, { updatedAt: nowIso() });
-      if (body.completedAt === null) { record.completedAt = null; record.completionContext = null; }
+      if (resource === "tasks" && body.completedAt === null) {
+        record.completedAt = null;
+        record.completionContext = null;
+        // Explicit reopen — outranks earlier completions in the sticky merge.
+        record.reopenedAt = record.updatedAt;
+      }
       commitState(revision + 1);
       const respBody = resource === "tasks" ? { task: record } : { [singular]: record };
       if (req.headers["idempotency-key"]) receipts[req.headers["idempotency-key"]] = { status: 200, body: respBody };
@@ -337,6 +450,8 @@ async function handleAgent(req, res, pathname, url = new URL("http://local/")) {
       record.completionContext = { projectId: record.projectId, sectionId: record.sectionId ?? null, order: record.order };
     } else if (action === "reopen" && record.completedAt) {
       record.completedAt = null; record.completionContext = null;
+      // Explicit reopen — outranks earlier completions in the sticky merge.
+      record.reopenedAt = record.updatedAt = nowIso();
     }
     record.updatedAt = nowIso();
     commitState(revision + 1);
@@ -451,6 +566,8 @@ const server = http.createServer(async (req, res) => {
     }
     const syncMatch = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})$/);
     const syncChanges = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})\/changes$/);
+    const syncFeed = pathname.match(/^\/api\/sync\/([A-Za-z0-9_-]{22})\/reminder-feed$/);
+    if (syncFeed) return handleSync(req, res, syncFeed[1], pathname, url);
     if (syncChanges) return handleSync(req, res, syncChanges[1], pathname + "/changes", url);
     if (syncMatch) {
       // Multi-key local mode: the first key to write becomes canonical; known
@@ -508,8 +625,181 @@ if (seedArg && existsSync(seedArg)) {
   console.log(`[daymark-local] seeded from ${seedArg} at revision ${revision}`);
 }
 
+// ---------- reminder voice scheduler (user law 2026-10-27) ----------
+// Reminders must fire at their exact alert time with a VOICE notification on
+// this PC, with zero dependency on the Electron app running: this server is
+// the one always-on entry, so it owns the timers. Schedule ids mirror the
+// web client's toNativeReminderSchemes so a reminder edited on any device
+// gets a fresh id (and re-arms) everywhere.
+const REMINDER_VOICE_LEDGER = join(DATA_DIR, "reminder-voice-delivered.json");
+const REMINDER_VOICE_LOG = join(DATA_DIR, "reminder-voice.log");
+const REMINDER_SWEEP_MS = 20_000;
+const REMINDER_MAX_OVERDUE_MS = 24 * 60 * 60_000; // never shout a day-late reminder
+const VOICE_DISABLED = process.env.DAYMARK_DISABLE_REMINDER_VOICE === "1";
+let reminderTimers = new Map();
+let reminderDelivered = {};
+try { reminderDelivered = JSON.parse(readFileSync(REMINDER_VOICE_LEDGER, "utf8")); } catch {}
+
+function reminderLog(message) {
+  const line = `${new Date().toISOString()} ${message}`;
+  try { appendFileSync(REMINDER_VOICE_LOG, line + "\n"); } catch {}
+  console.log(`[daymark-reminder] ${message}`);
+}
+
+function reminderSchedules(s) {
+  const out = [];
+  for (const reminder of Object.values(s?.reminders ?? {})) {
+    const eventAt = Date.parse(reminder?.eventAt);
+    if (!Number.isFinite(eventAt)) continue;
+    const offsets = Array.isArray(reminder?.offsets) ? reminder.offsets : [];
+    offsets.forEach((offset, index) => {
+      const minutes = Number(offset?.minutes);
+      if (!Number.isInteger(minutes) || minutes < 0) return;
+      if (offset?.direction !== "before" && offset?.direction !== "after") return;
+      const sound = ["soft", "alert", "alarm"].includes(offset?.sound) ? offset.sound : "alert";
+      const alertAt = eventAt + (offset.direction === "before" ? -1 : 1) * minutes * 60_000;
+      out.push({
+        id: `${reminder.id}:v${reminder.updatedAt}:${offset.id}:${index}:${eventAt}`,
+        version: reminder.updatedAt,
+        reminderId: reminder.id,
+        title: String(reminder.title ?? "Reminder"),
+        details: String(reminder.details ?? ""),
+        eventAt,
+        alertAt,
+        minutes,
+        direction: offset.direction,
+        ordinal: index + 1,
+        total: offsets.length,
+        sound,
+      });
+    });
+  }
+  return out;
+}
+
+function speakOnWindows(text) {
+  const safe = String(text)
+    .replace(/[“”„]/g, '"')
+    .replace(/['’‘]/g, "''") // escape for a PS single-quoted string
+    .replace(/["<>]/g, "")
+    .slice(0, 400);
+  const script = `Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('${safe}')`;
+  try {
+    const child = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script], {
+      windowsHide: true,
+      detached: true,
+      stdio: "ignore",
+    });
+    child.unref();
+  } catch (error) {
+    reminderLog(`voice spawn failed: ${String(error?.message ?? error)}`);
+  }
+}
+
+function deliverReminderVoice(schedule) {
+  if (reminderDelivered[schedule.id]) return;
+  reminderDelivered[schedule.id] = new Date().toISOString();
+  const ids = Object.keys(reminderDelivered);
+  if (ids.length > 500) for (const id of ids.slice(0, ids.length - 400)) delete reminderDelivered[id];
+  try { writeFileSync(REMINDER_VOICE_LEDGER, JSON.stringify(reminderDelivered)); } catch {}
+  const lateMs = Date.now() - schedule.alertAt;
+  reminderLog(`VOICE "${schedule.title}" scheduled=${new Date(schedule.alertAt).toISOString()} fired=${new Date().toISOString()} lateMs=${lateMs}`);
+  if (VOICE_DISABLED) {
+    reminderLog("voice muted (DAYMARK_DISABLE_REMINDER_VOICE=1)");
+    return;
+  }
+  speakOnWindows(`Daymark reminder. ${schedule.title}.${schedule.details ? ` ${schedule.details}.` : ""}`);
+}
+
+function armReminderTimers() {
+  const now = Date.now();
+  const wanted = new Map();
+  for (const schedule of reminderSchedules(state)) {
+    if (reminderDelivered[schedule.id]) continue;
+    const delay = schedule.alertAt - now;
+    if (delay > 0) {
+      const timer = setTimeout(() => {
+        reminderTimers.delete(schedule.id);
+        deliverReminderVoice(schedule);
+      }, delay);
+      wanted.set(schedule.id, timer);
+    } else if (now - schedule.alertAt <= REMINDER_MAX_OVERDUE_MS) {
+      // Catch-up: the machine slept through the moment — speak on wake, but
+      // only within the same day (a month-old reminder shouting at boot is
+      // worse than silence).
+      deliverReminderVoice(schedule);
+    }
+  }
+  for (const [id, timer] of reminderTimers) if (!wanted.has(id)) clearTimeout(timer);
+  reminderTimers = wanted;
+}
+
+// ---------- single-entry consolidation (user law 2026-10-27) ----------
+// Exactly ONE Windows entry may carry Daymark background work: this server's
+// scheduled task. The relay, the zcode bridge, and the provider guard used to
+// be separate scheduled tasks/startup items; they are now supervised children
+// of this process (hidden, self-logging, auto-restarted). Set
+// DAYMARK_NO_CHILDREN=1 to run the server standalone (tests).
+const NO_CHILDREN = process.env.DAYMARK_NO_CHILDREN === "1";
+function spawnSupervised(name, args, restartDelayMs = 5_000) {
+  if (NO_CHILDREN) { console.log(`[daymark-local] children disabled; ${name} not started`); return; }
+  try {
+    const child = spawn(process.execPath, args, { windowsHide: true, stdio: "ignore" });
+    console.log(`[daymark-local] supervising ${name} pid=${child.pid}`);
+    child.on("exit", (code) => {
+      console.log(`[daymark-local] ${name} exited code=${code}; restart in ${restartDelayMs}ms`);
+      setTimeout(() => spawnSupervised(name, args, Math.min(restartDelayMs * 2, 60_000)), restartDelayMs);
+    });
+    child.on("error", (error) => {
+      console.log(`[daymark-local] ${name} spawn error: ${String(error?.message ?? error)}; retry in ${restartDelayMs}ms`);
+      setTimeout(() => spawnSupervised(name, args, Math.min(restartDelayMs * 2, 60_000)), restartDelayMs);
+    });
+  } catch (error) {
+    console.log(`[daymark-local] ${name} spawn failed: ${String(error?.message ?? error)}`);
+  }
+}
+function runProviderGuard() {
+  if (NO_CHILDREN) return;
+  try {
+    const child = spawn(process.execPath, ["F:/study/WebBuilding/projects/daymark-desktop/scripts/provider-config-guard.mjs"], {
+      windowsHide: true,
+      stdio: "ignore",
+    });
+    child.on("error", () => {});
+  } catch {}
+}
+
+// USER LAW (2026-10-27): the Electron app historically re-registered a
+// login Run key on every launch. Old builds in the wild can still do it, so
+// the ONE remaining entry point (this server) scrubs the key at boot.
+function scrubAppRunKey() {
+  if (NO_CHILDREN) return;
+  try {
+    const child = spawn("reg.exe", ["delete", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", "/v", "com.michaelunkai.daymark.windows", "/f"], {
+      windowsHide: true,
+      stdio: "ignore",
+    });
+    child.on("error", () => {});
+  } catch {}
+}
+
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`[daymark-local] listening on http://127.0.0.1:${PORT} (LAN: port reachable via host IP)`);
   console.log(`[daymark-local] data dir: ${DATA_DIR}`);
   console.log(`[daymark-local] revision: ${revision}, state ${state ? JSON.stringify(state).length : 0} bytes`);
+  armReminderTimers();
+  spawnSupervised("daymark-relay", ["F:/study/Platforms/windows/automation/daymark-relay/relay.js"]);
+  spawnSupervised("daymark-zcode-bridge", ["F:/study/WebBuilding/projects/daymark-desktop/scripts/daymark-zcode-bridge.mjs"]);
+  runProviderGuard();
+  scrubAppRunKey();
+  setInterval(runProviderGuard, 5 * 60_000);
 });
+
+// Keep reminder timers aligned with the live state: every committed revision
+// (any device's sync push) re-arms, and the sweep repairs sleep drift.
+setInterval(armReminderTimers, REMINDER_SWEEP_MS);
+const _commitState = commitState;
+commitState = function (nextRevision) {
+  _commitState(nextRevision);
+  armReminderTimers();
+};

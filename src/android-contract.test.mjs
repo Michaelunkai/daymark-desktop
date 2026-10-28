@@ -35,8 +35,8 @@ test("Android release exposes the shared responsive app with the premium launche
 
   assert.match(manifest, /android:icon="@drawable\/ic_daymark_launcher"/);
   assert.match(manifest, /android:roundIcon="@drawable\/ic_daymark_launcher"/);
-  assert.match(gradle, /versionCode 35/);
-  assert.match(gradle, /versionName "1\.4\.45"/);
+  assert.match(gradle, /versionCode 38/);
+  assert.match(gradle, /versionName "1\.4\.48"/);
   assert.match(gradle, /androidComponents[\s\S]*?withBuildType\("release"\)/);
   assert.match(gradle, /verifyDaymarkReleaseInputs/);
   assert.match(gradle, /A Daymark release requires DAYMARK_SIGNING_STORE/);
@@ -102,11 +102,14 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(activity, /onPageCommitVisible/);
   assert.match(activity, /onPageCommitVisible\(WebView view, String url\) \{\s*if \(view == webView && !loadingFailed\) \{\s*scheduleAppReadinessCheck\(view\);/);
   assert.doesNotMatch(activity, /Loading Daymark/);
-  assert.match(activity, /Daymark could not load/);
+  assert.match(activity, /Reconnecting to your PC/);
   assert.match(activity, /retryCurrentPage/);
-  assert.match(activity, /LOAD_CACHE_ELSE_NETWORK/);
+  // 2026-10-28 user law: HTML loads network-first so server deploys reach the
+  // phone on every launch; the APK bundle is the offline fallback only.
+  assert.match(activity, /setCacheMode\(WebSettings\.LOAD_DEFAULT\)/);
+  assert.match(activity, /fetchFreshHtmlResponse/);
   assert.match(activity, /setOffscreenPreRaster\(true\)/);
-  assert.match(activity, /NATIVE_RELEASE = "1\.4\.44"/);
+  assert.match(activity, /NATIVE_RELEASE = "1\.4\.48"/);
   assert.match(activity, /STARTUP_CREATED_MARKER/);
   assert.match(activity, /STARTUP_READY_MARKER/);
   assert.match(activity, /appendQueryParameter\(STARTUP_MARKER_PARAM, STARTUP_CREATED_MARKER\)/);
@@ -124,7 +127,9 @@ test("Android release exposes the shared responsive app with the premium launche
   assert.match(activity, /DaymarkChromeClient/);
   assert.doesNotMatch(activity, /loadDataWithBaseURL/);
   assert.deepEqual([...icon.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
-  assert.ok(icon.length > 50_000);
+  // Premium icon floor: the current adaptive-icon PNG is ~19KB; 50_000
+  // was the old raster-only size. Keep a real floor, not the stale one.
+  assert.ok(icon.length > 15_000);
   assert.match(manifest, /android:resizeableActivity="true"/);
   assert.match(manifest, /android:screenOrientation="unspecified"/);
   assert.match(manifest, /android:configChanges="[^"]*orientation[^"]*screenSize/);
@@ -238,27 +243,30 @@ test("Android packages and serves the built client before a network response is 
 });
 
 test("Android reminders sync their definitions and schedule native alerts across restarts", async () => {
-  const [manifest, activity, scheduler, receiver, bootReceiver, reminderStore, reminderPlanner, appSource] = await Promise.all([
+  const [manifest, activity, scheduler, receiver, bootReceiver, syncService, reminderStore, reminderPlanner, appSource] = await Promise.all([
     readFile(new URL("./android/app/src/main/AndroidManifest.xml", root), "utf8"),
     readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/MainActivity.java", root), "utf8"),
     readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/ReminderScheduler.java", root), "utf8"),
     readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/ReminderAlarmReceiver.java", root), "utf8"),
     readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/ReminderBootReceiver.java", root), "utf8"),
+    readFile(new URL("./android/app/src/main/java/com/michaelunkai/daymark/ReminderSyncService.java", root), "utf8"),
     readFile(new URL("./src/features/reminders/local-reminders.ts", root), "utf8"),
     readFile(new URL("./src/features/reminders/ReminderPlanner.jsx", root), "utf8"),
     readFile(new URL("./src/App.jsx", root), "utf8"),
   ]);
   assert.match(manifest, /POST_NOTIFICATIONS/);
-  // ZERO-BACKGROUND LAW (user-mandated): the companion app must have no boot
-  // receivers and no exact-alarm wakeups — it runs only while on screen and
-  // drains no battery in the background. The old reminder alarm/boot stack was
-  // deliberately removed from the manifest; assert its absence forever.
-  assert.doesNotMatch(manifest, /SCHEDULE_EXACT_ALARM/);
-  assert.doesNotMatch(manifest, /RECEIVE_BOOT_COMPLETED/);
-  assert.doesNotMatch(manifest, /ReminderAlarmReceiver/);
-  assert.doesNotMatch(manifest, /ReminderBootReceiver/);
-  assert.doesNotMatch(manifest, /BOOT_COMPLETED/);
-  assert.doesNotMatch(manifest, /LOCKED_BOOT_COMPLETED/);
+  // EXACT-VOICE REMINDER LAW (user law 2026-10-27, supersedes the old
+  // zero-background law): reminders must fire at the exact set time with an
+  // audible voice notification even when the app is closed. The alarm/boot
+  // receivers MUST be registered and exact alarms permitted — their absence
+  // was why reminders silently never fired.
+  assert.match(manifest, /SCHEDULE_EXACT_ALARM/);
+  assert.match(manifest, /USE_EXACT_ALARM/);
+  assert.match(manifest, /RECEIVE_BOOT_COMPLETED/);
+  assert.match(manifest, /WAKE_LOCK/);
+  assert.match(manifest, /android:name="com\.michaelunkai\.daymark\.ReminderAlarmReceiver"[^]*?android:exported="false"/);
+  assert.match(manifest, /android:name="com\.michaelunkai\.daymark\.ReminderBootReceiver"\s*android:exported="true">\s*<intent-filter>\s*<action android:name="android\.intent\.action\.BOOT_COMPLETED"/);
+  assert.match(receiver, /ReminderVoice\.speak\(context, content\)/);
   assert.match(activity, /syncReminders/);
   assert.match(activity, /getNotificationStatus/);
   assert.match(activity, /requestNotificationPermission/);
@@ -333,6 +341,24 @@ test("Android reminders sync their definitions and schedule native alerts across
   );
   assert.match(receiver, /isAlreadyPosted\(context,\s*scheduleId\)[\s\S]*?markDelivered/);
   assert.match(bootReceiver, /ReminderScheduler\.reschedule/);
+  // ALWAYS-ALERT LAW (user law 2026-10-27): reminders created on any device
+  // must reach this phone even with the app closed — the foreground sync
+  // service long-polls the PC feed and arms the same native alarms.
+  assert.match(manifest, /FOREGROUND_SERVICE_SPECIAL_USE/);
+  assert.match(manifest, /android:name="com\.michaelunkai\.daymark\.ReminderSyncService"[^]*?foregroundServiceType="specialUse"/);
+  assert.match(manifest, /MY_PACKAGE_REPLACED/);
+  assert.match(syncService, /reminder-feed\?rev=/);
+  assert.match(syncService, /ReminderScheduler\.replace\(this, schedules\.toString\(\)\)/);
+  assert.match(syncService, /setReadTimeout/);
+  assert.match(activity, /ReminderSyncService\.ensureRunning\(this\)/);
+  assert.match(reminderPlanner, /quickTimeChips/);
+  assert.match(reminderPlanner, /In 5 min/);
+  // 30/20/10 LAW (user law 2026-10-28): new reminders default to the alarm
+  // sound at 30, 20 and 10 minutes before — one-tap presets keep it that way.
+  assert.match(reminderPlanner, /minutes: 30, direction: 'before', sound: 'alarm'/);
+  assert.match(reminderPlanner, /minutes: 20, direction: 'before', sound: 'alarm'/);
+  assert.match(reminderPlanner, /minutes: 10, direction: 'before', sound: 'alarm'/);
+  assert.match(reminderPlanner, /30 \/ 20 \/ 10 before/);
   assert.match(reminderStore, /daymark\.local-reminders\.v1/);
   assert.match(reminderStore, /toNativeReminderSchedules/);
   assert.match(reminderPlanner, /Test \$\{offset\.sound\} sound/);

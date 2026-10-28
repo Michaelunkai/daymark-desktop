@@ -28,7 +28,6 @@ type MutationResult = { ok: true; inverse: UndoAction; changed?: boolean } | Inv
 export interface AppStore {
   getState(): AppState;
   dispatch(action: UserAction): DispatchResult;
-  rollOverIncompleteTasks(today: string): AppState;
   replace(next: AppState): AppState;
   reload(): AppState;
   reset(): AppState;
@@ -42,17 +41,6 @@ export function createAppStore(storage: StateStorage, fallback?: () => AppState)
 
   return {
     getState: () => state,
-    rollOverIncompleteTasks: (today) => {
-      const loaded = loadState(storage, fallback);
-      const durable = loaded.available ? loaded.state : state;
-      const rolledOver = rollOverIncompleteTasks(durable, today);
-      if (!rolledOver.changed) return state;
-
-      const saved = saveState(storage, rolledOver.state, durable.revision);
-      state = saved.state;
-      notify();
-      return state;
-    },
     replace: (next) => {
       state = structuredClone(next);
       try {
@@ -103,35 +91,6 @@ export function createAppStore(storage: StateStorage, fallback?: () => AppState)
   };
 }
 
-export function rollOverIncompleteTasks(
-  state: AppState,
-  today: string,
-  now = new Date().toISOString(),
-): { state: AppState; changed: boolean } {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(today)) {
-    throw new Error("Today must be a valid local date.");
-  }
-
-  // Tasks with a deletion tombstone are logically deleted; the record only
-  // lingers until the next sync merge removes it. Re-dating them here would
-  // stamp updatedAt past the tombstone and resurrect the deleted task.
-  const overdueTaskIds = Object.values(state.tasks)
-    .filter((task) => task.completedAt === null && task.due?.date && task.due.date < today)
-    .filter((task) => !state.syncTombstones?.[`tasks:${task.id}`])
-    .map((task) => task.id);
-  if (!overdueTaskIds.length) return { state, changed: false };
-
-  const next = structuredClone(state);
-  for (const taskId of overdueTaskIds) {
-    const task = next.tasks[taskId];
-    if (!task?.due) continue;
-    task.due.date = today;
-    task.updatedAt = now;
-  }
-  next.revision = state.revision + 1;
-  next.updatedAt = now;
-  return { state: next, changed: true };
-}
 
 export function reduce(state: AppState, action: StoreAction, now = new Date().toISOString()): DispatchResult {
   const draft = structuredClone(state);
@@ -257,6 +216,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       if (!task) return invalid("The task no longer exists.");
       const before = {
         completedAt: task.completedAt,
+        reopenedAt: task.reopenedAt ?? null,
         completionContext: task.completionContext,
         projectId: task.projectId,
         sectionId: task.sectionId,
@@ -278,6 +238,9 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
         }
         const context = task.completionContext;
         task.completedAt = null;
+        // An explicit reopen must outrank every earlier completion in the
+        // merge (sticky-completion rule); stamping it here makes that true.
+        task.reopenedAt = now;
         if (context && isValidTaskLocation(state, context.projectId, context.sectionId)) {
           task.projectId = context.projectId;
           task.sectionId = context.sectionId;
@@ -293,6 +256,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
           taskId: task.id,
           patch: {
             completedAt: before.completedAt,
+            reopenedAt: before.reopenedAt,
             completionContext: before.completionContext,
             projectId: before.projectId,
             sectionId: before.sectionId,
@@ -457,11 +421,7 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       if (action.patch.relationId && !state.orderItems[action.patch.relationId]) return invalid("The related Order item does not exist.");
       if (action.patch.relationId === item.id) return invalid("An Order item cannot relate to itself.");
       const before = pick(item, action.patch);
-      Object.assign(item, action.patch, {
-        title: action.patch.title?.trim() ?? item.title,
-        details: action.patch.details?.trim() ?? item.details,
-        updatedAt: now,
-      });
+      Object.assign(item, action.patch, { updatedAt: now });
       if (action.patch.status === "done") return completeOrderItem(state, item, now);
       return { ok: true, inverse: { type: "order.update", itemId: item.id, patch: before } };
     }
@@ -520,12 +480,11 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
     case "note.add": {
       const id = action.input.id ?? createId("note");
       if (state.notes[id]) return invalid("That note already exists.");
-      const title = action.input.title?.trim() ?? "";
+      const title = action.input.title ?? "";
       const body = action.input.body ?? "";
-      if (!title && !body.trim()) return invalid("A note needs a title or body.");
       const note: Note = {
         id,
-        title: title || "Untitled note",
+        title,
         body,
         completedAt: null,
         order: action.input.order ?? nextOrder(state.notes),
@@ -552,11 +511,11 @@ function mutate(state: AppState, action: Exclude<StoreAction, { type: "undo" }>,
       const note = state.notes[action.noteId];
       if (!note) return invalid("The note no longer exists.");
       const before = pick(note, action.patch);
-      const nextTitle = action.patch.title === undefined ? note.title : action.patch.title.trim();
+      const nextTitle = action.patch.title === undefined ? note.title : action.patch.title;
       const nextBody = action.patch.body === undefined ? note.body : action.patch.body;
-      if (!nextTitle && !nextBody.trim()) return invalid("A note needs a title or body.");
+      if (!nextTitle.trim() && !nextBody.trim()) return invalid("A note needs a title or body.");
       Object.assign(note, action.patch, {
-        title: nextTitle || "Untitled note",
+        title: nextTitle,
         body: nextBody,
         updatedAt: now,
       });

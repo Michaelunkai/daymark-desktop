@@ -99,6 +99,31 @@
   border-radius: 8px;
 }
 
+/* The editor must always fit the visual viewport: it pins to the top of the
+   scroll area, never grows past the scroll container, and scrolls internally
+   so the sticky Save/Cancel bar stays reachable on every phone size, even
+   with the keyboard open. Height is capped against the main-content scroll
+   port (viewport minus the top bar), not the raw window. */
+.reminder-planner__editor {
+  position: sticky;
+  top: 8px;
+  z-index: 3;
+  max-height: calc(var(--daymark-viewport-height, 100dvh) - var(--daymark-topbar-height, 72px) - 28px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.reminder-planner__editor-heading {
+  position: sticky;
+  top: -17px;
+  z-index: 2;
+  margin: -16px -16px 0;
+  padding: 12px 16px;
+  background: var(--surface, #141514);
+  border-bottom: 1px solid var(--line, #2a2c2a);
+}
+
 .reminder-planner__editor > label,
 .reminder-planner__destination {
   min-width: 0;
@@ -187,6 +212,13 @@
 
 .reminder-planner__editor-actions {
   justify-content: flex-end;
+  position: sticky;
+  bottom: -16px;
+  z-index: 2;
+  margin: 0 -16px -16px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: var(--surface, #141514);
+  border-top: 1px solid var(--line, #2a2c2a);
 }
 
 .reminder-planner__error {
@@ -332,4 +364,49 @@
 [data-theme] body .reminder-planner__target-tabs button[aria-pressed="true"] {
   border-color: #ff7900 !important;
   color: #ff7900 !important;
+}
+
+/* ── Quick-create chips (user law 2026-10-27) ─────────────────────────────
+   One tap sets the time. Solid black at rest AND on hover (hover law). */
+.reminder-planner__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.reminder-planner__chip {
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  min-height: 34px;
+  padding: 0 14px;
+}
+
+.reminder-planner__chip:hover {
+  background: #000;
+  border-color: #2de2c5;
+  color: #2de2c5;
+}
+
+.reminder-planner__advanced {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+}
+
+.reminder-planner__advanced > summary {
+  color: #98a2ad;
+  cursor: pointer;
+  font-size: 13px;
+  user-select: none;
+}
+
+.reminder-planner__advanced[open] > summary {
+  color: #fff;
+  margin-bottom: 12px;
 }

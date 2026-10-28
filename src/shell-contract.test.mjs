@@ -33,7 +33,7 @@ const quickCaptureModel = await readFile(
   'utf8',
 )
 const main = await readFile(new URL('./main.jsx', import.meta.url), 'utf8')
-const smoothWheel = await readFile(new URL('./core/smooth-wheel.ts', import.meta.url), 'utf8')
+const scrollModule = await readFile(new URL('./features/workspace/scroll.ts', import.meta.url), 'utf8')
 const taskRow = app.slice(app.indexOf('function TaskRow('), app.indexOf('function SectionHeading('))
 const boardTaskCard = app.slice(app.indexOf('function BoardTaskCard('), app.indexOf('function TaskComposer('))
 const orderItemCard = orderWorkspace.slice(
@@ -426,7 +426,10 @@ test('shell styles include keyboard focus, mobile layout, and dark theme coverag
   // because the runtime sets data-theme to the raw preference ("system" by
   // default), so [data-theme="dark"] guards never matched and light-theme
   // grey hover fills leaked through.
-  assert.match(styles, /\[data-theme\] \.app-shell \*:hover/)
+  // Round-3 law: the universal *:hover guard became a scoped rule (whole-document
+  // * matching forced style recalcs while scrolling long lists).
+  assert.doesNotMatch(styles, /\*:hover/)
+  assert.match(styles, /:root:not\(\[data-theme="light"\]\) :is\(button, a, summary, label, li, tr, option, input, select, textarea/)
   assert.match(styles, /@media \(max-width: 720px\)/)
   assert.match(styles, /\.settings-grid/)
   assert.match(styles, /\.visually-hidden/)
@@ -473,17 +476,11 @@ test('standalone Reminders avoids duplicate headings on older Android WebViews',
   )
 })
 
-test('coarse mouse wheels are smoothed without replacing precise or accessible scrolling', () => {
-  assert.equal([...main.matchAll(/installSmoothWheelScrolling\(\)/g)].length, 1)
-  assert.match(smoothWheel, /passive: false/)
-  assert.match(smoothWheel, /prefers-reduced-motion: reduce/)
-  assert.match(smoothWheel, /isDiscreteMouseWheel/)
-  assert.match(smoothWheel, /findScrollTarget\(path, "x", deltaY\)/)
-  assert.match(smoothWheel, /daymark-smooth-wheel-active/)
-  assert.match(smoothWheel, /findVisibleSidebarFallback/)
-  assert.match(smoothWheel, /\.sidebar__scroll/)
-  assert.match(smoothWheel, /NEAR_EMPTY_MAIN_SCROLL_LIMIT = 320/)
-  assert.match(styles, /\.daymark-smooth-wheel-active \{[\s\S]*?scroll-behavior: auto !important;/)
+test('native scrolling — the wheel is never hijacked (round 3)', () => {
+  assert.doesNotMatch(main, /installSmoothWheelScrolling/)
+  assert.match(scrollModule, /NEVER hijacks the wheel/)
+  assert.match(scrollModule, /export function attachBoardScroll/)
+  assert.match(scrollModule, /export function scrollToSection/)
 })
 
 test('transfer selects capture WebView values before scheduling state updates', () => {

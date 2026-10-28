@@ -17,7 +17,8 @@ const execFileAsync = promisify(execFile);
 const PROXY_URL = "http://127.0.0.1:3460/v1/chat/completions";
 const MAX_STEPS = 40;
 const MAX_WALL_MS = 25 * 60_000;
-const CALL_TIMEOUT_MS = 180_000;
+const CALL_TIMEOUT_MS = 360_000;
+const STEP_PACE_MS = 30_000; // ~1 journal line per minute — quota-friendly cadence
 const HISTORY_KEEP = 44; // messages kept besides the system prompt (context-overflow proof)
 
 const TOOLS = [
@@ -148,6 +149,7 @@ export async function runNvidiaAgent(p) {
   let lastSig = "";
   let repeatCount = 0;
   for (; step < MAX_STEPS; step += 1) {
+    if (step > 0) await new Promise((res) => setTimeout(res, STEP_PACE_MS)); // key-pool recovery pacing
     if (Date.now() - started > MAX_WALL_MS) { await journal(`time budget ${Math.round(MAX_WALL_MS / 60000)} min elapsed — stopping with partial results`); break; }
     if (await shouldStop()) { await journal("card left In Progress — NVIDIA agent stopping"); break; }
 

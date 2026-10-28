@@ -1,0 +1,246 @@
+/* Journal (Notes + Diary) — round 3. Solid-black surfaces, teal accent,
+   generous touch targets, zero backdrop-filters (scroll performance law). */
+
+.journal-toolbar {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.journal-toolbar strong { color: var(--ink); font-size: 14px; }
+
+.journal-primary {
+  align-items: center;
+  background: var(--teal, #2fbf9b);
+  border: 1px solid var(--teal, #2fbf9b);
+  border-radius: 8px;
+  color: #00120c;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 750;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 14px;
+}
+
+.journal-icon-btn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 14px;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+.journal-icon-btn:hover { border-color: var(--teal, #2fbf9b); color: var(--teal, #2fbf9b); }
+.journal-icon-btn--danger:hover { border-color: #e0564f; color: #e0564f; }
+
+.journal-chip {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  min-height: 32px;
+  padding: 5px 12px;
+}
+.journal-chip:hover { border-color: var(--ink-muted); color: var(--ink); }
+.journal-chip--danger:hover { border-color: #e0564f; color: #e0564f; }
+
+/* Notes */
+.journal-notes__list { display: grid; gap: 14px; }
+.journal-note {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+.journal-note__head { align-items: center; display: flex; gap: 10px; justify-content: space-between; }
+.journal-note__title {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  color: var(--ink);
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+  min-width: 0;
+  padding: 4px 0;
+}
+.journal-note__title:focus { border-bottom-color: var(--line-strong); outline: none; }
+.journal-note__tools { display: flex; gap: 8px; }
+.journal-note__body {
+  background: transparent;
+  border: 0;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  line-height: 1.6;
+  min-height: 76px;
+  resize: vertical;
+  width: 100%;
+}
+.journal-note__body:focus { outline: none; }
+.journal-note__foot { align-items: center; color: var(--ink-muted); display: flex; font-size: 11.5px; gap: 10px; justify-content: space-between; }
+.journal-note__moves { display: flex; gap: 8px; }
+.journal-note.is-done { opacity: .62; }
+.journal-note__done-row {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-muted);
+  display: flex;
+  font-size: 13px;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 10px 2px;
+}
+.journal-note__done-row > div { display: flex; gap: 8px; }
+.journal-empty {
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  color: var(--ink-soft);
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+.journal-empty strong { color: var(--ink); font-size: 15px; }
+.journal-empty span { font-size: 12.5px; }
+
+/* Diary */
+.journal-diary { display: grid; gap: 18px; }
+.journal-diary__streak {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  padding: 5px 12px;
+}
+.journal-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
+.journal-strip__day {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex-direction: column;
+  font-size: 10.5px;
+  gap: 4px;
+  min-height: 58px;
+  min-width: 76px;
+  padding: 8px 10px;
+}
+.journal-strip__day.is-selected { border-color: var(--teal, #2fbf9b); color: var(--ink); }
+.journal-strip__dot { background: transparent; border-radius: 50%; height: 6px; width: 6px; }
+.journal-strip__day.has-entry .journal-strip__dot { background: var(--teal, #2fbf9b); }
+.journal-strip__jump { align-items: center; border-left: 1px solid var(--line); color: var(--ink-muted); display: flex; font-size: 11px; gap: 6px; margin-left: 4px; padding-left: 10px; }
+.journal-strip__jump input {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  color-scheme: dark;
+  min-height: 36px;
+  padding: 4px 8px;
+}
+.journal-diary__editor { display: grid; gap: 12px; }
+.journal-diary__editor-head { align-items: flex-end; display: flex; gap: 12px; justify-content: space-between; }
+.journal-diary__editor-head h2 { color: var(--ink); font-size: 22px; margin: 4px 0 0; }
+.journal-diary__editor-tools { align-items: center; display: flex; gap: 10px; }
+.journal-diary__saved { color: var(--teal, #2fbf9b); font-size: 11.5px; }
+.journal-diary__mood { align-items: center; color: var(--ink-muted); display: flex; font-size: 11.5px; gap: 6px; }
+.journal-diary__mood select {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  min-height: 36px;
+  padding: 4px 8px;
+}
+.journal-diary__body {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  font-size: 14.5px;
+  line-height: 1.7;
+  min-height: 200px;
+  padding: 16px;
+  resize: vertical;
+  width: 100%;
+}
+.journal-diary__body:focus { border-color: var(--line-strong); outline: none; }
+.journal-diary__prompts { border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+.journal-diary__prompts summary { color: var(--ink-soft); cursor: pointer; font-size: 13px; font-weight: 700; }
+.journal-diary__prompts small { color: var(--ink-muted); font-weight: 400; }
+.journal-diary__prompts > div { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 12px; }
+.journal-diary__prompts label { color: var(--ink-muted); display: grid; font-size: 11.5px; gap: 6px; }
+.journal-diary__prompts textarea {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.55;
+  padding: 10px;
+  resize: vertical;
+}
+.journal-diary__prompts textarea:focus { border-color: var(--line-strong); outline: none; }
+.journal-diary__timeline { border-top: 1px solid var(--line); display: grid; gap: 8px; padding-top: 16px; }
+.journal-diary__timeline header { align-items: center; display: flex; gap: 12px; justify-content: space-between; }
+.journal-diary__timeline h3 { color: var(--ink); font-size: 15px; margin: 0; }
+.journal-diary__timeline h3 small { color: var(--ink-muted); font-weight: 400; }
+.journal-diary__timeline input {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  min-height: 38px;
+  padding: 6px 12px;
+  width: min(320px, 100%);
+}
+.journal-diary__entry {
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  padding: 12px 6px;
+  text-align: left;
+}
+.journal-diary__entry:hover { border-color: var(--line-strong); border-radius: 8px; }
+.journal-diary__entry-date { color: var(--ink); font-size: 13.5px; font-weight: 700; }
+.journal-diary__entry-preview { color: var(--ink-soft); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.journal-diary__entry-meta { color: var(--ink-muted); font-size: 11px; }
+.journal-diary__empty { color: var(--ink-muted); font-size: 12.5px; }
+
+@media (max-width: 720px) {
+  .journal-primary, .journal-icon-btn, .journal-chip, .journal-strip__jump input, .journal-diary__mood select { min-height: 44px; }
+  .journal-icon-btn { height: 44px; width: 44px; }
+  .journal-diary__prompts > div { grid-template-columns: minmax(0, 1fr); }
+  .journal-diary__editor-head { align-items: stretch; flex-direction: column; }
+  .journal-diary__editor-tools { flex-wrap: wrap; }
+  .journal-note__title, .journal-note__body, .journal-diary__body { font-size: 16px; }
+  .journal-note__title { min-height: 44px; }
+  .journal-diary__timeline input { width: 100%; }
+}

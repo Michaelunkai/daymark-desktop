@@ -31,9 +31,6 @@
   box-sizing: border-box;
 }
 
-.daymark-smooth-wheel-active {
-  scroll-behavior: auto !important;
-}
 
 body {
   margin: 0;
@@ -122,7 +119,6 @@ input:focus-visible {
   height: 64px;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
-  backdrop-filter: blur(18px);
 }
 
 .topbar__brand {
@@ -3203,16 +3199,6 @@ kbd {
   opacity: 1;
 }
 
-[data-theme] .app-shell *:hover,
-[data-theme] .app-shell *:focus-visible,
-[data-theme] .app-shell [aria-selected="true"],
-[data-theme] .app-shell [aria-pressed="true"],
-[data-theme] .app-shell .is-selected,
-[data-theme] .app-shell .is-active {
-  color: #fff !important;
-  background-color: #000 !important;
-}
-
 [data-theme] .brand-mark,
 [data-theme] .brand-mark:hover,
 [data-theme] .app-sidebar__identity-mark,
@@ -3261,12 +3247,6 @@ kbd {
   opacity: 1;
 }
 
-[data-theme] .app-shell *:hover,
-[data-theme] .app-shell *:focus-visible {
-  color: #e8ecef !important;
-  background-color: #0b0d10 !important;
-}
-
 [data-theme] .app-shell [aria-selected="true"],
 [data-theme] .app-shell [aria-pressed="true"],
 [data-theme] .app-shell .is-selected,
@@ -3311,12 +3291,6 @@ kbd {
 [data-theme] body *::placeholder {
   color: #98a2ad !important;
   opacity: 1;
-}
-
-[data-theme] body *:hover,
-[data-theme] body *:focus-visible {
-  color: #e8ecef !important;
-  background-color: #0b0d10 !important;
 }
 
 [data-theme] body [aria-selected="true"],
@@ -3992,18 +3966,6 @@ kbd {
   border: 1px solid var(--line);
   border-radius: var(--radius, 10px);
   background: var(--surface);
-}
-
-/* Vanta-black hover guard: control-board rows/cards must never fill grey on
-   hover. Legacy light-theme hover fills (.task-row:hover / .board-task:hover
-   paint var(--surface-hover)) and older shipped bundles without the dark
-   "*:hover -> #000" guard would otherwise repaint these surfaces grey; only a
-   subtle border-color shift is allowed here. */
-.control-panel .control-board__row:hover,
-.control-panel .control-card:hover {
-  background: var(--color-surface, var(--surface)) !important;
-  background-color: var(--color-surface, var(--surface)) !important;
-  border-color: rgba(255, 255, 255, 0.14);
 }
 
 .control-board__add-trigger {
@@ -5229,8 +5191,6 @@ kbd {
   position: sticky;
   top: 0;
   z-index: 2;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 .control-card {
@@ -5842,8 +5802,7 @@ textarea:focus-visible {
   z-index: 2;
   margin: -14px -14px 4px;
   padding: 12px 14px 10px;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  backdrop-filter: blur(6px);
+  background: var(--surface);
   border-bottom: 1px solid var(--line);
   border-radius: 16px 16px 0 0;
 }
@@ -6077,4 +6036,104 @@ textarea:focus-visible {
 .control-board__pause-all:disabled {
   cursor: default;
   opacity: 0.45;
+}
+
+/* Solid-black hover law (round 3): hovering never paints gray in the dark theme. Scoped to interactive/list element kinds — NOT the universal * selector, which forced whole-document style recalc on every hover-chain change while scrolling long lists. */
+:root:not([data-theme="light"]) :is(button, a, summary, label, li, tr, option, input, select, textarea, [role="button"], [role="option"], [role="tab"], [role="listitem"], [role="menuitem"], [role="switch"], .task-item, .task-row, .order-item, .command-row, .calendar-day, .upcoming-day, .note-card, .journal-note):hover,
+:root:not([data-theme="light"]) :is(button, a, summary, label, input, select, textarea, [role="button"]):focus-visible {
+  color: #e8ecef !important;
+  background-color: transparent !important;
+}
+[data-theme="light"] .app-shell :is(button, a, li, tr, summary):hover,
+[data-theme="light"] .app-shell :is(button, a):focus-visible {
+  background-color: rgba(11, 13, 16, 0.04) !important;
+}
+
+/* MODAL ELEVATION LAW (round 3): every dialog reads as a distinct raised layer on the vanta-black theme — visibly lighter surface, strong border, deep shadow, dimming+blurring scrim. A near-black panel on #000 was indistinguishable (user report). */
+:root:not([data-theme="light"]) .order-editor-overlay,
+:root:not([data-theme="light"]) .task-editor__backdrop,
+:root:not([data-theme="light"]) .command-overlay,
+:root:not([data-theme="light"]) .project-dialog__backdrop,
+:root:not([data-theme="light"]) .modal-backdrop,
+:root:not([data-theme="light"]) .task-detail-drawer__backdrop,
+:root:not([data-theme="light"]) .sidebar-backdrop {
+  background: rgba(0, 0, 0, 0.72) !important;
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+}
+:root:not([data-theme="light"]) .order-editor,
+:root:not([data-theme="light"]) .task-editor__surface,
+:root:not([data-theme="light"]) .command-dialog,
+:root:not([data-theme="light"]) .modal-card,
+:root:not([data-theme="light"]) .task-detail-drawer__panel,
+:root:not([data-theme="light"]) .project-dialog {
+  background: #12161d !important;
+  border: 1px solid #2a3038 !important;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(47, 191, 155, 0.08) !important;
+}
+
+/* MOBILE TAB BAR (round 3, Android law): thumb-reachable primary navigation, 48dp+ targets, safe-area padding. Desktop never sees it. */
+.mobile-tabbar { display: none; }
+@media (max-width: 720px) {
+  .mobile-tabbar {
+    background: #0b0d10;
+    border-top: 1px solid var(--line-strong);
+    bottom: 0;
+    display: flex;
+    justify-content: space-around;
+    left: 0;
+    padding: 4px 2px calc(4px + env(safe-area-inset-bottom, 0px));
+    position: fixed;
+    right: 0;
+    z-index: 30;
+  }
+  .mobile-tabbar button {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 10px;
+    color: var(--ink-muted);
+    cursor: pointer;
+    display: grid;
+    flex: 1 1 0;
+    gap: 3px;
+    justify-items: center;
+    min-height: 52px;
+    min-width: 56px;
+    padding: 4px 6px;
+  }
+  .mobile-tabbar button span { font-size: 10.5px; font-weight: 700; }
+  .mobile-tabbar button.is-active { color: var(--teal); }
+  .main-content { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* WINDOWS PROPORTIONS (round 3): calmer header hierarchy and a readable content column on large displays. */
+@media (min-width: 721px) {
+  .view-header h1 { font-size: 26px; letter-spacing: -0.01em; }
+  .view-header p { font-size: 13px; margin-top: 6px; }
+  .view-header { margin-bottom: 18px; }
+  .order-header h1 { font-size: 28px; }
+  .content-frame--standard { margin: 0 auto; max-width: 1180px; width: 100%; }
+}
+
+/* SCROLL PERFORMANCE (round 3): offscreen rows skip layout/paint; scroll containers never chain. */
+.task-row, .order-item, .journal-note {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 72px;
+}
+.task-list-view, .order-lane__items, .main-content { overscroll-behavior: contain; }
+
+/* Control board rows/cards stay on the black vanta surface on hover; only the
+   border-color shifts subtly here. */
+.control-panel .control-board__row:hover,
+.control-panel .control-card:hover {
+  background: var(--color-surface, var(--surface)) !important;
+  background-color: var(--color-surface, var(--surface)) !important;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Selected/active states keep their solid surface (round-3 scoped version of
+   the old universal rule — no whole-document * matching). */
+:root:not([data-theme="light"]) .app-shell :is([aria-selected="true"], [aria-pressed="true"], .is-selected, .is-active) {
+  background-color: transparent !important;
 }

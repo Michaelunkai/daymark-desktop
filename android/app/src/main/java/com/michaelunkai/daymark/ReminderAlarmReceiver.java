@@ -42,6 +42,10 @@ public final class ReminderAlarmReceiver extends BroadcastReceiver {
             ReminderScheduler.defer(context, intent);
             return;
         }
+        // Voice alert (user law 2026-10-27): the reminder must be audible as
+        // speech, not only a tone. Best effort — the notification already
+        // landed, so a TTS failure must never mark the reminder undelivered.
+        ReminderVoice.speak(context, content);
         if (ReminderScheduler.markDelivered(context, scheduleId, fingerprint)) {
             ReminderScheduler.emitAcceptance(context, scheduleId, fingerprint);
         } else {
@@ -53,12 +57,14 @@ public final class ReminderAlarmReceiver extends BroadcastReceiver {
 
     static void postTest(Context context, String sound) {
         ReminderScheduler.ensureChannel(context, sound);
+        String testContent = "This is the Daymark " + ReminderScheduler.channelLabel(sound) + " test.";
         post(
                 context,
                 sound,
-                "This is the Daymark " + ReminderScheduler.channelLabel(sound) + " test.",
+                testContent,
                 "You will hear this tone when a reminder is due.",
                 "daymark-reminder-test-" + sound);
+        ReminderVoice.speak(context, testContent);
     }
 
     private static boolean post(Context context, String sound, String content, String details, String scheduleId) {

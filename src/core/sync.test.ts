@@ -1,6 +1,6 @@
 import { createSampleState } from "./sample-data";
 import { saveState } from "./storage";
-import { reduce, rollOverIncompleteTasks } from "./store";
+import { reduce } from "./store";
 import {
   canonicalizeReminderTombstones,
   canonicalizeReminders,
@@ -307,26 +307,6 @@ assert(
   "A restored task must not be re-deleted by a circulating tombstone during sync.",
 );
 
-// rollOverIncompleteTasks must not re-date tombstoned tasks; otherwise the
-// mechanically bumped updatedAt resurrects the deleted task during merge.
-const rolloverLocal = createSampleState(older, "rollover-client");
-rolloverLocal.syncTombstones = {
-  "tasks:task-welcome": { deletedAt: newer },
-};
-rolloverLocal.tasks["task-welcome"].due = {
-  date: "2026-08-03",
-  time: null,
-  timezone: null,
-  recurrence: null,
-};
-const rolled = rollOverIncompleteTasks(rolloverLocal, "2026-08-04", "2026-08-04T10:00:02.000Z").state;
-assert(!rolled.tasks["task-welcome"] || rolled.tasks["task-welcome"].due?.date === "2026-08-03",
-  "A tombstoned task must not be rolled over to today.");
-const rolledMerged = mergeSyncStates(rolled, deletedLocal);
-assert(
-  !rolledMerged.tasks["task-welcome"],
-  "Rollover must not resurrect a deleted task under today's date.",
-);
 
 // A deleted task must stay deleted across fresh syncs: a stale copy of the
 // exact record that was deleted (identical updatedAt) merged back from another
@@ -504,4 +484,18 @@ try {
   else delete (globalThis as { window?: unknown }).window;
   if (priorDocument) Object.defineProperty(globalThis, "document", priorDocument);
   else delete (globalThis as { document?: unknown }).document;
+}
+
+
+// Round-3 law: deletion tombstones are authoritative across collections.
+{
+  const T_OLD="2026-08-04T10:00:00.000Z", T_NEW="2026-08-04T10:00:05.000Z";
+  const tombLocal={...createSampleState(T_OLD,"tomb-client"),orderItems:{},syncTombstones:{"orderItems:order-stale":{updatedAt:T_NEW}}};
+  const tombRemote={...createSampleState(T_OLD,"tomb-peer"),orderItems:{"order-stale":{id:"order-stale",title:"Stale live copy",details:"",lane:"now",relationId:null,priority:4,status:"open",order:0,createdAt:T_OLD,updatedAt:T_OLD}},syncTombstones:{}};
+  const tombMerged=mergeSyncStates(tombLocal,tombRemote);
+  assert(!tombMerged.orderItems["order-stale"],"a tombstoned Order item must stay deleted (Complete-button resurrect bug)");
+  const reLocal={...createSampleState(T_OLD,"re-client"),orderItems:{},syncTombstones:{"orderItems:order-re":{updatedAt:T_OLD}}};
+  const reRemote={...createSampleState(T_OLD,"re-peer"),orderItems:{"order-re":{id:"order-re",title:"Recreated",details:"",lane:"later",relationId:null,priority:4,status:"open",order:0,createdAt:T_NEW,updatedAt:T_NEW}},syncTombstones:{}};
+  const reMerged=mergeSyncStates(reLocal,reRemote);
+  assert(reMerged.orderItems["order-re"]?.title==="Recreated","an explicit re-create dated after the tombstone must survive");
 }

@@ -44,7 +44,7 @@ public final class MainActivity extends Activity {
     private static final String PREFS_NAME = "daymark";
     private static final String SYNC_KEY_PREF = "sync_key";
     private static final int SURFACE_COLOR = Color.BLACK;
-    private static final String NATIVE_RELEASE = "1.4.44";
+    private static final String NATIVE_RELEASE = "1.4.48";
     private static final String STARTUP_MARKER_PARAM = "startup";
     private static final String STARTUP_CREATED_MARKER = "daymark:android-startup-created";
     private static final String STARTUP_READY_MARKER = "daymark:android-startup-ready";
@@ -90,6 +90,9 @@ public final class MainActivity extends Activity {
         applyVantaBlackSystemBars();
         WebView.setWebContentsDebuggingEnabled(
                 (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0);
+        // USER LAW (2026-10-27): keep the reminder sync service alive so
+        // reminders created on the PC alert this phone even with the app closed.
+        ReminderSyncService.ensureRunning(this);
 
         root = new FrameLayout(this);
         root.setBackgroundColor(SURFACE_COLOR);
@@ -204,7 +207,13 @@ public final class MainActivity extends Activity {
         settings.setLoadWithOverviewMode(false);
         settings.setUseWideViewPort(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
+        // USER LAW (2026-10-28): the web client must always be current.
+        // LOAD_CACHE_ELSE_NETWORK kept serving the first cached index.html
+        // forever (it ignores the server's no-store on HTML), so UI fixes
+        // deployed on the PC never reached the phone. LOAD_DEFAULT honors
+        // HTTP cache headers: index.html revalidates, hashed assets stay
+        // cached — fresh UI on every launch, zero extra traffic.
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         // Pin text zoom to the system font scale so the user's font-size
         // preference scales every rendered tab on all WebView versions,
         // including older devices where the default can drift.
@@ -470,6 +479,20 @@ public final class MainActivity extends Activity {
             return null;
         }
 
+        // USER LAW (2026-10-28): the app must always run the newest web
+        // client. The APK bundles a snapshot for offline resilience, but the
+        // bundle-first order froze the phone on the build shipped in its APK
+        // — server-side UI updates never arrived. HTML is now fetched from
+        // the server first (short timeout); the bundle only answers when the
+        // server is unreachable. Hashed assets miss the bundle naturally and
+        // keep falling through to the network.
+        if (isHtmlAssetPath(path) && request.isForMainFrame()) {
+            WebResourceResponse fresh = fetchFreshHtmlResponse(request.getUrl());
+            if (fresh != null) {
+                return fresh;
+            }
+        }
+
         try {
             return assetResponse(path);
         } catch (IOException ignored) {
@@ -481,6 +504,44 @@ public final class MainActivity extends Activity {
             } catch (IOException error) {
                 Log.e("DaymarkWeb", "Bundled Daymark client is unavailable.", error);
                 return null;
+            }
+        }
+    }
+
+    private static boolean isHtmlAssetPath(String path) {
+        return path.equals("index.html") || path.endsWith(".html") || path.isEmpty();
+    }
+
+    private WebResourceResponse fetchFreshHtmlResponse(Uri url) {
+        java.net.HttpURLConnection connection = null;
+        try {
+            connection = (java.net.HttpURLConnection)
+                    new java.net.URL(url.toString()).openConnection();
+            connection.setConnectTimeout(4000);
+            connection.setReadTimeout(4000);
+            connection.setUseCaches(false);
+            connection.setRequestProperty("Cache-Control", "no-store");
+            int status = connection.getResponseCode();
+            if (status < 200 || status >= 300) {
+                return null;
+            }
+            InputStream body = connection.getInputStream();
+            String contentType = connection.getContentType();
+            String encoding = null;
+            if (contentType != null && contentType.toLowerCase().contains("charset=")) {
+                int split = contentType.indexOf(';');
+                encoding = contentType.substring(contentType.toLowerCase().indexOf("charset=") + 8).trim();
+                contentType = split > 0 ? contentType.substring(0, split).trim() : contentType;
+            } else {
+                encoding = "UTF-8";
+            }
+            return new WebResourceResponse(contentType == null ? "text/html" : contentType, encoding, body);
+        } catch (Exception error) {
+            Log.w("DaymarkWeb", "Fresh client fetch failed — falling back to the bundled copy. " + error);
+            return null;
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
             }
         }
     }
