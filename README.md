@@ -300,3 +300,7 @@ npm run verify
 $env:JAVA_HOME='C:\path\to\jdk17'
 gradle --gradle-user-home .\work\gradle-user-home assembleRelease
 ```
+
+## Windows launch reliability
+
+See [launch-session guard and sync safety](docs/windows-launch-reliability.md).

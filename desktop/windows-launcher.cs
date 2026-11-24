@@ -79,7 +79,7 @@ internal static class DaymarkLauncher
     [STAThread]
     private static int Main(string[] args)
     {
-        string applicationDirectory = AppDomain.CurrentDomain.BaseDirectory;
+        if (System.Diagnostics.Process.GetCurrentProcess().SessionId == 0) return 20; string applicationDirectory = AppDomain.CurrentDomain.BaseDirectory;
         string runtimePath = Path.Combine(applicationDirectory, RuntimeName);
         if (!File.Exists(runtimePath))
         {
