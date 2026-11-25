@@ -304,3 +304,17 @@ gradle --gradle-user-home .\work\gradle-user-home assembleRelease
 ## Windows launch reliability
 
 See [launch-session guard and sync safety](docs/windows-launch-reliability.md).
+
+## Consolidated Windows deployment
+
+The `windows-consolidated` folder contains the sanitized, single-folder Windows
+deployment implementation: hidden server supervisor, guard task, local CLI,
+skill helpers, relay, gmenu wrapper, static client, and migration records.
+
+All paths, keys, and credentials in these files are placeholders. Set
+`REPLACE_WITH_LOCAL_SYNC_KEY` from the local server data and point the scripts
+at your own installation root before use. Run
+`windows-consolidated\setup\Install-Daymark-Consolidated.ps1 -Root <folder>`
+to wire the Run key, scheduled tasks, shortcuts, protocol, and hidden server.
+
+See [windows-consolidated/README.md](windows-consolidated/README.md).

@@ -1,0 +1,28 @@
+Daymark external-folder deletion journal — 2026-11-25
+
+All required runtime, data, scripts, credentials, bridges, relay, signing and skill helpers were copied to F:\backup\windowsapps\installed\daymark before deletion. Tasks, Run key, protocol, shortcuts and skill documentation were rewired to that folder. Verified: local server healthy on 18780, Daymark app launches from target with target UserData, dm-ops CLI works from target, DaymarkGuard recovers the hidden server with no console pop-up.
+
+Deleted originals:
+
+F:\DaymarkAccess
+F:\backup\ai\daymark-local-server
+F:\backup\AI\daymark-claude-bridge
+F:\backup\AI\daymark-zcode-bridge
+F:\study\WebBuilding\projects\daymark-desktop
+F:\study\Platforms\windows\automation\daymark-relay
+F:\backup\windowsapps\Daymark
+C:\Users\Admin\AppData\Roaming\Daymark
+C:\Users\Admin\AppData\Local\Daymark
+C:\Users\Admin\.zcode\skills\mark\scripts
+C:\Users\Admin\.claude\skills\synced\cffdde32-e2a9-4c3d-83d4-2e90d5cb5c14_c6e2211f-87a1-4e03-acd7-e2d695a13e42\mark\scripts
+C:\Users\Admin\AppData\Roaming\Claude\rpm\c6e2211f\cffdde32\plugin_01Y2c4mFzCt278ifEc7CyLsM\skills\mark\scripts
+C:\Users\Admin\.gmenu\Commands\gdaymark.cmd (replaced by target wrapper)
+C:\Users\Admin\.gmenu\Commands\gdaymark.ps1 (replaced by target wrapper)
+C:\Users\Admin\MissionControl\backup-tasks\DaymarkLocalSyncServer.xml
+C:\Users\Admin\MissionControl\backup-tasks\DaymarkProviderGuard.xml
+C:\Users\Admin\MissionControl\backup-tasks\DaymarkRelay.xml
+F:\study\Platforms\windows\functions\GMenuDaymarkCapture.cjs
+F:\study\Platforms\windows\Applications\Utilities\AI\BananaHarness\HANDOFF-daymark.md
+F:\study\WebBuilding\projects\daymark-desktop-site-source (archived in target Archive)
+F:\study\WebBuilding\projects\daymark-desktop-site-artifacts (archived in target Archive)
+F:\study\projects\media\BlackCinemaApp\scripts\rotate-daymark-log.ps1 (copied to target legacy)

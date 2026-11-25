@@ -1,0 +1,48 @@
+{
+  "name": "Daymark AI API",
+  "version": 4,
+  "apiVersion": "2.0.0",
+  "integration": "openapi-http",
+  "manifest": "/daymark-agent.json",
+  "discovery": "/.well-known/daymark-ai.json",
+  "openapi": "/api/agent/v1/openapi.json",
+  "clientConfiguration": "/daymark-ai-client.json",
+  "connector": "/daymark-ai-connector.mjs",
+  "health": "/api/agent/v1/health",
+  "readiness": "/api/agent/v1/ready",
+  "authentication": {
+    "scheme": "bearer",
+    "provisioning": "Generate a scoped Daymark AI key in Settings. The secret is shown once and can be revoked from Settings."
+  },
+  "scopes": [
+    "projects:read", "projects:write", "sections:read", "sections:write",
+    "labels:read", "labels:write", "filters:read", "filters:write",
+    "tasks:read", "tasks:write", "calendar:read", "notes:read", "notes:write",
+    "diary:read", "diary:write", "order:read", "order:write",
+    "preferences:read", "preferences:write", "search:read", "undo:write"
+  ],
+  "operations": [
+    "listProjects", "createProject", "updateProject", "archiveProject", "deleteProject",
+    "listSections", "createSection", "updateSection",
+    "listLabels", "createLabel", "updateLabel",
+    "listFilters", "createFilter", "updateFilter",
+    "listTasks", "createTask", "updateTask", "completeTask", "reopenTask", "deleteTask",
+    "listCalendar", "listNotes", "createNote", "updateNote", "completeNote", "reopenNote", "deleteNote",
+    "listDiaryEntries", "getDiaryEntry", "upsertDiaryEntry", "deleteDiaryEntry",
+    "listOrderItems", "createOrderItem", "updateOrderItem", "deleteOrderItem",
+    "getPreferences", "updatePreferences", "search", "applyUndo"
+  ],
+  "safeguardedActions": [
+    "task.delete", "project.delete", "note.delete", "diary.delete", "order.delete"
+  ],
+  "excludedData": [
+    "rawSync", "pairingCodes", "backups", "databaseAdministration",
+    "localOnlyReminders", "activityComments"
+  ],
+  "excludedActions": [
+    "backup.import", "backup.export", "sync.manage", "key.administration.byAgent"
+  ],
+  "idempotency": "Every write requires an Idempotency-Key. Reuse the same key after a retryable conflict or transport failure.",
+  "deletion": "Deletion requires confirm=delete and returns a short-lived undo token. Restore only succeeds when no later workspace revision has intervened.",
+  "legacyBrowserBridge": "DaymarkAI remains an in-page compatibility adapter only. It is not required for, and is not the authority for, the authenticated remote API."
+}

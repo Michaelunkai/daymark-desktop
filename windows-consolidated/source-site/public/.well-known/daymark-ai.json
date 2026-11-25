@@ -1,0 +1,24 @@
+{
+  "name": "Daymark AI API",
+  "version": 4,
+  "apiVersion": "2.0.0",
+  "integration": "openapi-http",
+  "manifest": "/daymark-agent.json",
+  "discovery": "/.well-known/daymark-ai.json",
+  "openapi": "/api/agent/v1/openapi.json",
+  "clientConfiguration": "/daymark-ai-client.json",
+  "connector": "/daymark-ai-connector.mjs",
+  "health": "/api/agent/v1/health",
+  "readiness": "/api/agent/v1/ready",
+  "authentication": {
+    "scheme": "bearer",
+    "provisioning": "Generate a scoped Daymark AI key in Settings. The secret is shown once and can be revoked from Settings."
+  },
+  "excludedData": [
+    "rawSync", "pairingCodes", "backups", "databaseAdministration",
+    "localOnlyReminders", "activityComments"
+  ],
+  "excludedActions": [
+    "backup.import", "backup.export", "sync.manage", "key.administration.byAgent"
+  ]
+}

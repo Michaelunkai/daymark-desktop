@@ -1,0 +1,278 @@
+.project-workspace {
+  --project-color: var(--color-accent);
+  --project-canvas: var(--color-canvas);
+  --project-surface: var(--color-surface);
+  --project-border: var(--color-border);
+  --project-text: var(--color-text-primary);
+  --project-muted: var(--color-text-tertiary);
+  --project-focus: var(--color-focus-ring);
+  color: var(--project-text);
+  min-width: 0;
+}
+
+.project-header {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--project-border);
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  padding: 30px clamp(20px, 4vw, 56px) 24px;
+}
+
+.project-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+}
+
+.project-color-mark {
+  background: var(--project-color);
+  border-radius: 5px;
+  flex: 0 0 12px;
+  height: 12px;
+  margin-top: 8px;
+  width: 12px;
+}
+
+.project-heading-copy {
+  min-width: 0;
+}
+
+.project-title-line {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.project-title-line h1 {
+  font-size: clamp(24px, 3vw, 34px);
+  letter-spacing: 0;
+  line-height: 1.1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.project-heading-copy p {
+  color: var(--project-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 9px 0 0;
+  max-width: 680px;
+}
+
+.project-favorite-label {
+  border: 1px solid color-mix(in srgb, var(--project-color) 42%, white);
+  border-radius: 999px;
+  color: var(--project-color);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+.project-header-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.project-icon-button,
+.project-add-section,
+.project-section-action,
+.project-section-add {
+  align-items: center;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  justify-content: center;
+}
+
+.project-icon-button {
+  background: transparent;
+  border-radius: 7px;
+  color: var(--project-muted);
+  height: 38px;
+  padding: 0;
+  width: 38px;
+}
+
+.project-icon-button:hover,
+.project-icon-button[aria-pressed="true"] {
+  background: var(--color-surface-hover);
+  color: var(--project-color);
+}
+
+.project-icon-button svg {
+  height: 19px;
+  width: 19px;
+}
+
+.project-add-section {
+  background: var(--project-text);
+  border-radius: 8px;
+  color: var(--color-accent-contrast);
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 13px;
+}
+
+.project-add-section:hover {
+  background: var(--color-text-secondary);
+}
+
+.project-add-section svg,
+.project-section-add svg {
+  height: 16px;
+  width: 16px;
+}
+
+.project-section-header {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  min-height: 38px;
+}
+
+.project-section-header--list {
+  border-bottom: 1px solid var(--project-border);
+  padding: 0 0 9px;
+}
+
+.project-section-header--board {
+  background: var(--color-surface-hover);
+  border-bottom: 1px solid var(--project-border);
+  border-radius: 9px 9px 0 0;
+  min-height: 48px;
+  padding: 0 13px;
+}
+
+.project-section-heading,
+.project-section-actions {
+  align-items: center;
+  display: flex;
+  min-width: 0;
+}
+
+.project-section-heading {
+  gap: 7px;
+}
+
+.project-section-name {
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+}
+
+.project-section-count {
+  align-items: center;
+  background: var(--color-surface-selected);
+  border-radius: 999px;
+  color: var(--project-muted);
+  display: inline-flex;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  height: 20px;
+  justify-content: center;
+  min-width: 20px;
+  padding: 0 6px;
+}
+
+.project-section-disclosure,
+.project-section-add {
+  background: transparent;
+  border-radius: 5px;
+  color: var(--project-muted);
+  padding: 0;
+}
+
+.project-section-disclosure {
+  align-items: center;
+  display: inline-flex;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+}
+
+.project-section-disclosure:hover,
+.project-section-add:hover {
+  background: var(--color-surface-hover);
+  color: var(--project-text);
+}
+
+.project-section-disclosure svg {
+  height: 15px;
+  width: 15px;
+}
+
+.project-section-actions {
+  gap: 4px;
+}
+
+.project-section-action {
+  background: transparent;
+  border-radius: 5px;
+  color: var(--project-muted);
+  font-size: 11px;
+  min-height: 28px;
+  opacity: 0;
+  padding: 0 7px;
+}
+
+.project-section-header:hover .project-section-action,
+.project-section-header:focus-within .project-section-action {
+  opacity: 1;
+}
+
+.project-section-action:hover {
+  background: var(--color-surface-hover);
+  color: var(--project-text);
+}
+
+.project-section-add {
+  height: 30px;
+  width: 30px;
+}
+
+.project-section-add svg {
+  height: 15px;
+  width: 15px;
+}
+
+.project-icon-button:focus-visible,
+.project-add-section:focus-visible,
+.project-section-disclosure:focus-visible,
+.project-section-action:focus-visible,
+.project-section-add:focus-visible {
+  outline: 2px solid var(--project-focus);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+@media (max-width: 640px) {
+  .project-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 18px;
+    padding: 22px 16px 18px;
+  }
+
+  .project-header-actions {
+    justify-content: flex-end;
+  }
+}

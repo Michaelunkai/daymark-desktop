@@ -1,0 +1,735 @@
+[
+  {
+    "slot": "W61",
+    "criterion_id": "criterion-w61-supabase-schema-and-rls-owner",
+    "contribution_id": "contribution-w61-supabase-schema-and-rls-owner",
+    "job_title": "Supabase schema and RLS owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "execute",
+    "assignment": "Implement the production Supabase/Postgres schema, indexes, signup bootstrap, role-aware row-level security, idempotent mutation RPC, seed data, and deterministic RLS tests for the approved Daymark cloud plan.",
+    "deliverable": "Produce a validated Supabase migration, seed, and RLS test commit with an exact integration handoff to W69.",
+    "consumer": "W69 application shell TypeScript integration owner",
+    "goal_link": "Provides the secure durable backend required for accounts, synchronization, collaboration, reminders, and deployment.",
+    "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and the approved Daymark implementation plan",
+    "write_targets": [
+      "supabase/migrations/202608020001_daymark_core.sql",
+      "supabase/seed.sql",
+      "supabase/tests/rls.sql"
+    ],
+    "action_targets": [],
+    "owned_outputs": [
+      "supabase-schema-rls-commit"
+    ],
+    "exclusions": [
+      "Do not edit application source",
+      "Do not deploy Supabase",
+      "Do not overlap W65 or W76"
+    ],
+    "dependencies": [],
+    "acceptance_test": "Migration defines every approved entity with indexed foreign keys, revisions, actor metadata, soft deletion, optimized RLS for owner/editor/viewer roles, personal-workspace bootstrap, and passing deterministic policy tests."
+  },
+  {
+    "slot": "W62",
+    "criterion_id": "criterion-w62-repository-contract-owner",
+    "contribution_id": "contribution-w62-repository-contract-owner",
+    "job_title": "Repository contract owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "execute",
+    "assignment": "Create the typed DaymarkRepository boundary and a fully tested adapter over the existing local AppStore without changing current domain behavior.",
+    "deliverable": "Produce repository interfaces, local adapter, focused tests, and integration guidance for W69 and W63.",
+    "consumer": "W69 application shell TypeScript integration owner",
+    "goal_link": "Decouples the UI from storage so local-first and cloud implementations can coexist behind one stable API.",
+    "read_scope": "src/core/types.ts, src/core/store.ts, src/core/storage.ts, and the approved repository interface",
+    "write_targets": [
+      "src/core/repository/types.ts",
+      "src/core/repository/local-repository.ts",
+      "src/core/repository/local-repository.test.ts",
+      "src/core/repository/index.ts"
+    ],
+    "action_targets": [],
+    "owned_outputs": [
+      "repository-contract-commit"
+    ],
+    "exclusions": [
+      "Do not edit core store or domain types",
+      "Do not implement IndexedDB",
+      "Do not import Supabase"
+    ],
+    "dependencies": [],
+    "acceptance_test": "All approved repository methods are typed, the local adapter preserves current mutation and conflict behavior, and focused tests plus the production build pass."
+  },
+  {
+    "slot": "W63",
+    "criterion_id": "criterion-w63-indexeddb-offline-owner",
+    "contribution_id": "contribution-w63-indexeddb-offline-owner",
+    "job_title": "IndexedDB offline owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "execute",
+    "assignment": "Implement IndexedDB workspace snapshots, an ordered idempotent mutation queue, tombstones, retry metadata, and a reversible localStorage import pipeline.",
+    "deliverable": "Produce the offline persistence modules and deterministic migration, reload, rollback, and queue-order tests.",
+    "consumer": "W64 synchronization engine owner",
+    "goal_link": "Makes ordinary task management durable and usable offline while preparing reliable server synchronization.",
+    "read_scope": "src/core/storage.ts, src/core/types.ts, W62 repository contracts, and the approved offline policy",
+    "write_targets": [
+      "src/core/offline/indexeddb-storage.ts",
+      "src/core/offline/mutation-queue.ts",
+      "src/core/offline/localstorage-migration.ts",
+      "src/core/offline/offline.test.ts",
+      "src/core/offline/index.ts"
+    ],
+    "action_targets": [],
+    "owned_outputs": [
+      "indexeddb-offline-commit"
+    ],
+    "exclusions": [
+      "Do not call Supabase",
+      "Do not edit the existing localStorage adapter",
+      "Do not change UI files"
+    ],
+    "dependencies": [
+      "W62"
+    ],
+    "acceptance_test": "IndexedDB snapshots survive reload, mutations retain deterministic order and idempotency keys, migration offers preview/import/rollback, and tests cover unavailable IndexedDB and corrupted legacy data."
+  },
+  {
+    "slot": "W64",
+    "criterion_id": "criterion-w64-sync-conflict-engine-owner",
+    "contribution_id": "contribution-w64-sync-conflict-engine-owner",
+    "job_title": "Sync conflict engine owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "execute",
+    "assignment": "Implement optimistic synchronization, retry/backoff, realtime deduplication, non-overlapping field merge, conflict classification, and explicit competing-edit results.",
+    "deliverable": "Produce the provider-neutral sync engine and adversarial offline, retry, duplicate-event, and conflict tests.",
+    "consumer": "W65 Supabase client and auth service owner",
+    "goal_link": "Provides predictable cross-device synchronization without duplicate mutations or silent data loss.",
+    "read_scope": "W62 repository contracts, W63 offline queue contracts, and current revision semantics",
+    "write_targets": [
+      "src/core/sync/types.ts",
+      "src/core/sync/merge.ts",
+      "src/core/sync/sync-engine.ts",
+      "src/core/sync/sync-engine.test.ts",
+      "src/core/sync/index.ts"
+    ],
+    "action_targets": [],
+    "owned_outputs": [
+      "sync-conflict-engine-commit"
+    ],
+    "exclusions": [
+      "Do not import Supabase",
+      "Do not edit IndexedDB modules",
+      "Do not build conflict UI"
+    ],
+    "dependencies": [
+      "W62",
+      "W63"
+    ],
+    "acceptance_test": "Tests prove ordered flushing, idempotent retry, local optimistic event deduplication, automatic non-overlapping merges, and explicit competing-field conflicts."
+  },
+  {
+    "slot": "W65",
+    "criterion_id": "criterion-w65-supabase-client-auth-service-owner",
+    "contribution_id": "contribution-w65-supabase-client-auth-service-owner",
+    "job_title": "Supabase client and auth service owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "execute",
+    "assignment": "Implement environment validation, Supabase browser client creation, session recovery, email/password and magic-link authentication, workspace bootstrap, repository synchronization transport, and realtime subscriptions.",
+    "deliverable": "Produce typed cloud/auth services with mocked transport tests and a W69 integration handoff.",
+    "consumer": "W69 application shell TypeScript integration owner",
+    "goal_link": "Connects the local-first repository and sync engine to the secure cloud backend.",
+    "read_scope": "W61 schema contract, W62 repository contract, W64 sync engine contract, and approved authentication behavior",
+    "write_targets": [
+      "src/core/cloud/env.ts",
+      "src/core/cloud/supabase-client.ts",
+      "src/core/cloud/auth-service.ts",
+      "src/core/cloud/workspace-service.ts",
+      "src/core/cloud/supabase-repository.ts",
+      "src/core/cloud/cloud.test.ts",
+      "src/core/cloud/index.ts"
+    ],
+    "action_targets": [],
+    "owned_outputs": [
+      "supabase-client-auth-service-commit"
+    ],
+    "exclusions": [
+      "Do not build authentication UI",
+      "Do not edit SQL migrations",
+      "Do not expose service-role secrets"
+    ],
+    "dependencies": [
+      "W61",
+      "W62",
+      "W64"
+    ],
+    "acceptance_test": "Services are SSR-safe, validate public environment values, recover sessions, support password and magic-link flows, subscribe without duplicate optimistic events, and pass mocked transport tests."
+  },
+  {
+    "slot": "W66",
+    "criterion_id": "criterion-w66-authentication-ui-owner",
+    "contribution_id": "contribution-w66-authentication-ui-owner",
+    "job_title": "Authentication UI owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "execute",
+    "assignment": "Build the accessible provider-neutral authentication gate and account management UI for sign in, sign up, magic link, session loading, offline mode, logout-all-devices, and account deletion confirmation.",
+    "deliverable": "Produce authentication components, state model, styling, and focused interaction tests.",
+    "consumer": "W69 application shell TypeScript integration owner",
+    "goal_link": "Provides the user-facing secure account experience required for cloud sync and collaboration.",
+    "read_scope": "Current theme and modal patterns plus W65 service contracts",
+    "write_targets": [
+      "src/features/auth/AuthGate.tsx",
+      "src/features/auth/AuthDialog.tsx",
+      "src/features/auth/AccountDialog.tsx",
+      "src/features/auth/auth-model.ts",
+      "src/features/auth/auth-model.test.ts",
+      "src/features/auth/auth.css",
+      "src/features/auth/index.ts"
+    ],
+    "action_targets": [],
+    "owned_outputs": [
+      "authentication-ui-commit"
+    ],
+    "exclusions": [
+      "Do not import Supabase directly",
+      "Do not edit App shell",
+      "Do not implement collaboration"
+    ],
+    "dependencies": [],
+    "acceptance_test": "All authentication and destructive account states retain user input on failure, expose accessible status/errors, support keyboard-only operation, and pass focused tests plus build."
+  },
+  {
+    "slot": "W67",
+    "criterion_id": "criterion-w67-collaboration-domain-owner",
+    "contribution_id": "contribution-w67-collaboration-domain-owner",
+    "job_title": "Collaboration domain owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "execute",
+    "assignment": "Implement provider-neutral invitation, member, role, capability, ownership-transfer, revocation, and activity contracts for owner, editor, and viewer collaboration.",
+    "deliverable": "Produce collaboration domain/client modules and permission matrix tests.",
+    "consumer": "W68 collaboration UI owner",
+    "goal_link": "Defines the safe shared-project behavior used by the UI and Supabase transport.",
+    "read_scope": "Approved collaboration roles and W61 database contract",
+    "write_targets": [
+      "src/features/collaboration/types.ts",
+      "src/features/collaboration/capabilities.ts",
+      "src/features/collaboration/collaboration-client.ts",
+      "src/features/collaboration/collaboration-model.test.ts"
+    ],
+    "action_targets": [],
+    "owned_outputs": [
+      "collaboration-domain-commit"
+    ],
+    "exclusions": [
+      "Do not build collaboration UI",
+      "Do not edit Supabase SQL",
+      "Do not edit App shell"
+    ],
+    "dependencies": [
+      "W61"
+    ],
+    "acceptance_test": "The role matrix prevents viewer mutation, restricts membership management and ownership transfer correctly, models pending/accepted/revoked invitations, and passes exhaustive capability tests."
+  },
+  {
+    "slot": "W68",
+    "criterion_id": "criterion-w68-collaboration-ui-owner",
+    "contribution_id": "contribution-w68-collaboration-ui-owner",
+    "job_title": "Collaboration UI owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "execute",
+    "assignment": "Build accessible project-sharing, invitation, member-list, role-change, revoke, leave, and ownership-transfer interfaces using W67 callbacks.",
+    "deliverable": "Produce collaboration dialogs, styling, and focused state/keyboard tests.",
+    "consumer": "W69 application shell TypeScript integration owner",
+    "goal_link": "Makes optional shared projects fully manageable without weakening role enforcement.",
+    "read_scope": "Current project dialog patterns, theme tokens, and W67 contracts",
+    "write_targets": [
+      "src/features/collaboration/CollaborationDialog.tsx",
+      "src/features/collaboration/MemberList.tsx",
+      "src/features/collaboration/InvitationForm.tsx",
+      "src/features/collaboration/collaboration.css",
+      "src/features/collaboration/collaboration-ui.test.tsx",
+      "src/features/collaboration/index.ts"
+    ],
+    "action_targets": [],
+    "owned_outputs": [
+      "collaboration-ui-commit"
+    ],
+    "exclusions": [
+      "Do not edit collaboration domain files",
+      "Do not call Supabase directly",
+      "Do not edit project creation dialog"
+    ],
+    "dependencies": [
+      "W67"
+    ],
+    "acceptance_test": "Dialogs preserve drafts and errors, expose role consequences, require explicit destructive confirmation, restore focus correctly, and pass keyboard and component tests."
+  },
+  {
+    "slot": "W69",
+    "criterion_id": "criterion-w69-application-shell-typescript-integration-owner",
+    "contribution_id": "contribution-w69-application-shell-typescript-integration-owner",
+    "job_title": "Application shell TypeScript integration owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "integrate",
+    "assignment": "Integrate accepted frontend, repository, offline, cloud, auth, collaboration, calendar, search, reminders, and PWA contributions into one TypeScript application shell, remove dead duplicate calendar code, and preserve the accepted visual concept.",
+    "deliverable": "Produce the integrated application commit and exact handoff for global verification and deployment.",
+    "consumer": "W80 final acceptance and launch auditor",
+    "goal_link": "Creates the production application users will run and deploy.",
+    "read_scope": "Entire repository and accepted W61-W78 commits",
+    "write_targets": [
+      "src/app/DaymarkApp.tsx",
+      "src/main.tsx",
+      "index.html",
+      "src/app/routes.ts",
+      "src/app/use-daymark-app.ts",
+      "src/app/repository-context.tsx",
+      "src/app/sync-status.tsx",
+      "src/app/conflict-dialog.tsx"
+    ],
+    "action_targets": [
+      "integration-cherry-picks-w61-w78"
+    ],
+    "owned_outputs": [
+      "integrated-production-application"
+    ],
+    "exclusions": [
+      "Do not rewrite worker-owned modules instead of integrating them",
+      "Do not deploy production",
+      "Do not weaken tests to make integration pass"
+    ],
+    "dependencies": [
+      "W62",
+      "W63",
+      "W64",
+      "W65",
+      "W66",
+      "W68",
+      "W70",
+      "W71",
+      "W72",
+      "W73",
+      "W74",
+      "W75",
+      "W76"
+    ],
+    "acceptance_test": "One canonical TypeScript shell builds with no dead calendar implementation, all repository/auth/sync/collaboration states are mounted, existing task data migrates safely, and the complete declared test suite passes."
+  },
+  {
+    "slot": "W70",
+    "criterion_id": "criterion-w70-core-task-project-workflows-owner",
+    "contribution_id": "contribution-w70-core-task-project-workflows-owner",
+    "job_title": "Core task and project workflows owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "execute",
+    "assignment": "Extend the core domain and reducer for project lifecycle, section lifecycle, subtasks, duplicate, bulk selection, bulk move, bulk complete, bulk reschedule, richer undo, and safe cascading rules.",
+    "deliverable": "Produce core type/store changes with exhaustive reducer and migration tests.",
+    "consumer": "W69 application shell TypeScript integration owner",
+    "goal_link": "Completes the task and project management capabilities beneath every UI surface.",
+    "read_scope": "src/core/types.ts, src/core/store.ts, src/core/storage.ts, existing tests, and approved workflows",
+    "write_targets": [
+      "src/core/types.ts",
+      "src/core/store.ts",
+      "src/core/store.test.ts",
+      "src/core/bulk-actions.ts",
+      "src/core/bulk-actions.test.ts"
+    ],
+    "action_targets": [],
+    "owned_outputs": [
+      "core-workflows-commit"
+    ],
+    "exclusions": [
+      "Do not build UI",
+      "Do not edit repository adapters",
+      "Do not change calendar presentation"
+    ],
+    "dependencies": [],
+    "acceptance_test": "Tests cover create/update/archive/restore/delete projects and sections, subtasks, duplication, bulk actions, cascading validation, and undo without regressions in existing reducer behavior."
+  },
+  {
+    "slot": "W71",
+    "criterion_id": "criterion-w71-upcoming-calendar-canonical-owner",
+    "contribution_id": "contribution-w71-upcoming-calendar-canonical-owner",
+    "job_title": "Upcoming calendar canonical owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "execute",
+    "assignment": "Make the standalone UpcomingCalendar the single canonical week/month/year scheduler with inline quick add, actionable overflow, validated custom drag payloads, keyboard and touch move fallback, roving grid focus, selected-day agenda, density markers, and container-responsive styling.",
+    "deliverable": "Produce the canonical calendar component/style/tests commit and migration notes for deleting the dead App-local implementation.",
+    "consumer": "W69 application shell TypeScript integration owner",
+    "goal_link": "Delivers the primary scheduling experience and every explicit calendar behavior in the approved plan.",
+    "read_scope": "Current calendar modules, accepted visual concept, W16-W20 research handoffs, and W70 task domain",
+    "write_targets": [
+      "src/features/calendar/UpcomingCalendar.tsx",
+      "src/features/calendar/upcoming-calendar.css",
+      "src/features/calendar/CalendarTaskEditor.tsx",
+      "src/features/calendar/calendar-task-adapters.ts",
+      "src/features/calendar/upcoming-calendar.test.tsx",
+      "src/features/calendar/calendar-task-adapters.test.ts"
+    ],
+    "action_targets": [],
+    "owned_outputs": [
+      "canonical-upcoming-calendar-commit"
+    ],
+    "exclusions": [
+      "Do not edit App shell",
+      "Do not edit core task reducer",
+      "Do not introduce a drag dependency"
+    ],
+    "dependencies": [
+      "W70"
+    ],
+    "acceptance_test": "Week, month, and January-to-December year modes preserve selection, month has 42 actionable cells, inline add and edit work, pointer and keyboard moves preserve metadata, markers expose active/completed counts, and responsive plus accessibility tests pass."
+  },
+  {
+    "slot": "W72",
+    "criterion_id": "criterion-w72-global-search-filters-owner",
+    "contribution_id": "contribution-w72-global-search-filters-owner",
+    "job_title": "Global search and filters owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "execute",
+    "assignment": "Complete global indexed search, query parsing, saved filters, result grouping, and mutation-driven index refresh across task content, project, section, labels, priority, due, recurrence, completion, assignment, and comments.",
+    "deliverable": "Produce search/filter modules, SearchDialog integration contract, and mutation matrix tests.",
+    "consumer": "W69 application shell TypeScript integration owner",
+    "goal_link": "Makes every task discoverable globally after local or remote changes.",
+    "read_scope": "Existing search feature, core domain types, and approved filter examples",
+    "write_targets": [
+      "src/features/search/search-index.ts",
+      "src/features/search/from-app-state.ts",
+      "src/features/search/query-parser.ts",
+      "src/features/search/saved-filters.ts",
+      "src/features/search/SearchDialog.tsx",
+      "src/features/search/search-index.test.ts",
+      "src/features/search/search-integration.test.ts"
+    ],
+    "action_targets": [],
+    "owned_outputs": [
+      "global-search-filters-commit"
+    ],
+    "exclusions": [
+      "Do not edit App shell",
+      "Do not edit core reducers",
+      "Do not implement database full-text search"
+    ],
+    "dependencies": [
+      "W70"
+    ],
+    "acceptance_test": "The same query finds tasks from every route; create, edit, project/date move, complete, comment, label, recurrence, and sync changes refresh results immediately; saved-filter parser tests pass."
+  },
+  {
+    "slot": "W73",
+    "criterion_id": "criterion-w73-reminders-recurrence-owner",
+    "contribution_id": "contribution-w73-reminders-recurrence-owner",
+    "job_title": "Reminders and recurrence owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "execute",
+    "assignment": "Complete timezone-safe recurrence materialization, reminder scheduling, notification preferences, browser notification registration, due-soon and overdue logic, and provider-neutral email reminder contracts.",
+    "deliverable": "Produce reminder/recurrence modules, preference UI hooks, DST tests, and W76 edge-function handoff.",
+    "consumer": "W76 Supabase edge functions owner",
+    "goal_link": "Provides reliable reminders and recurring work across offline and cloud operation.",
+    "read_scope": "Existing reminder scheduler, date utilities, task due model, and approved timezone behavior",
+    "write_targets": [
+      "src/features/reminders/scheduler.ts",
+      "src/features/reminders/recurrence-materializer.ts",
+      "src/features/reminders/notification-service.ts",
+      "src/features/reminders/preferences.ts",
+      "src/features/reminders/scheduler.test.ts",
+      "src/features/reminders/recurrence-materializer.test.ts",
+      "src/features/reminders/index.ts"
+    ],
+    "action_targets": [],
+    "owned_outputs": [
+      "reminders-recurrence-commit"
+    ],
+    "exclusions": [
+      "Do not implement Supabase edge functions",
+      "Do not edit App shell",
+      "Do not add duration semantics"
+    ],
+    "dependencies": [
+      "W70"
+    ],
+    "acceptance_test": "Tests cover DST gaps/folds, timezone changes, overdue and due-soon scheduling, recurrence preservation after moves, notification permission states, and deterministic next-occurrence creation."
+  },
+  {
+    "slot": "W74",
+    "criterion_id": "criterion-w74-pwa-install-offline-owner",
+    "contribution_id": "contribution-w74-pwa-install-offline-owner",
+    "job_title": "PWA install and offline owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "execute",
+    "assignment": "Implement the installable Daymark PWA manifest, icons, app-shell service worker, update prompt, install prompt, navigation fallback, and safe cache exclusions for authenticated and mutation traffic.",
+    "deliverable": "Produce PWA assets/configuration, registration modules, offline tests, and build evidence.",
+    "consumer": "W69 application shell TypeScript integration owner",
+    "goal_link": "Allows Daymark to install and launch like an app while remaining useful during network loss.",
+    "read_scope": "Current Vite entrypoints, approved offline policy, and W63 storage behavior",
+    "write_targets": [
+      "vite.config.ts",
+      "public/manifest.webmanifest",
+      "public/icons/daymark-192.png",
+      "public/icons/daymark-512.png",
+      "src/pwa/register-service-worker.ts",
+      "src/pwa/install-prompt.ts",
+      "src/pwa/pwa.test.ts"
+    ],
+    "action_targets": [],
+    "owned_outputs": [
+      "pwa-install-offline-commit"
+    ],
+    "exclusions": [
+      "Do not cache authenticated API responses",
+      "Do not edit IndexedDB modules",
+      "Do not edit App shell"
+    ],
+    "dependencies": [
+      "W63"
+    ],
+    "acceptance_test": "The production build emits valid install assets, app-shell navigation works offline, API/mutation traffic is excluded, update/install state is testable, and PWA tests pass."
+  },
+  {
+    "slot": "W75",
+    "criterion_id": "criterion-w75-build-ci-vercel-config-owner",
+    "contribution_id": "contribution-w75-build-ci-vercel-config-owner",
+    "job_title": "Build CI and Vercel config owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "execute",
+    "assignment": "Create deterministic dependency, typecheck, lint, unit, integration, production build, rebuild, and preview commands plus CI, Dependabot, environment validation, Vercel SPA/security headers, and accurate setup/rollback documentation.",
+    "deliverable": "Produce tooling and CI configuration with clean-install execution evidence.",
+    "consumer": "W79 production deployment executor",
+    "goal_link": "Establishes repeatable quality gates and immutable deployable builds.",
+    "read_scope": "Current package manifest, test inventory, approved deployment plan, and Vite project structure",
+    "write_targets": [
+      "package.json",
+      "package-lock.json",
+      ".env.example",
+      "scripts/validate-env.mjs",
+      ".github/workflows/ci.yml",
+      ".github/dependabot.yml",
+      "vercel.json",
+      "README.md",
+      "docs/deployment.md"
+    ],
+    "action_targets": [],
+    "owned_outputs": [
+      "build-ci-vercel-config-commit"
+    ],
+    "exclusions": [
+      "Do not edit feature source",
+      "Do not deploy",
+      "Do not add fake passing scripts"
+    ],
+    "dependencies": [],
+    "acceptance_test": "A clean install can run declared checks, rebuild removes and recreates output, CI covers audit and secret/dependency scanning, Vercel config supports SPA routing and security headers, and documentation contains exact rollback steps."
+  },
+  {
+    "slot": "W76",
+    "criterion_id": "criterion-w76-supabase-edge-functions-owner",
+    "contribution_id": "contribution-w76-supabase-edge-functions-owner",
+    "job_title": "Supabase edge functions owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "execute",
+    "assignment": "Implement authenticated Edge Functions for invitations, reminder delivery, data export, account deletion, ownership transfer support, and shared rate-limiting utilities without exposing service credentials.",
+    "deliverable": "Produce edge functions, shared validation/rate-limit code, local tests, and deployment instructions for W79.",
+    "consumer": "W79 production deployment executor",
+    "goal_link": "Provides privileged server operations, reminders, lifecycle controls, and abuse protection.",
+    "read_scope": "W61 schema, W73 reminder contracts, approved retention and account lifecycle behavior",
+    "write_targets": [
+      "supabase/functions/_shared/auth.ts",
+      "supabase/functions/_shared/rate-limit.ts",
+      "supabase/functions/_shared/validation.ts",
+      "supabase/functions/invitations/index.ts",
+      "supabase/functions/reminders/index.ts",
+      "supabase/functions/data-export/index.ts",
+      "supabase/functions/account-delete/index.ts",
+      "supabase/functions/functions.test.ts"
+    ],
+    "action_targets": [],
+    "owned_outputs": [
+      "supabase-edge-functions-commit"
+    ],
+    "exclusions": [
+      "Do not deploy functions",
+      "Do not edit database migrations",
+      "Do not expose service-role keys to browser code"
+    ],
+    "dependencies": [
+      "W61",
+      "W73"
+    ],
+    "acceptance_test": "Functions authenticate callers, enforce role and rate limits, validate payloads, avoid long transactions, support retry-safe reminder delivery, and pass local unit tests."
+  },
+  {
+    "slot": "W77",
+    "criterion_id": "criterion-w77-unit-integration-test-harness-owner",
+    "contribution_id": "contribution-w77-unit-integration-test-harness-owner",
+    "job_title": "Unit and integration test harness owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "verify",
+    "assignment": "Build the consolidated unit and integration harness covering repository, IndexedDB, sync conflicts, localStorage migration, realtime deduplication, permissions, recurrence, calendar geometry, and multiple-tab behavior.",
+    "deliverable": "Produce test configuration, reusable fixtures, integration suites, and a complete coverage report for W80.",
+    "consumer": "W80 final acceptance and launch auditor",
+    "goal_link": "Proves the data and synchronization layers behave correctly before production deployment.",
+    "read_scope": "All accepted W61-W76 modules and current tests",
+    "write_targets": [
+      "vitest.config.ts",
+      "tests/fixtures/daymark-state.ts",
+      "tests/integration/repository.test.ts",
+      "tests/integration/offline-sync.test.ts",
+      "tests/integration/multitab.test.ts",
+      "tests/integration/permissions.test.ts",
+      "tests/integration/calendar-dates.test.ts"
+    ],
+    "action_targets": [
+      "unit-integration-suite-run"
+    ],
+    "owned_outputs": [
+      "unit-integration-test-report"
+    ],
+    "exclusions": [
+      "Do not edit production modules",
+      "Do not weaken assertions for existing behavior",
+      "Do not perform production deployment"
+    ],
+    "dependencies": [
+      "W61",
+      "W62",
+      "W63",
+      "W64",
+      "W67",
+      "W70",
+      "W71",
+      "W73"
+    ],
+    "acceptance_test": "The consolidated suite exercises every named subsystem, includes leap/common year and DST boundaries, multiple-tab conflicts, offline retry order, RLS capability expectations, and passes from one documented command."
+  },
+  {
+    "slot": "W78",
+    "criterion_id": "criterion-w78-playwright-accessibility-e2e-owner",
+    "contribution_id": "contribution-w78-playwright-accessibility-e2e-owner",
+    "job_title": "Playwright accessibility E2E owner",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "verify",
+    "assignment": "Create production-like Playwright and accessibility suites for authentication, project creation, task scheduling, pointer and keyboard movement, sharing, reload, offline recovery, notifications, responsive viewports, theme, overflow, and console health.",
+    "deliverable": "Produce Playwright configuration, E2E suites, screenshots, and a reproducible browser acceptance report.",
+    "consumer": "W80 final acceptance and launch auditor",
+    "goal_link": "Proves complete user workflows and visual/accessibility behavior across supported devices.",
+    "read_scope": "Integrated application contract, approved Chrome control requirements, and target viewport matrix",
+    "write_targets": [
+      "playwright.config.ts",
+      "tests/e2e/auth.spec.ts",
+      "tests/e2e/calendar.spec.ts",
+      "tests/e2e/projects-tasks.spec.ts",
+      "tests/e2e/collaboration.spec.ts",
+      "tests/e2e/offline.spec.ts",
+      "tests/e2e/responsive.spec.ts",
+      "tests/a11y/accessibility.spec.ts"
+    ],
+    "action_targets": [
+      "playwright-e2e-suite-run"
+    ],
+    "owned_outputs": [
+      "playwright-accessibility-report"
+    ],
+    "exclusions": [
+      "Do not edit production source",
+      "Do not use an unapproved browser profile for final live acceptance",
+      "Do not hide console or accessibility failures"
+    ],
+    "dependencies": [
+      "W69"
+    ],
+    "acceptance_test": "Suites cover all approved workflows at 1440x900, 1180x800, 1024x768, 820x1180, 720x900, 390x844, and 320x568 with zero document overflow, critical accessibility violations, or console errors."
+  },
+  {
+    "slot": "W79",
+    "criterion_id": "criterion-w79-production-deployment-executor",
+    "contribution_id": "contribution-w79-production-deployment-executor",
+    "job_title": "Production deployment executor",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "execute",
+    "assignment": "Deploy the accepted Supabase migrations and functions and the immutable Vercel production build, configure public environment values and health checks, verify deployment status, and retain rollback evidence.",
+    "deliverable": "Produce production URLs, deployment IDs, migration/function versions, health evidence, and rollback receipt for W80.",
+    "consumer": "W80 final acceptance and launch auditor",
+    "goal_link": "Makes the production-ready Daymark application available from anywhere.",
+    "read_scope": "Accepted W61, W69, W74, W75, W76, W77, and W78 outputs plus connected deployment providers",
+    "write_targets": [
+      ".codex-team/artifacts/deployment/deployment-receipt.json",
+      ".codex-team/artifacts/deployment/rollback-receipt.md"
+    ],
+    "action_targets": [
+      "supabase-production-deploy",
+      "vercel-production-deploy",
+      "production-health-check"
+    ],
+    "owned_outputs": [
+      "production-deployment-receipt"
+    ],
+    "exclusions": [
+      "Do not deploy unverified commits",
+      "Do not expose secrets in files or reports",
+      "Do not claim production success from a preview URL"
+    ],
+    "dependencies": [
+      "W61",
+      "W69",
+      "W74",
+      "W75",
+      "W76",
+      "W77",
+      "W78"
+    ],
+    "acceptance_test": "Production deployment uses the accepted immutable source, all migrations and functions are current, HTTP and application health checks pass, rollback identifiers exist, and secrets are absent from artifacts."
+  },
+  {
+    "slot": "W80",
+    "criterion_id": "criterion-w80-final-acceptance-launch-auditor",
+    "contribution_id": "contribution-w80-final-acceptance-launch-auditor",
+    "job_title": "Final acceptance and launch auditor",
+    "model": "gpt-5.6-terra",
+    "effort": "high",
+    "work_mode": "integrate",
+    "assignment": "Independently map every approved plan clause to evidence, run final clean build and rebuild, verify production authentication, migration, project/task/calendar/search/reminder/offline/sync/collaboration workflows, and leave production Daymark open in approved Chrome Profile 2.",
+    "deliverable": "Produce the final acceptance matrix, production screenshot set, live launch receipt, and coordinator-ready outcome evidence.",
+    "consumer": "Coordinator",
+    "goal_link": "Provides the independent proof required before claiming the ultimate Daymark plan is complete.",
+    "read_scope": "Entire integrated repository, all W61-W79 reports, production deployment, and approved visible Chrome session",
+    "write_targets": [
+      ".codex-team/artifacts/final-acceptance.json",
+      ".codex-team/artifacts/final-launch-receipt.json"
+    ],
+    "action_targets": [
+      "clean-build-rebuild-audit",
+      "production-end-to-end-audit",
+      "approved-chrome-production-launch"
+    ],
+    "owned_outputs": [
+      "final-acceptance-and-launch-evidence"
+    ],
+    "exclusions": [
+      "Do not edit production source",
+      "Do not accept preview-only evidence",
+      "Do not use another browser profile or hidden browser"
+    ],
+    "dependencies": [
+      "W69",
+      "W77",
+      "W78",
+      "W79"
+    ],
+    "acceptance_test": "Every approved frontend, backend, offline, security, test, deployment, rollback, and live-launch criterion has concrete passing evidence; clean build and rebuild match; production remains visibly open in approved Chrome."
+  }
+]

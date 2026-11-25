@@ -1,0 +1,126 @@
+@import "./tokens.css";
+
+:root {
+  color-scheme: dark;
+  --color-canvas: #000000;
+  --color-surface: #000000;
+  --color-surface-raised: #000000;
+  --color-surface-hover: #000000;
+  --color-surface-selected: #000000;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #ffffff;
+  --color-text-tertiary: #ffffff;
+  --color-border: #262626;
+  --color-border-strong: #4a4a4a;
+  --color-accent: #ffffff;
+  --color-accent-hover: #ffffff;
+  --color-accent-contrast: #000000;
+  --color-danger: #ffffff;
+  --color-success: #ffffff;
+  --color-focus-ring: #ffffff;
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.6), 0 12px 28px rgb(0 0 0 / 0.5);
+  --body-font-weight: 620;
+
+  /*
+   * Compatibility aliases keep independently-owned feature styles on the
+   * shared semantic palette while they migrate away from older token names.
+   */
+  --canvas: var(--color-canvas);
+  --sidebar: var(--color-surface);
+  --surface: var(--color-surface);
+  --surface-raised: var(--color-surface-raised);
+  --surface-soft: var(--color-canvas);
+  --surface-tint: var(--color-surface-hover);
+  --surface-hover: var(--color-surface-hover);
+  --surfaceHover: var(--color-surface-hover);
+  --surface-muted: var(--color-canvas);
+  --surface-selected: var(--color-surface-selected);
+  --ink: var(--color-text-primary);
+  --ink-soft: var(--color-text-secondary);
+  --ink-muted: var(--color-text-tertiary);
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-tertiary: var(--color-text-tertiary);
+  --textPrimary: var(--color-text-primary);
+  --textSecondary: var(--color-text-secondary);
+  --textTertiary: var(--color-text-tertiary);
+  --line: var(--color-border);
+  --line-strong: var(--color-border-strong);
+  --border: var(--color-border);
+  --border-subtle: var(--color-border);
+  --accent: var(--color-accent);
+  --accent-strong: var(--color-accent-hover);
+  --accent-soft: var(--color-surface-selected);
+  --accentHover: var(--color-accent-hover);
+  --teal: var(--color-success);
+  --teal-soft: var(--color-surface-hover);
+  --amber: #ffffff;
+  --amber-soft: #000000;
+  --indigo: #ffffff;
+  --focus: var(--color-focus-ring);
+  --focus-ring: var(--color-focus-ring);
+  --focusRing: var(--color-focus-ring);
+  --shadow: var(--shadow-raised);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-canvas: #000000;
+  --color-surface: #000000;
+  --color-surface-raised: #000000;
+  --color-surface-hover: #000000;
+  --color-surface-selected: #000000;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #ffffff;
+  --color-text-tertiary: #ffffff;
+  --color-border: #262626;
+  --color-border-strong: #4a4a4a;
+  --color-accent: #ffffff;
+  --color-accent-hover: #ffffff;
+  --color-accent-contrast: #000000;
+  --color-danger: #ffffff;
+  --color-success: #ffffff;
+  --color-focus-ring: #ffffff;
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.48), 0 12px 28px rgb(0 0 0 / 0.32);
+  --body-font-weight: 620;
+  --amber: #ffffff;
+  --amber-soft: #000000;
+  --indigo: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    color-scheme: dark;
+    --color-canvas: #000000;
+    --color-surface: #000000;
+    --color-surface-raised: #000000;
+    --color-surface-hover: #000000;
+    --color-surface-selected: #000000;
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #ffffff;
+    --color-text-tertiary: #ffffff;
+    --color-border: #262626;
+    --color-border-strong: #4a4a4a;
+    --color-accent: #ffffff;
+    --color-accent-hover: #ffffff;
+    --color-accent-contrast: #000000;
+    --color-danger: #ffffff;
+    --color-success: #ffffff;
+    --color-focus-ring: #ffffff;
+    --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.48), 0 12px 28px rgb(0 0 0 / 0.32);
+    --amber: #ffffff;
+    --amber-soft: #000000;
+    --indigo: #ffffff;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

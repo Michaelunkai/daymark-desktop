@@ -1,0 +1,2128 @@
+{
+  "team_id": "team-73d69b1e-8b432d19",
+  "invocation_id": "8b432d19-b1d1-45a6-b227-efdf2be278ce",
+  "started_at": "2026-08-02T15:37:48.129Z",
+  "coordinator_thread_id": "019fc316-acef-7431-9a8e-051fe405a6e0",
+  "workspace": "F:\\study\\WebBuilding\\projects\\daymark-desktop",
+  "workspace_id": "ws-73d69b1ebc1ed0f3",
+  "project_id": "3e384933-5a5f-45b1-b7ff-3cd7807e2ba3",
+  "goal_mode": "execution",
+  "coordinator_role": "orchestration-only",
+  "goal": ": Add project creation and a beautiful Upcoming calendar with year, month, and week navigation. Allow tasks to be added, moved, or edited on any day, marking days containing tasks in green. Perfect the UI, frontend, backend, functionality, and useful task-management features. Research current implementation ideas and route findings to the appropriate workers. Build and verify the application end to end. Finally compile, recompile, and launch it for me to see.",
+  "requested_count": 60,
+  "requested_routes": [
+    {
+      "slot": "W01",
+      "model": "gpt-5.6-terra",
+      "effort": "high"
+    },
+    {
+      "slot": "W02",
+      "model": "gpt-5.6-terra",
+      "effort": "high"
+    },
+    {
+      "slot": "W03",
+      "model": "gpt-5.6-terra",
+      "effort": "high"
+    },
+    {
+      "slot": "W04",
+      "model": "gpt-5.6-terra",
+      "effort": "high"
+    },
+    {
+      "slot": "W05",
+      "model": "gpt-5.6-terra",
+      "effort": "high"
+    },
+    {
+      "slot": "W06",
+      "model": "gpt-5.6-terra",
+      "effort": "high"
+    },
+    {
+      "slot": "W07",
+      "model": "gpt-5.6-terra",
+      "effort": "high"
+    },
+    {
+      "slot": "W08",
+      "model": "gpt-5.6-terra",
+      "effort": "high"
+    },
+    {
+      "slot": "W09",
+      "model": "gpt-5.6-terra",
+      "effort": "high"
+    },
+    {
+      "slot": "W10",
+      "model": "gpt-5.6-terra",
+      "effort": "high"
+    },
+    {
+      "slot": "W11",
+      "model": "gpt-5.6-sol",
+      "effort": "low"
+    },
+    {
+      "slot": "W12",
+      "model": "gpt-5.6-sol",
+      "effort": "low"
+    },
+    {
+      "slot": "W13",
+      "model": "gpt-5.6-sol",
+      "effort": "low"
+    },
+    {
+      "slot": "W14",
+      "model": "gpt-5.6-sol",
+      "effort": "low"
+    },
+    {
+      "slot": "W15",
+      "model": "gpt-5.6-sol",
+      "effort": "low"
+    },
+    {
+      "slot": "W16",
+      "model": "gpt-5.6-sol",
+      "effort": "low"
+    },
+    {
+      "slot": "W17",
+      "model": "gpt-5.6-sol",
+      "effort": "low"
+    },
+    {
+      "slot": "W18",
+      "model": "gpt-5.6-sol",
+      "effort": "low"
+    },
+    {
+      "slot": "W19",
+      "model": "gpt-5.6-sol",
+      "effort": "low"
+    },
+    {
+      "slot": "W20",
+      "model": "gpt-5.6-sol",
+      "effort": "low"
+    },
+    {
+      "slot": "W21",
+      "model": "gpt-5.6-terra",
+      "effort": "low"
+    },
+    {
+      "slot": "W22",
+      "model": "gpt-5.6-terra",
+      "effort": "low"
+    },
+    {
+      "slot": "W23",
+      "model": "gpt-5.6-terra",
+      "effort": "low"
+    },
+    {
+      "slot": "W24",
+      "model": "gpt-5.6-terra",
+      "effort": "low"
+    },
+    {
+      "slot": "W25",
+      "model": "gpt-5.6-terra",
+      "effort": "low"
+    },
+    {
+      "slot": "W26",
+      "model": "gpt-5.6-terra",
+      "effort": "low"
+    },
+    {
+      "slot": "W27",
+      "model": "gpt-5.6-terra",
+      "effort": "low"
+    },
+    {
+      "slot": "W28",
+      "model": "gpt-5.6-terra",
+      "effort": "low"
+    },
+    {
+      "slot": "W29",
+      "model": "gpt-5.6-terra",
+      "effort": "low"
+    },
+    {
+      "slot": "W30",
+      "model": "gpt-5.6-terra",
+      "effort": "low"
+    },
+    {
+      "slot": "W31",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W32",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W33",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W34",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W35",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W36",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W37",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W38",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W39",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W40",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W41",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W42",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W43",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W44",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W45",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W46",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W47",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W48",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W49",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W50",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W51",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W52",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W53",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W54",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W55",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W56",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W57",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W58",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W59",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    },
+    {
+      "slot": "W60",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh"
+    }
+  ],
+  "worktree_preflight": {
+    "ready": true,
+    "code": "worktree_base_ready",
+    "head": "d09f77c882ca83419fd7a4033c666dea9ae790d0"
+  },
+  "workers": [
+    {
+      "slot": "W01",
+      "criterion_id": "criterion-w01-visual-concept-director",
+      "contribution_id": "contribution-w01-visual-concept-director",
+      "job_title": "Visual concept director",
+      "model": "gpt-5.6-terra",
+      "effort": "high",
+      "work_mode": "execute",
+      "assignment": "Own the Visual concept director contribution. Generate the complete high-fidelity Upcoming calendar and project-creation visual concept, then extract the design system.",
+      "deliverable": "Produce the desktop concept image and design-system brief, with concrete evidence and a concise handoff to W09 application integration owner.",
+      "consumer": "W09 application integration owner",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct visual-concept-director acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "design-concept-generation"
+      ],
+      "owned_outputs": [
+        ".codex-team/artifacts/upcoming-calendar-concept.png",
+        ".codex-team/artifacts/design-system.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the visual-concept-director deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W02",
+      "criterion_id": "criterion-w02-repository-architecture-mapper",
+      "contribution_id": "contribution-w02-repository-architecture-mapper",
+      "job_title": "Repository architecture mapper",
+      "model": "gpt-5.6-terra",
+      "effort": "high",
+      "work_mode": "research",
+      "assignment": "Own the Repository architecture mapper contribution. Trace the live shell, store, date utilities, editor modules, styles, tests, and bypassed feature code into a low-risk integration map.",
+      "deliverable": "Produce the architecture map with file-level seams and hazards, with concrete evidence and a concise handoff to W09 application integration owner.",
+      "consumer": "W09 application integration owner",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct repository-architecture-mapper acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [],
+      "owned_outputs": [
+        "architecture-map.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the repository-architecture-mapper deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W03",
+      "criterion_id": "criterion-w03-calendar-domain-architect",
+      "contribution_id": "contribution-w03-calendar-domain-architect",
+      "job_title": "Calendar domain architect",
+      "model": "gpt-5.6-terra",
+      "effort": "high",
+      "work_mode": "research",
+      "assignment": "Own the Calendar domain architect contribution. Define year, month, and week state, visible ranges, selected dates, task buckets, markers, and move semantics without UTC drift.",
+      "deliverable": "Produce the calendar domain contract and transition table, with concrete evidence and a concise handoff to W21 calendar model implementer.",
+      "consumer": "W21 calendar model implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct calendar-domain-architect acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [],
+      "owned_outputs": [
+        "calendar-domain-contract.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the calendar-domain-architect deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W04",
+      "criterion_id": "criterion-w04-project-workflow-architect",
+      "contribution_id": "contribution-w04-project-workflow-architect",
+      "job_title": "Project workflow architect",
+      "model": "gpt-5.6-terra",
+      "effort": "high",
+      "work_mode": "research",
+      "assignment": "Own the Project workflow architect contribution. Specify project creation validation, color, description, default section, persistence, sidebar insertion, navigation, cancel, and conflict recovery.",
+      "deliverable": "Produce the project workflow and data-flow specification, with concrete evidence and a concise handoff to W24 project dialog implementer.",
+      "consumer": "W24 project dialog implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct project-workflow-architect acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [],
+      "owned_outputs": [
+        "project-workflow-spec.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the project-workflow-architect deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W05",
+      "criterion_id": "criterion-w05-task-scheduling-ux-architect",
+      "contribution_id": "contribution-w05-task-scheduling-ux-architect",
+      "job_title": "Task scheduling UX architect",
+      "model": "gpt-5.6-terra",
+      "effort": "high",
+      "work_mode": "research",
+      "assignment": "Own the Task scheduling UX architect contribution. Specify add, edit, drag, keyboard move, and reschedule flows from any calendar day while preserving task metadata.",
+      "deliverable": "Produce the task scheduling interaction matrix, with concrete evidence and a concise handoff to W26 calendar task editor implementer.",
+      "consumer": "W26 calendar task editor implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct task-scheduling-ux-architect acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [],
+      "owned_outputs": [
+        "task-scheduling-ux.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the task-scheduling-ux-architect deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W06",
+      "criterion_id": "criterion-w06-accessibility-design-lead",
+      "contribution_id": "contribution-w06-accessibility-design-lead",
+      "job_title": "Accessibility design lead",
+      "model": "gpt-5.6-terra",
+      "effort": "high",
+      "work_mode": "research",
+      "assignment": "Own the Accessibility design lead contribution. Define keyboard, focus, grid semantics, announcements, contrast, reduced-motion, and touch requirements for every new surface.",
+      "deliverable": "Produce the accessibility implementation checklist, with concrete evidence and a concise handoff to W09 application integration owner.",
+      "consumer": "W09 application integration owner",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct accessibility-design-lead acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [],
+      "owned_outputs": [
+        "accessibility-design-checklist.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the accessibility-design-lead deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W07",
+      "criterion_id": "criterion-w07-performance-strategy-lead",
+      "contribution_id": "contribution-w07-performance-strategy-lead",
+      "job_title": "Performance strategy lead",
+      "model": "gpt-5.6-terra",
+      "effort": "high",
+      "work_mode": "research",
+      "assignment": "Own the Performance strategy lead contribution. Set render and interaction budgets for year grids, task bucketing, drag feedback, localStorage writes, and 1000-task workloads.",
+      "deliverable": "Produce the performance budget and memoization strategy, with concrete evidence and a concise handoff to W09 application integration owner.",
+      "consumer": "W09 application integration owner",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct performance-strategy-lead acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [],
+      "owned_outputs": [
+        "performance-strategy.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the performance-strategy-lead deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W08",
+      "criterion_id": "criterion-w08-persistence-and-migration-auditor",
+      "contribution_id": "contribution-w08-persistence-and-migration-auditor",
+      "job_title": "Persistence and migration auditor",
+      "model": "gpt-5.6-terra",
+      "effort": "high",
+      "work_mode": "research",
+      "assignment": "Own the Persistence and migration auditor contribution. Audit revision conflicts, undo, migration, reload, and failure handling for project and calendar task mutations.",
+      "deliverable": "Produce the persistence safeguard and regression-test report, with concrete evidence and a concise handoff to W21 calendar model implementer.",
+      "consumer": "W21 calendar model implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct persistence-and-migration-auditor acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [],
+      "owned_outputs": [
+        "persistence-risk-report.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the persistence-and-migration-auditor deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W09",
+      "criterion_id": "criterion-w09-application-integration-owner",
+      "contribution_id": "contribution-w09-application-integration-owner",
+      "job_title": "Application integration owner",
+      "model": "gpt-5.6-terra",
+      "effort": "high",
+      "work_mode": "integrate",
+      "assignment": "Own the Application integration owner contribution. Integrate accepted commits and findings into the saved checkout and wire the complete project and Upcoming workflows into the live shell.",
+      "deliverable": "Produce the integrated production application in the main checkout, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct application-integration-owner acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [
+        "src/App.jsx"
+      ],
+      "action_targets": [
+        "main-checkout-integration"
+      ],
+      "owned_outputs": [
+        "integrated-application"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W01",
+        "W02",
+        "W03",
+        "W04",
+        "W05",
+        "W06",
+        "W07",
+        "W08",
+        "W21",
+        "W22",
+        "W23",
+        "W24",
+        "W25",
+        "W26",
+        "W27",
+        "W28",
+        "W29",
+        "W30"
+      ],
+      "acceptance_test": "Acceptance passes only when the application-integration-owner deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W10",
+      "criterion_id": "criterion-w10-end-to-end-release-verifier",
+      "contribution_id": "contribution-w10-end-to-end-release-verifier",
+      "job_title": "End-to-end release verifier",
+      "model": "gpt-5.6-terra",
+      "effort": "high",
+      "work_mode": "verify",
+      "assignment": "Own the End-to-end release verifier contribution. Run fresh unit, build, browser, responsive, persistence, compile, recompile, and launch verification against the integrated checkout.",
+      "deliverable": "Produce the release evidence pack with screenshots and live URL, with concrete evidence and a concise handoff to Coordinator.",
+      "consumer": "Coordinator",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct end-to-end-release-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "release-build-browser-launch"
+      ],
+      "owned_outputs": [
+        "release-evidence-pack"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09",
+        "W30"
+      ],
+      "acceptance_test": "Acceptance passes only when the end-to-end-release-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W11",
+      "criterion_id": "criterion-w11-current-task-manager-pattern-researcher",
+      "contribution_id": "contribution-w11-current-task-manager-pattern-researcher",
+      "job_title": "Current task-manager pattern researcher",
+      "model": "gpt-5.6-sol",
+      "effort": "low",
+      "work_mode": "research",
+      "assignment": "Own the Current task-manager pattern researcher contribution. Research current primary-source task-manager calendar patterns for scheduling, density, quick capture, and useful planning behavior.",
+      "deliverable": "Produce the cited current-pattern brief with Daymark decisions, with concrete evidence and a concise handoff to W01 visual concept director.",
+      "consumer": "W01 visual concept director",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct current-task-manager-pattern-researcher acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [],
+      "owned_outputs": [
+        "current-pattern-brief.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the current-task-manager-pattern-researcher deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W12",
+      "criterion_id": "criterion-w12-calendar-interaction-standards-researcher",
+      "contribution_id": "contribution-w12-calendar-interaction-standards-researcher",
+      "job_title": "Calendar interaction standards researcher",
+      "model": "gpt-5.6-sol",
+      "effort": "low",
+      "work_mode": "research",
+      "assignment": "Own the Calendar interaction standards researcher contribution. Research current primary standards for keyboard calendar grids, date selection, drag alternatives, and accessible task movement.",
+      "deliverable": "Produce the standards-backed calendar interaction brief, with concrete evidence and a concise handoff to W22 Upcoming calendar component implementer.",
+      "consumer": "W22 Upcoming calendar component implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct calendar-interaction-standards-researcher acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [],
+      "owned_outputs": [
+        "calendar-interaction-standards.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the calendar-interaction-standards-researcher deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W13",
+      "criterion_id": "criterion-w13-year-view-behavior-researcher",
+      "contribution_id": "contribution-w13-year-view-behavior-researcher",
+      "job_title": "Year view behavior researcher",
+      "model": "gpt-5.6-sol",
+      "effort": "low",
+      "work_mode": "research",
+      "assignment": "Own the Year view behavior researcher contribution. Study current production year views for twelve-month scanability, task density, month selection, and accessible green presence markers.",
+      "deliverable": "Produce the year-view behavior recommendation, with concrete evidence and a concise handoff to W22 Upcoming calendar component implementer.",
+      "consumer": "W22 Upcoming calendar component implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct year-view-behavior-researcher acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [],
+      "owned_outputs": [
+        "year-view-recommendation.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the year-view-behavior-researcher deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W14",
+      "criterion_id": "criterion-w14-month-view-behavior-researcher",
+      "contribution_id": "contribution-w14-month-view-behavior-researcher",
+      "job_title": "Month view behavior researcher",
+      "model": "gpt-5.6-sol",
+      "effort": "low",
+      "work_mode": "research",
+      "assignment": "Own the Month view behavior researcher contribution. Study month-grid overflow, out-of-month dates, task chips, date creation, selection, and six-week layout patterns.",
+      "deliverable": "Produce the month-view behavior recommendation, with concrete evidence and a concise handoff to W23 calendar visual system implementer.",
+      "consumer": "W23 calendar visual system implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct month-view-behavior-researcher acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [],
+      "owned_outputs": [
+        "month-view-recommendation.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the month-view-behavior-researcher deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W15",
+      "criterion_id": "criterion-w15-week-view-behavior-researcher",
+      "contribution_id": "contribution-w15-week-view-behavior-researcher",
+      "job_title": "Week view behavior researcher",
+      "model": "gpt-5.6-sol",
+      "effort": "low",
+      "work_mode": "research",
+      "assignment": "Own the Week view behavior researcher contribution. Study seven-day planning patterns, all-day tasks, time labels, cross-week moves, and mobile week collapse.",
+      "deliverable": "Produce the week-view behavior recommendation, with concrete evidence and a concise handoff to W22 Upcoming calendar component implementer.",
+      "consumer": "W22 Upcoming calendar component implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct week-view-behavior-researcher acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [],
+      "owned_outputs": [
+        "week-view-recommendation.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the week-view-behavior-researcher deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W16",
+      "criterion_id": "criterion-w16-drag-and-drop-technology-researcher",
+      "contribution_id": "contribution-w16-drag-and-drop-technology-researcher",
+      "job_title": "Drag and drop technology researcher",
+      "model": "gpt-5.6-sol",
+      "effort": "low",
+      "work_mode": "research",
+      "assignment": "Own the Drag and drop technology researcher contribution. Compare current React 19 compatible native and library drag approaches for accessibility, bundle cost, and keyboard fallback.",
+      "deliverable": "Produce the drag-and-drop implementation decision memo, with concrete evidence and a concise handoff to W27 task movement model implementer.",
+      "consumer": "W27 task movement model implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct drag-and-drop-technology-researcher acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [],
+      "owned_outputs": [
+        "drag-drop-decision.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the drag-and-drop-technology-researcher deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W17",
+      "criterion_id": "criterion-w17-project-creation-pattern-researcher",
+      "contribution_id": "contribution-w17-project-creation-pattern-researcher",
+      "job_title": "Project creation pattern researcher",
+      "model": "gpt-5.6-sol",
+      "effort": "low",
+      "work_mode": "research",
+      "assignment": "Own the Project creation pattern researcher contribution. Research modern project dialogs for essential fields, color swatches, validation, cancellation, and post-create navigation.",
+      "deliverable": "Produce the project-dialog pattern brief, with concrete evidence and a concise handoff to W24 project dialog implementer.",
+      "consumer": "W24 project dialog implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct project-creation-pattern-researcher acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [],
+      "owned_outputs": [
+        "project-dialog-patterns.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the project-creation-pattern-researcher deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W18",
+      "criterion_id": "criterion-w18-quick-add-and-editor-researcher",
+      "contribution_id": "contribution-w18-quick-add-and-editor-researcher",
+      "job_title": "Quick add and editor researcher",
+      "model": "gpt-5.6-sol",
+      "effort": "low",
+      "work_mode": "research",
+      "assignment": "Own the Quick add and editor researcher contribution. Research calendar-cell quick add and progressive task editing that preserves fast capture and date inheritance.",
+      "deliverable": "Produce the quick-add and editor recommendation, with concrete evidence and a concise handoff to W26 calendar task editor implementer.",
+      "consumer": "W26 calendar task editor implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct quick-add-and-editor-researcher acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [],
+      "owned_outputs": [
+        "quick-add-editor-patterns.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the quick-add-and-editor-researcher deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W19",
+      "criterion_id": "criterion-w19-task-day-marker-researcher",
+      "contribution_id": "contribution-w19-task-day-marker-researcher",
+      "job_title": "Task-day marker researcher",
+      "model": "gpt-5.6-sol",
+      "effort": "low",
+      "work_mode": "research",
+      "assignment": "Own the Task-day marker researcher contribution. Define accessible green day-presence and density markers for selected, today, completed-only, dark, and color-deficient states.",
+      "deliverable": "Produce the task-day marker system specification, with concrete evidence and a concise handoff to W23 calendar visual system implementer.",
+      "consumer": "W23 calendar visual system implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct task-day-marker-researcher acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [],
+      "owned_outputs": [
+        "task-day-marker-spec.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the task-day-marker-researcher deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W20",
+      "criterion_id": "criterion-w20-responsive-calendar-researcher",
+      "contribution_id": "contribution-w20-responsive-calendar-researcher",
+      "job_title": "Responsive calendar researcher",
+      "model": "gpt-5.6-sol",
+      "effort": "low",
+      "work_mode": "research",
+      "assignment": "Own the Responsive calendar researcher contribution. Research desktop-first calendar layouts for laptop, tablet, and mobile without marketing-style composition or unstable grids.",
+      "deliverable": "Produce the responsive calendar breakpoint recommendation, with concrete evidence and a concise handoff to W23 calendar visual system implementer.",
+      "consumer": "W23 calendar visual system implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct responsive-calendar-researcher acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [],
+      "owned_outputs": [
+        "responsive-calendar-recommendation.md"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the responsive-calendar-researcher deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W21",
+      "criterion_id": "criterion-w21-calendar-model-implementer",
+      "contribution_id": "contribution-w21-calendar-model-implementer",
+      "job_title": "Calendar model implementer",
+      "model": "gpt-5.6-terra",
+      "effort": "low",
+      "work_mode": "execute",
+      "assignment": "Own the Calendar model implementer contribution. Implement pure year, month, and week range navigation, task bucketing, marker counts, selected dates, and date movement helpers with tests.",
+      "deliverable": "Produce the tested calendar model commit, with concrete evidence and a concise handoff to W09 application integration owner.",
+      "consumer": "W09 application integration owner",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct calendar-model-implementer acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [
+        "src/features/calendar/upcoming-model.ts",
+        "src/features/calendar/upcoming-model.test.ts"
+      ],
+      "action_targets": [],
+      "owned_outputs": [
+        "calendar-model-commit"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the calendar-model-implementer deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W22",
+      "criterion_id": "criterion-w22-upcoming-calendar-component-implementer",
+      "contribution_id": "contribution-w22-upcoming-calendar-component-implementer",
+      "job_title": "Upcoming calendar component implementer",
+      "model": "gpt-5.6-terra",
+      "effort": "low",
+      "work_mode": "execute",
+      "assignment": "Own the Upcoming calendar component implementer contribution. Build the accessible React Upcoming calendar with three modes, task chips, date selection, add/edit hooks, and movement callbacks.",
+      "deliverable": "Produce the reusable UpcomingCalendar component commit, with concrete evidence and a concise handoff to W09 application integration owner.",
+      "consumer": "W09 application integration owner",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct upcoming-calendar-component-implementer acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [
+        "src/features/calendar/UpcomingCalendar.tsx"
+      ],
+      "action_targets": [],
+      "owned_outputs": [
+        "upcoming-calendar-component-commit"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W03",
+        "W12",
+        "W13",
+        "W14",
+        "W15"
+      ],
+      "acceptance_test": "Acceptance passes only when the upcoming-calendar-component-implementer deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W23",
+      "criterion_id": "criterion-w23-calendar-visual-system-implementer",
+      "contribution_id": "contribution-w23-calendar-visual-system-implementer",
+      "job_title": "Calendar visual system implementer",
+      "model": "gpt-5.6-terra",
+      "effort": "low",
+      "work_mode": "execute",
+      "assignment": "Own the Calendar visual system implementer contribution. Implement polished calendar styles for desktop, tablet, mobile, light, dark, stable grids, and green task-day states.",
+      "deliverable": "Produce the responsive calendar stylesheet commit, with concrete evidence and a concise handoff to W09 application integration owner.",
+      "consumer": "W09 application integration owner",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct calendar-visual-system-implementer acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [
+        "src/features/calendar/upcoming-calendar.css"
+      ],
+      "action_targets": [],
+      "owned_outputs": [
+        "calendar-style-commit"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W01",
+        "W14",
+        "W15",
+        "W19",
+        "W20"
+      ],
+      "acceptance_test": "Acceptance passes only when the calendar-visual-system-implementer deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W24",
+      "criterion_id": "criterion-w24-project-creation-dialog-implementer",
+      "contribution_id": "contribution-w24-project-creation-dialog-implementer",
+      "job_title": "Project creation dialog implementer",
+      "model": "gpt-5.6-terra",
+      "effort": "low",
+      "work_mode": "execute",
+      "assignment": "Own the Project creation dialog implementer contribution. Build the accessible project dialog for name, description, color, default section, validation, save, cancel, and focus return.",
+      "deliverable": "Produce the ProjectCreateDialog component commit, with concrete evidence and a concise handoff to W09 application integration owner.",
+      "consumer": "W09 application integration owner",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct project-creation-dialog-implementer acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [
+        "src/features/projects/ProjectCreateDialog.tsx"
+      ],
+      "action_targets": [],
+      "owned_outputs": [
+        "project-dialog-component-commit"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W04",
+        "W17"
+      ],
+      "acceptance_test": "Acceptance passes only when the project-creation-dialog-implementer deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W25",
+      "criterion_id": "criterion-w25-project-dialog-styling-implementer",
+      "contribution_id": "contribution-w25-project-dialog-styling-implementer",
+      "job_title": "Project dialog styling implementer",
+      "model": "gpt-5.6-terra",
+      "effort": "low",
+      "work_mode": "execute",
+      "assignment": "Own the Project dialog styling implementer contribution. Implement restrained project dialog styling, swatches, errors, modal and mobile layouts, focus states, and dark theme.",
+      "deliverable": "Produce the project dialog stylesheet commit, with concrete evidence and a concise handoff to W09 application integration owner.",
+      "consumer": "W09 application integration owner",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct project-dialog-styling-implementer acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [
+        "src/features/projects/project-create-dialog.css"
+      ],
+      "action_targets": [],
+      "owned_outputs": [
+        "project-dialog-style-commit"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W01",
+        "W17"
+      ],
+      "acceptance_test": "Acceptance passes only when the project-dialog-styling-implementer deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W26",
+      "criterion_id": "criterion-w26-calendar-task-editor-implementer",
+      "contribution_id": "contribution-w26-calendar-task-editor-implementer",
+      "job_title": "Calendar task editor implementer",
+      "model": "gpt-5.6-terra",
+      "effort": "low",
+      "work_mode": "execute",
+      "assignment": "Own the Calendar task editor implementer contribution. Build calendar task create/edit adapters and UI for inherited date, title, description, project, priority, date, time, and safe store patches.",
+      "deliverable": "Produce the calendar task editor and adapter test commit, with concrete evidence and a concise handoff to W09 application integration owner.",
+      "consumer": "W09 application integration owner",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct calendar-task-editor-implementer acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [
+        "src/features/calendar/CalendarTaskEditor.tsx",
+        "src/features/calendar/calendar-task-adapters.ts",
+        "src/features/calendar/calendar-task-adapters.test.ts"
+      ],
+      "action_targets": [],
+      "owned_outputs": [
+        "calendar-task-editor-commit"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W05",
+        "W18"
+      ],
+      "acceptance_test": "Acceptance passes only when the calendar-task-editor-implementer deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W27",
+      "criterion_id": "criterion-w27-task-movement-model-implementer",
+      "contribution_id": "contribution-w27-task-movement-model-implementer",
+      "job_title": "Task movement model implementer",
+      "model": "gpt-5.6-terra",
+      "effort": "low",
+      "work_mode": "execute",
+      "assignment": "Own the Task movement model implementer contribution. Implement validated pointer payloads, keyboard move commands, date reassignment, metadata preservation, and invalid-drop handling with tests.",
+      "deliverable": "Produce the task movement module and regression commit, with concrete evidence and a concise handoff to W09 application integration owner.",
+      "consumer": "W09 application integration owner",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct task-movement-model-implementer acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [
+        "src/features/calendar/task-movement.ts",
+        "src/features/calendar/task-movement.test.ts"
+      ],
+      "action_targets": [],
+      "owned_outputs": [
+        "task-movement-commit"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W05",
+        "W16"
+      ],
+      "acceptance_test": "Acceptance passes only when the task-movement-model-implementer deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W28",
+      "criterion_id": "criterion-w28-calendar-task-chip-styling-implementer",
+      "contribution_id": "contribution-w28-calendar-task-chip-styling-implementer",
+      "job_title": "Calendar task chip styling implementer",
+      "model": "gpt-5.6-terra",
+      "effort": "low",
+      "work_mode": "execute",
+      "assignment": "Own the Calendar task chip styling implementer contribution. Implement task chip, overflow, hover, drag, completed, priority, focus, and compact week-list styles.",
+      "deliverable": "Produce the calendar task-chip stylesheet commit, with concrete evidence and a concise handoff to W09 application integration owner.",
+      "consumer": "W09 application integration owner",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct calendar-task-chip-styling-implementer acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [
+        "src/features/calendar/calendar-task-chips.css"
+      ],
+      "action_targets": [],
+      "owned_outputs": [
+        "calendar-task-chip-style-commit"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W19",
+        "W20"
+      ],
+      "acceptance_test": "Acceptance passes only when the calendar-task-chip-styling-implementer deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W29",
+      "criterion_id": "criterion-w29-calendar-toolbar-implementer",
+      "contribution_id": "contribution-w29-calendar-toolbar-implementer",
+      "job_title": "Calendar toolbar implementer",
+      "model": "gpt-5.6-terra",
+      "effort": "low",
+      "work_mode": "execute",
+      "assignment": "Own the Calendar toolbar implementer contribution. Build stable mode controls, previous, next, today, range label, and compact mobile calendar navigation.",
+      "deliverable": "Produce the CalendarToolbar component commit, with concrete evidence and a concise handoff to W09 application integration owner.",
+      "consumer": "W09 application integration owner",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct calendar-toolbar-implementer acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [
+        "src/features/calendar/CalendarToolbar.tsx"
+      ],
+      "action_targets": [],
+      "owned_outputs": [
+        "calendar-toolbar-commit"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W12",
+        "W13",
+        "W14",
+        "W15"
+      ],
+      "acceptance_test": "Acceptance passes only when the calendar-toolbar-implementer deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W30",
+      "criterion_id": "criterion-w30-build-and-documentation-maintainer",
+      "contribution_id": "contribution-w30-build-and-documentation-maintainer",
+      "job_title": "Build and documentation maintainer",
+      "model": "gpt-5.6-terra",
+      "effort": "low",
+      "work_mode": "execute",
+      "assignment": "Own the Build and documentation maintainer contribution. Update scripts and documentation for all tests, compile, recompile, launch, and accurate feature coverage.",
+      "deliverable": "Produce the package and README verification commit, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct build-and-documentation-maintainer acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [
+        "package.json",
+        "README.md"
+      ],
+      "action_targets": [],
+      "owned_outputs": [
+        "build-docs-commit"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [],
+      "acceptance_test": "Acceptance passes only when the build-and-documentation-maintainer deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W31",
+      "criterion_id": "criterion-w31-keyboard-navigation-verifier",
+      "contribution_id": "contribution-w31-keyboard-navigation-verifier",
+      "job_title": "Keyboard navigation verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Keyboard navigation verifier contribution. Verify keyboard operation across all calendar modes, date selection, project creation, task add, edit, and move.",
+      "deliverable": "Produce the keyboard workflow acceptance report, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct keyboard-navigation-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "keyboard-navigation-audit"
+      ],
+      "owned_outputs": [
+        "keyboard-navigation-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the keyboard-navigation-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W32",
+      "criterion_id": "criterion-w32-screen-reader-semantics-verifier",
+      "contribution_id": "contribution-w32-screen-reader-semantics-verifier",
+      "job_title": "Screen reader semantics verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Screen reader semantics verifier contribution. Audit landmarks, headings, grids, cells, task labels, live announcements, dialog names, and state attributes.",
+      "deliverable": "Produce the screen-reader semantic evidence report, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct screen-reader-semantics-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "screen-reader-semantics-audit"
+      ],
+      "owned_outputs": [
+        "screen-reader-semantics-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the screen-reader-semantics-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W33",
+      "criterion_id": "criterion-w33-color-contrast-verifier",
+      "contribution_id": "contribution-w33-color-contrast-verifier",
+      "job_title": "Color contrast verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Color contrast verifier contribution. Measure green markers, text, borders, selection, today, focus, errors, and disabled contrast in light and dark themes.",
+      "deliverable": "Produce the contrast ratio matrix, with concrete evidence and a concise handoff to W23 calendar visual system implementer.",
+      "consumer": "W23 calendar visual system implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct color-contrast-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "color-contrast-audit"
+      ],
+      "owned_outputs": [
+        "color-contrast-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W23"
+      ],
+      "acceptance_test": "Acceptance passes only when the color-contrast-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W34",
+      "criterion_id": "criterion-w34-mobile-viewport-verifier",
+      "contribution_id": "contribution-w34-mobile-viewport-verifier",
+      "job_title": "Mobile viewport verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Mobile viewport verifier contribution. Test 390x844 sidebar, toolbar, calendar scrolling, dialogs, chips, touch targets, overlap, and clipping.",
+      "deliverable": "Produce the mobile screenshot and overflow report, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct mobile-viewport-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "mobile-390-viewport-audit"
+      ],
+      "owned_outputs": [
+        "mobile-viewport-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the mobile-viewport-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W35",
+      "criterion_id": "criterion-w35-tablet-viewport-verifier",
+      "contribution_id": "contribution-w35-tablet-viewport-verifier",
+      "job_title": "Tablet viewport verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Tablet viewport verifier contribution. Test 768x1024 year, month, week, creation, editing, movement, sidebar, and modal layout.",
+      "deliverable": "Produce the tablet screenshot and layout report, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct tablet-viewport-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "tablet-768-viewport-audit"
+      ],
+      "owned_outputs": [
+        "tablet-viewport-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the tablet-viewport-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W36",
+      "criterion_id": "criterion-w36-laptop-viewport-verifier",
+      "contribution_id": "contribution-w36-laptop-viewport-verifier",
+      "job_title": "Laptop viewport verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Laptop viewport verifier contribution. Test 1280x800 first-viewport fit, dense calendar usability, toolbar stability, and workflow reachability.",
+      "deliverable": "Produce the laptop viewport usability report, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct laptop-viewport-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "laptop-1280-viewport-audit"
+      ],
+      "owned_outputs": [
+        "laptop-viewport-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the laptop-viewport-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W37",
+      "criterion_id": "criterion-w37-dark-theme-verifier",
+      "contribution_id": "contribution-w37-dark-theme-verifier",
+      "job_title": "Dark theme verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Dark theme verifier contribution. Exercise every calendar and project state in explicit and system dark themes for legibility and polish.",
+      "deliverable": "Produce the dark-theme visual report, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct dark-theme-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "dark-theme-audit"
+      ],
+      "owned_outputs": [
+        "dark-theme-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the dark-theme-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W38",
+      "criterion_id": "criterion-w38-project-creation-functional-verifier",
+      "contribution_id": "contribution-w38-project-creation-functional-verifier",
+      "job_title": "Project creation functional verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Project creation functional verifier contribution. Test success, cancel, validation, default section, color persistence, immediate sidebar insertion, navigation, and reload.",
+      "deliverable": "Produce the project creation persisted-state report, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct project-creation-functional-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "project-creation-functional-audit"
+      ],
+      "owned_outputs": [
+        "project-creation-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the project-creation-functional-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W39",
+      "criterion_id": "criterion-w39-task-creation-functional-verifier",
+      "contribution_id": "contribution-w39-task-creation-functional-verifier",
+      "job_title": "Task creation functional verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Task creation functional verifier contribution. Create tasks on empty and populated days in year, month, and week modes and verify inherited dates and projects.",
+      "deliverable": "Produce the calendar task creation matrix, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct task-creation-functional-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "task-create-any-day-audit"
+      ],
+      "owned_outputs": [
+        "task-creation-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the task-creation-functional-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W40",
+      "criterion_id": "criterion-w40-task-editing-functional-verifier",
+      "contribution_id": "contribution-w40-task-editing-functional-verifier",
+      "job_title": "Task editing functional verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Task editing functional verifier contribution. Edit title, description, project, priority, due date, and time from calendar chips and confirm cross-view persistence.",
+      "deliverable": "Produce the task edit round-trip report, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct task-editing-functional-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "task-edit-roundtrip-audit"
+      ],
+      "owned_outputs": [
+        "task-edit-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the task-editing-functional-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W41",
+      "criterion_id": "criterion-w41-task-movement-pointer-verifier",
+      "contribution_id": "contribution-w41-task-movement-pointer-verifier",
+      "job_title": "Task movement pointer verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Task movement pointer verifier contribution. Move tasks by pointer across days, weeks, and months and verify exact persistent date mutation and invalid-drop safety.",
+      "deliverable": "Produce the pointer movement evidence report, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct task-movement-pointer-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "pointer-task-move-audit"
+      ],
+      "owned_outputs": [
+        "pointer-movement-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the task-movement-pointer-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W42",
+      "criterion_id": "criterion-w42-task-movement-keyboard-verifier",
+      "contribution_id": "contribution-w42-task-movement-keyboard-verifier",
+      "job_title": "Task movement keyboard verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Task movement keyboard verifier contribution. Move tasks using the non-drag keyboard or menu fallback and verify visible and announced confirmation.",
+      "deliverable": "Produce the keyboard movement evidence report, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct task-movement-keyboard-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "keyboard-task-move-audit"
+      ],
+      "owned_outputs": [
+        "keyboard-movement-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the task-movement-keyboard-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W43",
+      "criterion_id": "criterion-w43-year-navigation-boundary-verifier",
+      "contribution_id": "contribution-w43-year-navigation-boundary-verifier",
+      "job_title": "Year navigation boundary verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Year navigation boundary verifier contribution. Exercise previous, next, today, month selection, and year transitions across multiple years.",
+      "deliverable": "Produce the year navigation transition matrix, with concrete evidence and a concise handoff to W21 calendar model implementer.",
+      "consumer": "W21 calendar model implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct year-navigation-boundary-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "year-navigation-boundary-audit"
+      ],
+      "owned_outputs": [
+        "year-navigation-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W21",
+        "W22"
+      ],
+      "acceptance_test": "Acceptance passes only when the year-navigation-boundary-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W44",
+      "criterion_id": "criterion-w44-leap-year-date-verifier",
+      "contribution_id": "contribution-w44-leap-year-date-verifier",
+      "job_title": "Leap year date verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Leap year date verifier contribution. Test February 28, February 29, March 1, task buckets, moves, and markers in leap and common years.",
+      "deliverable": "Produce the leap-year regression report, with concrete evidence and a concise handoff to W21 calendar model implementer.",
+      "consumer": "W21 calendar model implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct leap-year-date-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "leap-year-audit"
+      ],
+      "owned_outputs": [
+        "leap-year-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W21"
+      ],
+      "acceptance_test": "Acceptance passes only when the leap-year-date-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W45",
+      "criterion_id": "criterion-w45-month-grid-geometry-verifier",
+      "contribution_id": "contribution-w45-month-grid-geometry-verifier",
+      "job_title": "Month grid geometry verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Month grid geometry verifier contribution. Validate 42 cells, outside dates, week starts, six-row months, today, selection, and overflow counts.",
+      "deliverable": "Produce the month-grid geometry report, with concrete evidence and a concise handoff to W22 Upcoming calendar component implementer.",
+      "consumer": "W22 Upcoming calendar component implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct month-grid-geometry-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "month-grid-geometry-audit"
+      ],
+      "owned_outputs": [
+        "month-grid-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W21",
+        "W22"
+      ],
+      "acceptance_test": "Acceptance passes only when the month-grid-geometry-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W46",
+      "criterion_id": "criterion-w46-week-crossing-verifier",
+      "contribution_id": "contribution-w46-week-crossing-verifier",
+      "job_title": "Week crossing verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Week crossing verifier contribution. Verify seven-day rendering and navigation when weeks cross month and year boundaries, including task ordering and add actions.",
+      "deliverable": "Produce the cross-boundary week report, with concrete evidence and a concise handoff to W22 Upcoming calendar component implementer.",
+      "consumer": "W22 Upcoming calendar component implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct week-crossing-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "week-cross-boundary-audit"
+      ],
+      "owned_outputs": [
+        "week-crossing-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W21",
+        "W22"
+      ],
+      "acceptance_test": "Acceptance passes only when the week-crossing-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W47",
+      "criterion_id": "criterion-w47-green-marker-semantics-verifier",
+      "contribution_id": "contribution-w47-green-marker-semantics-verifier",
+      "job_title": "Green marker semantics verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Green marker semantics verifier contribution. Prove active task days are green and empty days are not across modes, counts, selection, today, completed-only, and dark states.",
+      "deliverable": "Produce the green marker truth table and screenshots, with concrete evidence and a concise handoff to W23 calendar visual system implementer.",
+      "consumer": "W23 calendar visual system implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct green-marker-semantics-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "green-marker-semantic-audit"
+      ],
+      "owned_outputs": [
+        "green-marker-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W23",
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the green-marker-semantics-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W48",
+      "criterion_id": "criterion-w48-persistence-reload-verifier",
+      "contribution_id": "contribution-w48-persistence-reload-verifier",
+      "job_title": "Persistence reload verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Persistence reload verifier contribution. Create projects and calendar tasks, reload, change modes, and confirm state survives without reseeding or duplication.",
+      "deliverable": "Produce the reload persistence checkpoints, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct persistence-reload-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "reload-persistence-audit"
+      ],
+      "owned_outputs": [
+        "reload-persistence-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the persistence-reload-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W49",
+      "criterion_id": "criterion-w49-concurrent-tab-conflict-verifier",
+      "contribution_id": "contribution-w49-concurrent-tab-conflict-verifier",
+      "job_title": "Concurrent tab conflict verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Concurrent tab conflict verifier contribution. Simulate two tabs writing from one revision and prove stale project or calendar writes fail without silent overwrite.",
+      "deliverable": "Produce the concurrent-write regression report, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct concurrent-tab-conflict-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "concurrent-tab-conflict-audit"
+      ],
+      "owned_outputs": [
+        "concurrent-conflict-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the concurrent-tab-conflict-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W50",
+      "criterion_id": "criterion-w50-timezone-and-dst-verifier",
+      "contribution_id": "contribution-w50-timezone-and-dst-verifier",
+      "job_title": "Timezone and DST verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Timezone and DST verifier contribution. Audit local-date and timed-task behavior around DST transitions and representative timezones for day-drift defects.",
+      "deliverable": "Produce the timezone and DST correctness report, with concrete evidence and a concise handoff to W21 calendar model implementer.",
+      "consumer": "W21 calendar model implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct timezone-and-dst-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "timezone-dst-audit"
+      ],
+      "owned_outputs": [
+        "timezone-dst-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W21"
+      ],
+      "acceptance_test": "Acceptance passes only when the timezone-and-dst-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W51",
+      "criterion_id": "criterion-w51-recurrence-preservation-verifier",
+      "contribution_id": "contribution-w51-recurrence-preservation-verifier",
+      "job_title": "Recurrence preservation verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Recurrence preservation verifier contribution. Move and edit recurring tasks and verify recurrence is preserved unless deliberately changed.",
+      "deliverable": "Produce the recurrence metadata report, with concrete evidence and a concise handoff to W26 calendar task editor implementer.",
+      "consumer": "W26 calendar task editor implementer",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct recurrence-preservation-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "recurrence-preservation-audit"
+      ],
+      "owned_outputs": [
+        "recurrence-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W26",
+        "W27"
+      ],
+      "acceptance_test": "Acceptance passes only when the recurrence-preservation-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W52",
+      "criterion_id": "criterion-w52-search-regression-verifier",
+      "contribution_id": "contribution-w52-search-regression-verifier",
+      "job_title": "Search regression verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Search regression verifier contribution. Confirm global search reflects created, edited, moved, completed, and project-changed calendar tasks.",
+      "deliverable": "Produce the search regression report, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct search-regression-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "search-regression-audit"
+      ],
+      "owned_outputs": [
+        "search-regression-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the search-regression-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W53",
+      "criterion_id": "criterion-w53-command-palette-regression-verifier",
+      "contribution_id": "contribution-w53-command-palette-regression-verifier",
+      "job_title": "Command palette regression verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Command palette regression verifier contribution. Exercise command navigation, Upcoming routing, quick add, and existing shortcuts after integration.",
+      "deliverable": "Produce the command and shortcut regression report, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct command-palette-regression-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "command-palette-regression-audit"
+      ],
+      "owned_outputs": [
+        "command-palette-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the command-palette-regression-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W54",
+      "criterion_id": "criterion-w54-sidebar-count-verifier",
+      "contribution_id": "contribution-w54-sidebar-count-verifier",
+      "job_title": "Sidebar count verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Sidebar count verifier contribution. Audit Today, Inbox, Upcoming, project, and label counts after create, edit, move, complete, and reload.",
+      "deliverable": "Produce the navigation count consistency report, with concrete evidence and a concise handoff to W09 application integration owner.",
+      "consumer": "W09 application integration owner",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct sidebar-count-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "sidebar-count-consistency-audit"
+      ],
+      "owned_outputs": [
+        "sidebar-count-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the sidebar-count-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W55",
+      "criterion_id": "criterion-w55-empty-state-verifier",
+      "contribution_id": "contribution-w55-empty-state-verifier",
+      "job_title": "Empty state verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Empty state verifier contribution. Inspect empty calendar modes, projects, and selected days for accurate copy, stable layout, and useful create actions.",
+      "deliverable": "Produce the empty-state usability report, with concrete evidence and a concise handoff to W01 visual concept director.",
+      "consumer": "W01 visual concept director",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct empty-state-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "empty-state-usability-audit"
+      ],
+      "owned_outputs": [
+        "empty-state-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the empty-state-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W56",
+      "criterion_id": "criterion-w56-large-dataset-performance-verifier",
+      "contribution_id": "contribution-w56-large-dataset-performance-verifier",
+      "job_title": "Large dataset performance verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Large dataset performance verifier contribution. Measure render, mode switching, navigation, selection, and editing with a representative 1000-task dataset.",
+      "deliverable": "Produce the performance timings and profiler report, with concrete evidence and a concise handoff to W07 performance strategy lead.",
+      "consumer": "W07 performance strategy lead",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct large-dataset-performance-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "large-dataset-performance-audit"
+      ],
+      "owned_outputs": [
+        "performance-measurements"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09"
+      ],
+      "acceptance_test": "Acceptance passes only when the large-dataset-performance-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W57",
+      "criterion_id": "criterion-w57-build-integrity-verifier",
+      "contribution_id": "contribution-w57-build-integrity-verifier",
+      "job_title": "Build integrity verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Build integrity verifier contribution. Run dependency integrity, source compilation, production build, emitted asset resolution, and clean-output checks.",
+      "deliverable": "Produce the fresh build-integrity command report, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct build-integrity-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "build-integrity-audit"
+      ],
+      "owned_outputs": [
+        "build-integrity-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W09",
+        "W30"
+      ],
+      "acceptance_test": "Acceptance passes only when the build-integrity-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W58",
+      "criterion_id": "criterion-w58-unit-suite-verifier",
+      "contribution_id": "contribution-w58-unit-suite-verifier",
+      "job_title": "Unit suite verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Unit suite verifier contribution. Run every existing and new unit test and prove the command includes all calendar model, adapter, and movement tests.",
+      "deliverable": "Produce the unit-suite coverage and result report, with concrete evidence and a concise handoff to W10 end-to-end release verifier.",
+      "consumer": "W10 end-to-end release verifier",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct unit-suite-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "unit-suite-audit"
+      ],
+      "owned_outputs": [
+        "unit-suite-report"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W21",
+        "W26",
+        "W27",
+        "W30"
+      ],
+      "acceptance_test": "Acceptance passes only when the unit-suite-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W59",
+      "criterion_id": "criterion-w59-launch-smoke-verifier",
+      "contribution_id": "contribution-w59-launch-smoke-verifier",
+      "job_title": "Launch smoke verifier",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "verify",
+      "assignment": "Own the Launch smoke verifier contribution. Launch the final Vite app on an available localhost port, verify HTTP and rendered UI, and keep it available for the user.",
+      "deliverable": "Produce the live launch receipt with URL and process identity, with concrete evidence and a concise handoff to Coordinator.",
+      "consumer": "Coordinator",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct launch-smoke-verifier acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "live-app-launch-smoke"
+      ],
+      "owned_outputs": [
+        "live-launch-receipt"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W10"
+      ],
+      "acceptance_test": "Acceptance passes only when the launch-smoke-verifier deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    },
+    {
+      "slot": "W60",
+      "criterion_id": "criterion-w60-final-acceptance-auditor",
+      "contribution_id": "contribution-w60-final-acceptance-auditor",
+      "job_title": "Final acceptance auditor",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "work_mode": "integrate",
+      "assignment": "Own the Final acceptance auditor contribution. Map every immutable goal clause to current-invocation evidence, reject gaps, and prepare receipt-ready outcomes without source changes.",
+      "deliverable": "Produce the complete acceptance matrix and outcome-ledger content, with concrete evidence and a concise handoff to Coordinator.",
+      "consumer": "Coordinator",
+      "goal_link": "This contribution advances the immutable Daymark goal through the distinct final-acceptance-auditor acceptance boundary.",
+      "read_scope": "F:\\study\\WebBuilding\\projects\\daymark-desktop and only accepted worker reports relevant to this contribution",
+      "write_targets": [],
+      "action_targets": [
+        "final-acceptance-ledger-audit"
+      ],
+      "owned_outputs": [
+        "final-acceptance-matrix"
+      ],
+      "exclusions": [
+        "Do not modify or act on any target outside this contribution",
+        "Do not overlap another worker owned target",
+        "Do not claim global completion"
+      ],
+      "dependencies": [
+        "W10",
+        "W31",
+        "W32",
+        "W33",
+        "W34",
+        "W35",
+        "W36",
+        "W37",
+        "W38",
+        "W39",
+        "W40",
+        "W41",
+        "W42",
+        "W43",
+        "W44",
+        "W45",
+        "W46",
+        "W47",
+        "W48",
+        "W49",
+        "W50",
+        "W51",
+        "W52",
+        "W53",
+        "W54",
+        "W55",
+        "W56",
+        "W57",
+        "W58",
+        "W59"
+      ],
+      "acceptance_test": "Acceptance passes only when the final-acceptance-auditor deliverable proves its stated focus with reproducible evidence and no ownership overlap."
+    }
+  ]
+}

@@ -1,0 +1,335 @@
+.reminder-planner {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  touch-action: pan-y;
+}
+
+.reminder-planner--standalone .reminder-planner__toolbar h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@supports selector(:has(*)) {
+  .content-frame:has(> .reminder-planner--standalone) > .view-header {
+    display: none;
+  }
+
+  .content-frame:has(> .reminder-planner--standalone) {
+    padding-top: clamp(24px, 5vw, 48px);
+  }
+
+  .reminder-planner--standalone .reminder-planner__toolbar h2 {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+  }
+}
+
+.reminder-planner__toolbar,
+.reminder-planner__toolbar-actions,
+.reminder-planner__editor-heading,
+.reminder-planner__editor-actions,
+.reminder-planner__item,
+.reminder-planner__alert-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reminder-planner__toolbar {
+  min-width: 0;
+  justify-content: space-between;
+}
+
+.reminder-planner__toolbar > div:first-child {
+  min-width: 0;
+}
+
+.reminder-planner__toolbar h2,
+.reminder-planner__toolbar p,
+.reminder-planner__alerts p,
+.reminder-planner__empty h3,
+.reminder-planner__empty p {
+  margin: 0;
+}
+
+.reminder-planner__toolbar h2 {
+  font-size: clamp(20px, 2vw, 24px);
+  overflow-wrap: anywhere;
+}
+
+.reminder-planner__toolbar p,
+.reminder-planner__alerts span,
+.reminder-planner__item small,
+.reminder-planner__empty p {
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.reminder-planner__create {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid #ff7900;
+  border-radius: 7px;
+  background: #ff7900;
+  color: #111;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.reminder-planner__editor,
+.reminder-planner__alerts,
+.reminder-planner__empty {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+}
+
+.reminder-planner__editor > label,
+.reminder-planner__destination {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.reminder-planner__editor label > span,
+.reminder-planner__destination > span,
+.reminder-planner__alerts strong {
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.reminder-planner__editor input,
+.reminder-planner__editor textarea,
+.reminder-planner__editor select,
+.reminder-planner__target-fields select,
+.reminder-planner__alert-row input,
+.reminder-planner__alert-row select {
+  min-height: 42px;
+  min-width: 0;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.reminder-planner__editor textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+
+.reminder-planner__target-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.reminder-planner__target-tabs button {
+  min-height: 44px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.reminder-planner__target-tabs button[aria-pressed="true"] {
+  border-color: #ff7900;
+  color: #ff7900;
+}
+
+.reminder-planner__target-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.reminder-planner__alerts > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.reminder-planner__alert-row {
+  display: grid;
+  grid-template-columns: minmax(64px, 0.55fr) minmax(100px, 0.8fr) minmax(160px, 1.3fr) minmax(88px, auto) minmax(72px, auto);
+  min-width: 0;
+}
+
+.reminder-planner__remove-alert {
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--color-danger);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.reminder-planner__editor-actions {
+  justify-content: flex-end;
+}
+
+.reminder-planner__error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 12px;
+}
+
+.reminder-planner__list {
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+
+.reminder-planner__item {
+  justify-content: space-between;
+  min-width: 0;
+  min-height: 76px;
+  gap: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.reminder-planner__item-main {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 3px;
+  padding: 12px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.reminder-planner__item > .danger-button {
+  min-height: 44px;
+  flex: 0 0 auto;
+}
+
+.reminder-planner__item-main strong,
+.reminder-planner__item-main span,
+.reminder-planner__item-main small {
+  overflow-wrap: anywhere;
+}
+
+.reminder-planner__item-main span {
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .reminder-planner__toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .reminder-planner__toolbar-actions {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .reminder-planner__toolbar-actions > * {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .reminder-planner__target-fields,
+  .reminder-planner__alert-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .reminder-planner__alert-row {
+    gap: 7px;
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .reminder-planner__remove-alert {
+    justify-self: stretch;
+  }
+
+  .reminder-planner__item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    padding: 10px 0;
+  }
+
+  .reminder-planner__item-main {
+    grid-column: 1;
+  }
+
+  .reminder-planner__item > .danger-button {
+    grid-column: 2;
+  }
+}
+
+@media (pointer: coarse) {
+  .reminder-planner__create,
+  .reminder-planner__editor input,
+  .reminder-planner__editor textarea,
+  .reminder-planner__editor select,
+  .reminder-planner__alert-row input,
+  .reminder-planner__alert-row select,
+  .reminder-planner__editor-actions > *,
+  .reminder-planner__target-tabs button,
+  .reminder-planner__remove-alert,
+  .reminder-planner__item-main,
+  .reminder-planner__item > .danger-button {
+    min-height: 44px;
+  }
+}
+
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 560px) {
+  .reminder-planner {
+    gap: 12px;
+  }
+
+  .reminder-planner__editor,
+  .reminder-planner__alerts,
+  .reminder-planner__empty {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .reminder-planner__toolbar h2 {
+    font-size: 19px;
+  }
+
+  .reminder-planner__item {
+    min-height: 60px;
+  }
+}
+
+[data-theme] .app-shell .reminder-planner__create,
+[data-theme] body .reminder-planner__create {
+  background-color: #ff7900 !important;
+  border-color: #ff7900 !important;
+  color: #111 !important;
+}
+
+[data-theme] .app-shell .reminder-planner__target-tabs button[aria-pressed="true"],
+[data-theme] body .reminder-planner__target-tabs button[aria-pressed="true"] {
+  border-color: #ff7900 !important;
+  color: #ff7900 !important;
+}
